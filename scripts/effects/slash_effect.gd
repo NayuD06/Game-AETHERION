@@ -4,6 +4,7 @@ extends Node2D
 var radius := 20.0
 var color := Color(1.0, 1.0, 0.85)
 var alpha := 1.0
+var arc := 1.2  # nửa góc vệt chém (radian); PI = cả vòng tròn
 
 
 func _ready() -> void:
@@ -20,5 +21,5 @@ func _process(_delta: float) -> void:
 func _draw() -> void:
 	var c := color
 	c.a = alpha
-	draw_arc(Vector2.ZERO, radius, -1.2, 1.2, 14, c, 4.0)
-	draw_arc(Vector2.ZERO, radius - 4.0, -0.9, 0.9, 10, Color(1, 1, 1, alpha * 0.6), 2.0)
+	draw_arc(Vector2.ZERO, radius, -arc, arc, 14 + int(arc * 8.0), c, 4.0)
+	draw_arc(Vector2.ZERO, radius - 4.0, -arc * 0.75, arc * 0.75, 10 + int(arc * 6.0), Color(1, 1, 1, alpha * 0.6), 2.0)

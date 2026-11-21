@@ -1,14 +1,21 @@
 class_name CharacterParts
 extends RefCounted
 ## Danh sách các phần ngoại hình nhân vật (màn hình tạo nhân vật dùng file này).
-## Muốn thêm kiểu tóc / trang phục / mũ mới: vẽ sprite sheet 64x48
-## (4 cột x 3 hàng, mỗi khung 16x16: hàng 1 đi xuống, hàng 2 đi lên, hàng 3 đi ngang sang phải),
+## Muốn thêm kiểu tóc / trang phục / mũ mới: vẽ sprite sheet 96x96
+## (4 cột x 3 hàng, mỗi khung 24x32: hàng 1 đi xuống, hàng 2 đi lên, hàng 3 đi ngang sang phải),
 ## bỏ vào assets/character/ rồi thêm một dòng vào danh sách bên dưới.
 ##
-## Tóc, trang phục và da được vẽ màu xám nhạt để tô màu bằng code (self_modulate).
-## Mũ được vẽ sẵn màu nên không tô.
+## Da, tay, tóc và trang phục được vẽ màu xám để tô màu bằng code (self_modulate).
+## Mặt (mắt) và mũ được vẽ sẵn màu nên không tô.
+## Thứ tự lớp từ dưới lên: thân (da) < mặt < trang phục < bàn tay < tóc < mũ.
+
+const FRAME_SIZE := Vector2(24, 32)
+## Dời hình lên để bàn chân nhân vật nằm đúng chỗ bóng đổ / va chạm.
+const SPRITE_OFFSET := Vector2(0, -7)
 
 const BODY := preload("res://assets/character/body.png")
+const FACE := preload("res://assets/character/face.png")
+const HANDS := preload("res://assets/character/hands.png")
 
 const SKIN_TONES := [
 	["Sáng", Color(1.0, 0.92, 0.85)],
@@ -77,17 +84,23 @@ const DEFAULT := {
 }
 
 
-## Gắn các lớp ngoại hình lên một Sprite2D thân (Sprite2D phải có hframes = 4, vframes = 3).
-## Các lớp tóc / áo / mũ là con của Sprite2D đó, tên "Outfit", "Hair", "Hat".
+## Gắn các lớp ngoại hình lên một Sprite2D thân.
+## Các lớp mặt / áo / tay / tóc / mũ là con của Sprite2D đó, tên "Face", "Outfit", "Hands", "Hair", "Hat".
 static func apply_to_sprite(body: Sprite2D, look: Dictionary) -> void:
 	body.texture = BODY
-	body.self_modulate = SKIN_TONES[look.get("skin", 0) % SKIN_TONES.size()][1]
+	body.hframes = 4
+	body.vframes = 3
+	body.offset = SPRITE_OFFSET
+	var skin: Color = SKIN_TONES[look.get("skin", 0) % SKIN_TONES.size()][1]
+	body.self_modulate = skin
 	var outfit: Array = OUTFITS[look.get("outfit", 0) % OUTFITS.size()]
 	var outfit_color: Color = OUTFIT_COLORS[look.get("outfit_color", 0) % OUTFIT_COLORS.size()][1]
 	var hair: Array = HAIR_STYLES[look.get("hair", 0) % HAIR_STYLES.size()]
 	var hair_color: Color = HAIR_COLORS[look.get("hair_color", 0) % HAIR_COLORS.size()][1]
 	var hat: Array = HATS[look.get("hat", 0) % HATS.size()]
+	_set_layer(body, "Face", FACE, Color.WHITE)
 	_set_layer(body, "Outfit", outfit[1], outfit_color)
+	_set_layer(body, "Hands", HANDS, skin)
 	_set_layer(body, "Hair", hair[1], hair_color)
 	_set_layer(body, "Hat", hat[1], Color.WHITE)
 
@@ -100,6 +113,7 @@ static func _set_layer(body: Sprite2D, layer_name: String, texture: Texture2D, t
 		layer.hframes = body.hframes
 		layer.vframes = body.vframes
 		body.add_child(layer)
+	layer.offset = body.offset
 	layer.texture = texture
 	layer.visible = texture != null
 	layer.self_modulate = tint

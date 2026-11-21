@@ -17,6 +17,9 @@ signal died(enemy: Enemy)
 @export var armor := 0  # giáp: trừ thẳng vào sát thương mỗi đòn (Thương xuyên và phá được giáp)
 @export var death_color := Color(0.5, 0.85, 0.3)  # màu hạt bắn ra khi chết
 @export var anim_speed := 6.0  # tốc độ đổi khung hình
+## Vật phẩm rơi vào túi khi chết, mỗi mục: [tên vật phẩm, tỉ lệ rơi 0..1, ít nhất, nhiều nhất]
+## Ví dụ sói: [["hide", 0.7, 1, 1], ["meat", 0.6, 1, 2], ["bone", 0.4, 1, 1]]
+@export var item_drops: Array = []
 
 var hp := 0
 var player: Player = null
@@ -208,3 +211,6 @@ func _drop_loot() -> void:
 		Pickup.spawn(parent, Pickup.Kind.POTION_MP, global_position, 15)
 	elif roll < 0.25:
 		Pickup.spawn(parent, Pickup.Kind.POWER_CRYSTAL, global_position, 2)
+	for drop in item_drops:
+		if drop is Array and drop.size() >= 4 and randf() < float(drop[1]):
+			Pickup.spawn_item(parent, str(drop[0]), global_position, randi_range(int(drop[2]), int(drop[3])))

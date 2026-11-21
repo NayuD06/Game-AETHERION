@@ -6,8 +6,8 @@ const SCREEN := Vector2(640, 360)
 const GRASS := preload("res://assets/town/grass.png")
 const SHADOW := preload("res://assets/sprites/shadow.png")
 const TURN_ROWS := [0, 2, 1, 2]  # hàng sprite sheet khi xoay: xuống, phải, lên, trái
-const PREVIEW_SCALE := 8.0
-const PREVIEW_CENTER := Vector2(135, 148)  # tâm nhân vật trong khung xem trước
+const PREVIEW_SCALE := 6.0
+const PREVIEW_CENTER := Vector2(135, 188)  # tâm nhân vật trong khung xem trước
 
 # Mỗi dòng lựa chọn: [khóa trong look, tiêu đề, danh sách]
 var rows := []
@@ -15,16 +15,18 @@ var look: Dictionary = {}
 var value_labels := {}
 var name_edit: LineEdit
 var weapon_desc: Label
-var held_rect: TextureRect  # vũ khí trên tay nhân vật xem trước
 var held_weapon := 0
 
-# Xem trước nhân vật: mỗi lớp là một TextureRect dùng AtlasTexture để cắt khung hình
-var preview_layers := {}  # "body" / "outfit" / "hair" / "hat" -> TextureRect
-var preview_atlases := {}
+# Xem trước nhân vật: dùng đúng các lớp hình như trong game, phóng to PREVIEW_SCALE lần
+var preview_root: Node2D
+var preview_body: Sprite2D
+var preview_hold: Node2D    # vũ khí trên tay
+var preview_book: Sprite2D  # sách phép bay cạnh người
 var anim_time := 0.0
 
 
 func _ready() -> void:
+	Game.set_attack_cursor(false)
 	look = Game.appearance.duplicate()
 	rows = [
 		["weapon", "Vũ khí", _weapon_options()],
@@ -125,28 +127,23 @@ func _build_background() -> void:
 
 func _build_preview() -> void:
 	_panel(Vector2(30, 60), Vector2(210, 240))
-	var shadow := TextureRect.new()
+	preview_root = Node2D.new()
+	preview_root.position = PREVIEW_CENTER
+	preview_root.scale = Vector2.ONE * PREVIEW_SCALE
+	add_child(preview_root)
+	var shadow := Sprite2D.new()
 	shadow.texture = SHADOW
-	shadow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	shadow.position = Vector2(135 - 56, 60 + 30 + 104)
-	shadow.size = Vector2(112, 42)
-	add_child(shadow)
-	for key in ["body", "outfit", "hair", "hat"]:
-		var atlas := AtlasTexture.new()
-		atlas.region = Rect2(0, 0, 16, 16)
-		var rect := TextureRect.new()
-		rect.texture = atlas
-		rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		rect.stretch_mode = TextureRect.STRETCH_SCALE
-		rect.position = PREVIEW_CENTER - Vector2(8, 8) * PREVIEW_SCALE
-		rect.size = Vector2(16, 16) * PREVIEW_SCALE
-		add_child(rect)
-		preview_layers[key] = rect
-		preview_atlases[key] = atlas
-	held_rect = TextureRect.new()
-	held_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	held_rect.stretch_mode = TextureRect.STRETCH_SCALE
-	add_child(held_rect)
+	shadow.position = Vector2(0, 7)
+	preview_root.add_child(shadow)
+	preview_body = Sprite2D.new()
+	preview_root.add_child(preview_body)
+	preview_hold = Node2D.new()
+	preview_hold.add_child(Sprite2D.new())
+	preview_root.add_child(preview_hold)
+	preview_book = Sprite2D.new()
+	preview_book.texture = Weapons.info(Weapons.Type.BOOK)["texture"]
+	preview_book.scale = Vector2.ONE * 0.75
+	preview_root.add_child(preview_book)
 	var hint := _label("Nhân vật đang xoay để bạn xem 4 hướng", 8, Color(0.75, 0.75, 0.85))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hint.size = Vector2(210, 12)
@@ -234,26 +231,9 @@ func _refresh() -> void:
 	held_weapon = Weapons.ORDER[int(look.get("weapon", 0)) % Weapons.ORDER.size()]
 	var w := Weapons.info(held_weapon)
 	weapon_desc.text = w["desc"]
-	# Vũ khí trên tay (Sách Phép thì bay cạnh người giống trong game)
-	var tex: Texture2D = w.get("held", w["texture"])
-	held_rect.texture = tex
-	var px := 12.0 if held_weapon == Weapons.Type.BOOK else float(tex.get_width())
-	held_rect.size = Vector2(px, px) * PREVIEW_SCALE
-	# Lớp hình xem trước
-	_set_preview("body", CharacterParts.BODY, CharacterParts.SKIN_TONES[look["skin"]][1])
-	_set_preview("outfit", CharacterParts.OUTFITS[look["outfit"]][1],
-		CharacterParts.OUTFIT_COLORS[look["outfit_color"]][1])
-	_set_preview("hair", CharacterParts.HAIR_STYLES[look["hair"]][1],
-		CharacterParts.HAIR_COLORS[look["hair_color"]][1])
-	_set_preview("hat", CharacterParts.HATS[look["hat"]][1], Color.WHITE)
-
-
-func _set_preview(key: String, texture: Texture2D, tint: Color) -> void:
-	var atlas: AtlasTexture = preview_atlases[key]
-	atlas.atlas = texture
-	var rect: TextureRect = preview_layers[key]
-	rect.visible = texture != null
-	rect.self_modulate = tint
+	CharacterParts.apply_to_sprite(preview_body, look)
+	preview_book.visible = held_weapon == Weapons.Type.BOOK
+	preview_hold.visible = not preview_book.visible
 
 
 func _process(delta: float) -> void:
@@ -261,36 +241,16 @@ func _process(delta: float) -> void:
 	# Xoay vòng: xuống -> phải -> lên -> trái, mỗi hướng 1.6 giây
 	var turn := int(anim_time / 1.6) % 4
 	var row: int = TURN_ROWS[turn]
-	var flip := turn == 3
+	var face_left := turn == 3
 	var col := int(anim_time * 7.0) % 4
-	for key in preview_atlases:
-		var atlas: AtlasTexture = preview_atlases[key]
-		atlas.region = Rect2(col * 16, row * 16, 16, 16)
-		var rect: TextureRect = preview_layers[key]
-		rect.flip_h = flip
-	_place_held_weapon(row, col, flip)
-
-
-func _place_held_weapon(row: int, col: int, face_left: bool) -> void:
-	var offset: Vector2
-	var behind := false
-	if held_weapon == Weapons.Type.BOOK:
+	preview_body.frame = row * 4 + col
+	preview_body.flip_h = face_left
+	CharacterParts.sync_frames(preview_body)
+	if preview_hold.visible:
+		Weapons.pose_held(preview_hold, preview_body, held_weapon, row, col, face_left)
+	if preview_book.visible:
 		var side := 1.0 if face_left else -1.0
-		offset = Vector2(side * 9.0, -7.0 + sin(anim_time * 3.0) * 1.5)
-		held_rect.flip_h = false
-	else:
-		var pose: Array = Weapons.HOLD_POSES[Weapons.direction_name(row, face_left)]
-		offset = pose[0] + Vector2(0, -1 if col % 2 == 1 else 0)
-		behind = pose[1]
-		held_rect.flip_h = pose[2]
-	held_rect.position = PREVIEW_CENTER + offset * PREVIEW_SCALE - held_rect.size / 2.0
-	# Sau lưng: nằm ngay trước lớp thân. Phía trước: nằm sau lớp mũ.
-	var body: TextureRect = preview_layers["body"]
-	var hat: TextureRect = preview_layers["hat"]
-	if behind and held_rect.get_index() > body.get_index():
-		move_child(held_rect, body.get_index())
-	elif not behind and held_rect.get_index() < hat.get_index():
-		move_child(held_rect, hat.get_index())
+		preview_book.position = Vector2(side * 11.0, -10.0 + sin(anim_time * 3.0) * 1.5)
 
 
 func _start_game() -> void:

@@ -7,10 +7,15 @@ extends RefCounted
 ##   range / arc   : tầm với (pixel) và độ rộng góc chém (độ)
 ##   armor_pierce  : bỏ qua bao nhiêu phần giáp của quái (0 = không, 1 = toàn bộ)
 ##   armor_break   : mỗi đòn trúng làm giáp quái giảm đi bao nhiêu
+##   auto_range    : bấm chuột phải vào quái thì chạy tới khoảng cách này rồi tự đánh
+##   grip          : khoảng cách từ bàn tay tới tâm hình vũ khí (pixel)
+##   hold          : góc cầm vũ khí lúc đứng / đi (độ) khi nhìn xuống, lên, ngang
 ##
 ## Vũ khí được chọn khi tạo nhân vật và KHÔNG đổi được khi đang chơi.
-## "skills" là chỗ để sau này thêm cây kỹ năng riêng cho từng loại vũ khí
-## (ví dụ: Cung gồng bắn tên nguyên tố, Sách dùng toàn bộ sức mạnh nguyên tố).
+##
+## "skills": bộ kỹ năng mặc định khi vào game, theo thứ tự phím Q, W, E và R (tuyệt chiêu).
+##   Chỉ ghi id kỹ năng. Thông số và mô tả kỹ năng nằm ở scripts/skills.gd.
+##   Sau này người chơi có thể đổi kỹ năng khác vào ô (kỹ năng nguyên tố...).
 
 enum Type { SWORD, SPEAR, BOW, BOOK }
 
@@ -20,11 +25,13 @@ const DATA := {
 	Type.SWORD: {
 		"name": "Kiếm",
 		"class_name": "Kiếm Sĩ",
-		"skills": [],
+		"skills": ["sword_triple_slash", "sword_piercing_thrust", "sword_whirlwind", "sword_swordstorm"],
 		"desc": "Kiếm: đánh rất nhanh, bấm liên tục ra combo 3 đòn. Bị giáp chặn bớt sát thương.",
 		"icon": preload("res://assets/weapons/sword_icon.png"),
 		"texture": preload("res://assets/weapons/sword.png"),
-		"held": preload("res://assets/weapons/sword_held.png"),
+		"grip": 6.0,
+		"hold": {"down": -60.0, "up": -110.0, "side": 35.0},
+		"auto_range": 18.0,
 		"damage": 1.0,
 		"finisher_damage": 1.5,
 		"cooldown": 0.2,
@@ -38,11 +45,13 @@ const DATA := {
 	Type.SPEAR: {
 		"name": "Thương",
 		"class_name": "Thương Thủ",
-		"skills": [],
+		"skills": ["spear_thrust", "spear_sweeping_strike", "spear_impaling_charge", "spear_heavens_spear"],
 		"desc": "Thương: đâm xa và mạnh nhưng chậm hơn. Xuyên giáp và phá giáp quái.",
 		"icon": preload("res://assets/weapons/spear_icon.png"),
 		"texture": preload("res://assets/weapons/spear.png"),
-		"held": preload("res://assets/weapons/spear_held.png"),
+		"grip": 8.0,
+		"hold": {"down": -80.0, "up": -100.0, "side": -15.0},
+		"auto_range": 34.0,
 		"damage": 1.3,
 		"cooldown": 0.42,
 		"range": 40.0,
@@ -54,11 +63,13 @@ const DATA := {
 	Type.BOW: {
 		"name": "Cung",
 		"class_name": "Xạ Thủ",
-		"skills": [],  # sau này: tên Lửa, tên Băng... khi gồng
+		"skills": ["bow_double_shot", "bow_piercing_arrow", "bow_backstep_shot", "bow_rain_of_arrows"],
 		"desc": "Cung: bắn xa. Giữ nút chém để gồng, thả ra bắn mũi tên đau hơn và xuyên quái.",
 		"icon": preload("res://assets/weapons/bow.png"),
 		"texture": preload("res://assets/weapons/bow.png"),
-		"held": preload("res://assets/weapons/bow_held.png"),
+		"grip": 3.0,
+		"hold": {"down": 0.0, "up": 180.0, "side": 0.0},
+		"auto_range": 150.0,
 		"arrow": preload("res://assets/weapons/arrow.png"),
 		"damage": 0.8,            # bắn nhanh (không gồng)
 		"charged_damage": 2.6,    # gồng đầy
@@ -73,22 +84,15 @@ const DATA := {
 	Type.BOOK: {
 		"name": "Sách Phép",
 		"class_name": "Pháp Sư",
-		"skills": [],  # sau này: phép nguyên tố
-		"desc": "Sách Phép: nơi cất giữ sức mạnh nguyên tố. Sẽ được thức tỉnh trong bản sau.",
+		"skills": ["book_orb", "book_nova", "book_blink", "book_meteor"],  # tạm thời, sau này: phép nguyên tố
+		"desc": "Sách Phép: bắn tia phép về phía con trỏ. Sức mạnh nguyên tố sẽ được thức tỉnh sau.",
+		"damage": 0.7,
+		"bolt_speed": 220.0,
 		"icon": preload("res://assets/weapons/spellbook.png"),
 		"texture": preload("res://assets/weapons/spellbook.png"),
 		"cooldown": 0.5,
+		"auto_range": 40.0,
 	},
-}
-
-
-## Tư thế cầm vũ khí trong tay lúc không đánh (Sách Phép thì bay cạnh người nên không cần).
-## Mỗi hướng: [vị trí so với tâm nhân vật, vẽ sau lưng nhân vật?, lật ngang?]
-const HOLD_POSES := {
-	"down": [Vector2(5, 2), false, false],
-	"up": [Vector2(-5, 2), true, true],
-	"right": [Vector2(4, 2), true, false],
-	"left": [Vector2(-4, 2), true, true],
 }
 
 
@@ -96,10 +100,41 @@ static func info(type: int) -> Dictionary:
 	return DATA[type]
 
 
-## Hướng nhìn ("down" / "up" / "right" / "left") theo hàng sprite sheet nhân vật.
-static func direction_name(row: int, face_left: bool) -> String:
+## Vị trí bàn tay cầm vũ khí so với tâm nhân vật (hình 24x32), theo hàng và khung hình sprite sheet.
+## Hàng 0 = nhìn xuống, 1 = nhìn lên, 2 = nhìn ngang sang phải.
+static func hand_position(row: int, col: int) -> Vector2:
+	var s: int = [0, 1, 0, -1][col % 4]
+	var b := 1 if col % 2 == 1 else 0
+	if row == 0:
+		return Vector2(5, b - s)
 	if row == 1:
-		return "up"
-	if row == 2:
-		return "left" if face_left else "right"
-	return "down"
+		return Vector2(-5, b - s)
+	return Vector2(1 + 2 * s, b)
+
+
+## Đặt vũ khí cầm trong tay theo hướng nhìn. pivot là Node2D có 1 Sprite2D con,
+## body là Sprite2D thân nhân vật nằm cùng cha (để xếp vũ khí ra sau hoặc trước người).
+static func pose_held(pivot: Node2D, body: Sprite2D, type: int, row: int, col: int, face_left: bool) -> void:
+	var w := info(type)
+	if not w.has("hold"):
+		pivot.visible = false
+		return
+	var held := pivot.get_child(0) as Sprite2D
+	held.texture = w["texture"]
+	held.offset = Vector2(w["grip"], 0)
+	var hand := hand_position(row, col)
+	var angle := deg_to_rad(float(w["hold"][["down", "up", "side"][row]]))
+	if face_left:
+		hand.x = -hand.x
+		angle = -angle
+	pivot.position = hand
+	pivot.rotation = angle
+	pivot.scale = Vector2(-1, 1) if face_left else Vector2.ONE
+	# Nhìn lên thì vũ khí ở phía trước người (xa người xem) nên vẽ sau lưng
+	var behind := row == 1
+	var body_index := body.get_index()
+	var target := body_index if behind else body_index + 1
+	if pivot.get_index() < body_index:
+		target -= 1
+	if pivot.get_index() != target:
+		pivot.get_parent().move_child(pivot, target)

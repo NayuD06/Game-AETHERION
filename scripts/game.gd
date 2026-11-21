@@ -11,17 +11,30 @@ signal boss_health_changed(current: int, maximum: int)
 signal boss_armor_changed(armor: int)
 signal boss_defeated
 signal game_won
+signal station_changed(station: String)            # Đứng gần trạm chế tạo ("pot", "bench"), "" = đi xa
 
 # Phím bàn phím cho từng hành động. Bạn có thể sửa ở đây,
 # hoặc tự tạo action cùng tên trong Project > Project Settings > Input Map
 # (nếu đã có trong Input Map thì phần dưới sẽ bỏ qua action đó).
+## Điều khiển chính bằng chuột kiểu Liên Minh Huyền Thoại / Dota.
+## Phím mũi tên và J vẫn dùng được nếu muốn chơi bằng bàn phím.
 const KEY_BINDINGS := {
-	"move_up": [KEY_W, KEY_UP],
-	"move_down": [KEY_S, KEY_DOWN],
-	"move_left": [KEY_A, KEY_LEFT],
-	"move_right": [KEY_D, KEY_RIGHT],
+	"move_click": [],              # chuột phải: đi / chọn quái để đánh
+	"attack_mouse": [],            # chuột trái: đánh về phía con trỏ
+	"attack_move": [KEY_A],        # A rồi chuột trái: vừa đi vừa đánh
+	"stop": [KEY_S],               # đứng lại
+	"skill_1": [KEY_Q],
+	"skill_2": [KEY_W],
+	"skill_3": [KEY_E],
+	"skill_ult": [KEY_R],          # tuyệt chiêu
+	"dash": [KEY_F],               # lướt
+	"use_item": [KEY_D],           # dùng bình máu
+	"inventory": [KEY_B],          # mở / đóng túi đồ
+	"move_up": [KEY_UP],
+	"move_down": [KEY_DOWN],
+	"move_left": [KEY_LEFT],
+	"move_right": [KEY_RIGHT],
 	"attack": [KEY_J],
-	"dash": [KEY_SPACE, KEY_K],
 	"new_character": [KEY_N],
 	"skill_fire": [KEY_U],
 	"skill_thunder": [KEY_I],
@@ -30,8 +43,13 @@ const KEY_BINDINGS := {
 }
 
 const MOUSE_BINDINGS := {
-	"attack": [MOUSE_BUTTON_LEFT],
+	"move_click": [MOUSE_BUTTON_RIGHT],
+	"attack_mouse": [MOUSE_BUTTON_LEFT],
 }
+
+const CURSOR_NORMAL := preload("res://assets/ui/cursor_normal.png")
+const CURSOR_ATTACK := preload("res://assets/ui/cursor_attack.png")
+var attack_cursor := false
 
 
 ## Ngoại hình + vũ khí của nhân vật (chọn ở màn hình tạo nhân vật, lưu vào máy).
@@ -43,6 +61,15 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_setup_inputs()
 	load_appearance()
+	Input.set_custom_mouse_cursor(CURSOR_NORMAL, Input.CURSOR_ARROW, Vector2(2, 2))
+
+
+## Đổi con trỏ chuột thành hình kiếm khi rê lên quái.
+func set_attack_cursor(on: bool) -> void:
+	if on == attack_cursor:
+		return
+	attack_cursor = on
+	Input.set_custom_mouse_cursor(CURSOR_ATTACK if on else CURSOR_NORMAL, Input.CURSOR_ARROW, Vector2(2, 2))
 
 
 func load_appearance() -> void:

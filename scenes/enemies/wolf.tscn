@@ -1,0 +1,32 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/wolf.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/wolf.png" id="2_tex"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_body"]
+radius = 6.0
+
+[node name="Wolf" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 5
+motion_mode = 1
+script = ExtResource("1_script")
+display_name = "Sói"
+max_hp = 30
+speed = 55.0
+contact_damage = 7
+xp_reward = 9
+gold_reward = 1
+detect_range = 120.0
+hit_radius = 7.0
+armor = 0
+death_color = Color(0.6, 0.6, 0.68, 1)
+item_drops = [["hide", 0.7, 1, 1], ["meat", 0.6, 1, 2], ["bone", 0.45, 1, 1]]
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_tex")
+hframes = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 3)
+shape = SubResource("CircleShape2D_body")
