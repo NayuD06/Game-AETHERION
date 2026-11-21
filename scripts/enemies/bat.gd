@@ -16,4 +16,4 @@ func _ai(delta: float) -> Vector2:
 func _animate(delta: float, move: Vector2) -> void:
 	anim_time += delta * 4.0  # vỗ cánh liên tục kể cả khi đứng yên
 	super._animate(delta, move)
-	sprite.position.y = sin(anim_time * 0.8) * 2.0 - 4.0  # bay lơ lửng
+	sprite.position.y = sprite_base_y + sin(anim_time * 0.8) * 2.0 - 4.0  # bay lơ lửng

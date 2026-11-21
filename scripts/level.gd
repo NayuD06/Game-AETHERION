@@ -6,14 +6,18 @@ extends Node2D
 ## Bạn có thể tự sửa bản đồ: mỗi ký tự là một ô 16x16 pixel.
 ##
 ##   T  cây rừng (chặn đường, nền rừng tối)   #  tường đá (chặn đường)
-##   ~  nước (chặn đường)         G  cổng phong ấn (mở khi hạ Boss)
+##   ~  nước (chặn đường)
+##   G  cửa hang vào Hầm Ngục Cổ (đặt trên vách đá, miệng hang quay xuống dưới).
+##      Bị phong ấn tới khi hạ Boss, sau đó đi vào là sang hầm ngục.
+##   {  lối ra trong hầm ngục (cầu thang có ánh sáng, đặt trên tường): đi vào là ra lại cửa hang
 ##   o  bụi cây (chặn đường)      r  tảng đá (chặn đường)
 ##   .  cỏ      ,  cỏ có hoa      :  sàn đá đấu trường     ;  sàn hầm ngục (phiến đá)
 ##   _  đường lát đá    f  hàng rào    w  giếng    q  biển báo (đọc khi đi tới gần)
 ##   y  tổ ong    t  cây trong làng    n  nấm (trang trí)
 ##   d  bù nhìn tập đánh    D  bù nhìn có giáp (thử Thương phá giáp)
 ##   -  đường đất    %  bãi đất đá    p  luống rau (trên đất)
-##   k  thùng gỗ    l  thùng tròn    z  gốc cây    j  lửa trại    (đều chặn đường)
+##   k  thùng gỗ    l  thùng tròn    z  gốc cây (có Rìu thì chặt được gỗ)    j  lửa trại (nướng đồ ăn được)
+##   (các ô trên đều chặn đường)
 ##   H  nhà gỗ trong rừng (rộng 3, cao 3)    V  thác nước (rộng 3, cao 3, đặt ngay trên hồ '~')
 ##   Hầm ngục (bên phải cổng G, tối, có ánh sáng):
 ##   Y  đuốc treo tường (đặt lên ô tường)   Z  cờ treo tường (đặt lên ô tường)
@@ -34,7 +38,7 @@ extends Node2D
 ##   *  nấm khổng lồ    !  cối xay gió (rộng 3, cao 3)    &  nhà kho (rộng 4, cao 3)
 ##   )  bù nhìn đuổi chim    (  bó rơm    X  sói    N  heo rừng
 ##   Chế tạo (đi tới gần là mở bảng chế tạo, công thức ở scripts/recipes.gd):
-##   C  nồi luyện thuốc    @  bàn chế tạo (rộng 2: @ x)
+##   C  nồi luyện thuốc    @  bàn chế tạo (rộng 2: @ x)    8  bếp lửa nướng    0  lò nấu ăn (lò gạch)
 ##   Cạnh mỗi giếng 'w' có xô nước: đi tới là lấy được Bình nước (một lúc sau xô đầy lại).
 ##   R U W M  nhà (góc trên bên trái), các ô 'x' là phần còn lại của ngôi nhà
 ##            R, U, W rộng 4 ô, M rộng 3 ô, tất cả cao 3 ô
@@ -45,7 +49,8 @@ extends Node2D
 ##
 ## Bản đồ có 3 dải: dải trên (Làng Ven Hồ + Rừng Thông), dải giữa (Làng Khởi Nguyên + Rừng Hoang
 ## + đấu trường + hầm ngục) và dải dưới (Xóm Ruộng + Đầm Lầy Nấm). Tên, kiểu cảnh và thú của từng khu
-## nằm trong AREAS bên dưới. Bên phải cổng G là hầm ngục, quái bên phải cổng tự động mạnh hơn (elite).
+## nằm trong AREAS bên dưới. Hầm ngục nằm riêng ở phía đông (bắt đầu từ ô ';' đầu tiên), chỉ vào được
+## qua cửa hang G. Quái trong hầm ngục tự động mạnh hơn (elite).
 
 const TILE := 16
 
@@ -97,9 +102,9 @@ const SIGN_TEXTS := [
 	"Rừng Thông. Nai, thỏ sống ở đây... và cả bầy sói! Quả mọng, thảo dược hái được để hồi máu.",
 	"Phía đông là Rừng Thông. Coi chừng sói!",
 	"Làng Ven Hồ. Vườn cà rốt và vườn táo ở phía nam làng: đi tới cây chín là hái được.",
-	"Góc chế tạo: đi tới nồi luyện thuốc hoặc bàn chế tạo là mở bảng chế tạo. Lấy nước ở xô cạnh giếng.",
+	"Giếng làng: đi tới xô nước cạnh giếng để lấy Bình nước (dùng nấu thuốc, nấu ăn).",
 	"Phía đông là Rừng Hoang. Quái vật đang tràn tới, hãy cẩn thận!",
-	"Quảng trường Làng Khởi Nguyên. Bắc: Làng Ven Hồ. Nam: Xóm Ruộng. Đông: Rừng Hoang. Chuột phải để đi, F để lướt né.",
+	"Quảng trường Làng Khởi Nguyên. Quanh đây có bàn chế tạo, bếp lửa, nồi luyện thuốc và lò nấu ăn: đi tới gần là chế đồ. Bắc: Làng Ven Hồ. Nam: Xóm Ruộng. Đông: Rừng Hoang.",
 	"Bãi tập: thử đánh và kỹ năng Q W E R lên bù nhìn. Bù nhìn có khiên rất cứng, Thương phá giáp dễ nhất.",
 	"Xóm Ruộng: ruộng lúa, vườn cà rốt, bí ngô và vườn táo. Hái xong một lúc cây sẽ chín lại.",
 	"Phía đông là Đầm Lầy Nấm. Nhiều nấm và thảo dược, nhưng có slime và heo rừng.",
@@ -117,6 +122,7 @@ const NPC_DATA := [
 			"Bầy sói sống ở bãi đá phía đông nam. Đi một mình thì cẩn thận!",
 			"Quả mọng trong rừng ăn hồi máu đó, cứ hái thoải mái.",
 			"Hạ sói với heo rừng sẽ có da, thịt, xương. Đem về bàn chế tạo ở làng mà làm ba lô, áo giáp.",
+			"Có Rìu thì chặt được gỗ ở mấy gốc cây trong rừng. Gỗ làm đuốc, làm bộ lửa trại.",
 		],
 		"look": { "skin": 2, "hair": 0, "hair_color": 0, "outfit": 3, "outfit_color": 4, "hat": 3 },
 		"wander": 0.0,
@@ -161,8 +167,8 @@ const NPC_DATA := [
 		"name": "Chú Tư thợ bánh",
 		"lines": [
 			"Bánh mì mới ra lò đây! Thơm không?",
-			"Hai bó lúa mì với một bình nước, nấu ở nồi là có bánh mì. Dễ ợt!",
-			"Nghe nói cuối rừng có đấu trường đá cổ, một con quái rất to canh giữ ở đó.",
+			"Hai bó lúa mì với một bình nước, cho vào lò gạch là có bánh mì. Dễ ợt!",
+			"Nghe nói cuối rừng có đấu trường đá cổ. Con quái to canh giữ cái hang bị phong ấn ở đó.",
 		],
 		"look": { "skin": 2, "hair": 0, "hair_color": 1, "outfit": 0, "outfit_color": 6, "hat": 4 },
 		"wander": 0.0,
@@ -171,7 +177,7 @@ const NPC_DATA := [
 		"name": "Bác Ba nông dân",
 		"lines": [
 			"Vườn rau của bác ngay phía nam đó. Đẹp không?",
-			"Nồi thuốc với bàn chế tạo bên giếng ai dùng cũng được. Nước thì múc ở xô cạnh giếng nha.",
+			"Bếp lửa, lò nấu ăn, nồi thuốc với bàn chế tạo ở quảng trường ai dùng cũng được. Nước thì múc ở xô cạnh giếng nha.",
 			"Mệt thì cứ về quảng trường nghỉ chân, ngắm đài phun nước cho vui.",
 		],
 		"look": { "skin": 3, "hair": 4, "hair_color": 0, "outfit": 3, "outfit_color": 2, "hat": 0 },
@@ -182,6 +188,7 @@ const NPC_DATA := [
 		"lines": [
 			"Qua khỏi đây là Rừng Hoang. Nhớ bấm F để lướt né đòn nha!",
 			"Bị thương thì bấm D để uống bình máu, hoặc mở túi (B) ăn trái cây.",
+			"Thấy quái thì rê chuột lên rồi bấm chuột phải, cứ thế mà đánh tới khi nó gục.",
 		],
 		"look": { "skin": 0, "hair": 0, "hair_color": 0, "outfit": 1, "outfit_color": 6, "hat": 1 },
 		"wander": 0.0,
@@ -210,7 +217,8 @@ const NPC_DATA := [
 		"lines": [
 			"Thảo dược hồi máu nhiều hơn quả mọng đó cháu.",
 			"Hai thảo dược với một bình nước, nấu ở nồi thuốc trong làng là ra bình máu.",
-			"Nấm với quả mọng nấu thành súp, ăn vào hồi máu từ từ, đánh nhau lâu rất có ích.",
+			"Nấm với quả mọng nấu thành súp ở lò, ăn vào hồi máu từ từ, đánh nhau lâu rất có ích.",
+			"Xương sói nấu với thảo dược thành thuốc sức mạnh đó. Quả mọng thì làm thuốc nhanh nhẹn, chạy vèo vèo.",
 			"Nấm nhỏ trong đầm ăn được, còn mấy cây nấm khổng lồ thì đừng đụng nha.",
 			"Slime ưa chỗ ẩm. Đi trên cầu gỗ cho đỡ lầy.",
 		],
@@ -284,20 +292,20 @@ Tt.....t.....t._.t....t......tTTTTTTTTTTT...TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT
 T.............._..............TTTTTTT.T.T...TTTTTTTTTTTTTTT%TTTTTTTTTTTTT..Hxx.TTTT##########################################Y##Z##Y###############
 T.Rxxx...Uxxx.._..Wxxx..y.y.y.TTTT..........TTTTTTTTTTTT%%%%%%TTTTTTTTTT.k.xxx...TT#######################################ii;;;;;;;;;ui############
 T.xxxx...xxxx.._..xxxx.ffffff.TTTT..Hxx.kk..TTTTTTTTTT%%%r%%%%%TTTTTTTT....xxb.l.TT#######################################;;;;;;;b;;;;;############
-T.xxxx...xxxx.._..xxxx........TTTn..xxx.l.m.TTTTTTTTTT%%%%%%%%%TTTTTTTTT....-..z.TT#######################################;;;I;;;;;I;;;############
+T.xxxx...xxxx.._..xxxx........TTTn..xxx.l.m.TTTTTTTTTT%%%%%%%%%TTTTTTTTT....-..z.TT#########G#############################;;;I;;;;;I;;;############
 T..._......_..._...._.........TT....xxxs.....TTTTTTTTTT%zs%r%%%.TTTTTTTTT...-...TTT#::::::::::::::::######################;;;;;;E;;;;;;############
 T.__________________________..TT..z..---..r.TTTTTTTTTT.%%%%%%....TTTTTTTT...-TTTTTT#::::::::::::::::######################;;;;;;;;;;;;;############
-T.n,..........._..............TTTT.....-....TTTTTTTTT....%TTT.....TTTTTTT...-TTTTTT#::::::::::::::::#########Y##Z##Y######;;a;;;;;;;a;;############
+T.n,..........._..............TTTT.....-....TTTTTTTTT....%TTT.....TTTTTTT...-TTTTTT#::::::::::::::::#########Y##{##Y######;;a;;;;;;;a;;############
 Tt.....t......._.......t....t.TTTTT....-..TTT.TT.TTTT..b.TTTTT.....T........-TTTTTT#:::#::::::::#:::######iu;;;;;;;;;Ki;;;;;;;;;;;;;;m;############
 Tk...q...LkJxxg+gJxxlL........TTTTTTTT.-.................TTTTTT.......kkl...-..TTTT#::::::::::::::::######;;;;;;;;;;;;;;;;u;;;;;;;;;;;i############
-T.@x...C.===v==+==v===.....t.,TTTTTTTTT-......Hxx.......TTTTTTTTo...j.......-r...TT#::::::::::::::::######;;;;;;;;;;b;;#########;;#################
-Tt..,w...===+++++++===..t.....TTTTTTT,.--..j..xxx.l....TTTTT......z.......s.-...TTT#::::::::::::::::######I;;s;;;;;;;;;#########;;#################
+T........===v==+==v===.....t.,TTTTTTTTT-......Hxx.......TTTTTTTTo...j.......-r...TT#::::::::::::::::######;;;;;;;;;;b;;#########;;#################
+Tt..,w...=C=+++++++=0=..t.....TTTTTTT,.--..j..xxx.l....TTTTT......z.......s.-...TTT#::::::::::::::::######I;;s;;;;;;;;;#########;;#################
 T........===+++++++===.................o--...hxxx.k.T.........------..a....--...TTT#::::::::::::::::######;;;;S;;;;;;;I#########;;#################
-T.....v..g==++Fxx++==g......q............-..s..-.......--------.b..---------.......:::::::::::::::::G;;;;;;;;;;;;;;;;;;#####Z#Y#;;###Y##Z###Y######
-T________+++++xxx+++++________.----------......-...-----.......TTTTT.......----s---:::::::::B:::::::G;;;;;;;;;;;;;;;;;;###iiuK;;;;;;;;;;;;;;;;Kii##
-T........g==+++++++==g.....v........T...------------.......TTTTTTTTTTT....TT.......:::::::::::::::::G;;;;;;;;;;;;;s;;;;###i;;;;;;;;;;;;;;;;;;;;;I##
-T........=v=+++++v+===.............n.........,.......r.T.TTTTTTTTTTTTT....TTTTTTT..:::::::::::::::::G;;;;;;;h;;;;;;;;;;###;;;;;;;;;;;;b;;;;;;;;;;##
-T.fff-ff.==ex==P==ex==........TTTTTTT.T..T.....,.s.....T.TTTHxxTTTTTTT.....VxxTTTTT#::::::::::::::::######;;;;;;;;;;;;;;;;;;;;;S;;;;;;;;;s;;;;;;;##
+T.....v..g==++Fxx++==g......q............-..s..-.......--------.b..---------.......:::::::::::::::::######;;;;;;;;;;;;;#####Z#Y#;;###Y##Z###Y######
+T________+++++xxx+++++________.----------......-...-----.......TTTTT.......----s---:::::::::B:::::::######;;;;;;;;;;;;;###iiuK;;;;;;;;;;;;;;;;Kii##
+T........g==+++++++==g.....v........T...------------.......TTTTTTTTTTT....TT.......:::::::::::::::::######;;;;;;;;s;;;;###i;;;;;;;;;;;;;;;;;;;;;I##
+T........=v=+++++v+===.............n.........,.......r.T.TTTTTTTTTTTTT....TTTTTTT..:::::::::::::::::######;;h;;;;;;;;;;###;;;;;;;;;;;;b;;;;;;;;;;##
+T.fff-ff.==@x==P==8===........TTTTTTT.T..T.....,.s.....T.TTTHxxTTTTTTT.....VxxTTTTT#::::::::::::::::######;;;;;;;;;;;;;;;;;;;;;S;;;;;;;;;s;;;;;;;##
 T.fppppf.====q=+======.t...,..TTTTTTTT......o......,..TTTTTTxxxTTTTTT......xxxTTTTT#::::::::::::::::######I;;;;;;;;;;;;;;;;;;;;;s;;;;;;;;;;;a;;;;##
 T.fppppf.L====g+g====L....t...TTTTTTT..............TTTTTTTT.xxx.lT.........xxxTTTTT#::::::::::::::::######;;;;;b;;;S;;;###;;;;;;;;;;;;;;;;;;;;;;;##
 Ttfppppf,....n._..............TTTTTTT....TT.T.T....TTTTTT.k..-..k....r.~~~~~~~~TTTT#::::::::::::::::######K;;;;;;;;;;;;###I;;;;;;;;;;;;;;;;;;;;O;##
@@ -483,7 +491,7 @@ const PLAZA_TEX := {
 		preload("res://assets/plaza/planter_yellow.png"),
 	],
 }
-const PLAZA_CHARS := "=+FxeLJgvPqkl"   # các ô thuộc quảng trường (nền đá)
+const PLAZA_CHARS := "=+FxeLJgvPqklC@08"   # các ô thuộc quảng trường (nền đá)
 const NPC_SCRIPT := preload("res://scripts/npc.gd")
 const HARVEST_SCRIPT := preload("res://scripts/harvestable.gd")
 const CRITTER_SCRIPT := preload("res://scripts/critter.gd")
@@ -528,6 +536,17 @@ const HARVEST := {
 const CRAFT_TEX := {
 	"cauldron": preload("res://assets/craft/cauldron.png"),
 	"workbench": preload("res://assets/craft/workbench.png"),
+	"fire_pit": preload("res://assets/craft/fire_pit.png"),
+	"oven": preload("res://assets/craft/oven.png"),
+}
+## Gốc cây 'z': có Rìu trong túi thì đi tới là chặt được gỗ, một lúc sau lại có gỗ
+const STUMP_WOOD := { "item": "wood", "tex": preload("res://assets/craft/stump_wood.png"), "frames": 2, "grow": 45.0,
+	"amount": [1, 2], "reach": 18.0, "tree": true, "tool": "axe" }
+## Hang động vào hầm ngục
+const CAVE_TEX := {
+	"mouth": preload("res://assets/cave/cave_mouth.png"),
+	"seal": preload("res://assets/cave/cave_seal.png"),
+	"exit": preload("res://assets/cave/cave_exit.png"),
 }
 const WELL_BUCKET := { "item": "water", "tex": preload("res://assets/craft/bucket.png"), "frames": 2, "grow": 20.0,
 	"amount": [1, 2], "reach": 18.0, "tree": true }
@@ -537,7 +556,7 @@ const BEAST_RESPAWN := 120.0
 const WATER_CHARS := "~[$"    # các ô có nước bên dưới (cầu gỗ và thuyền nằm trên nước)
 const CROP_CHARS := "456"     # cây trồng trên ruộng (có đất cày)
 
-const SOLID := "T#~orxRUWMfwqytHVklzjYZIuKFeLJg17*!&$)(C@"
+const SOLID := "T#~orxRUWMfwqytHVklzjYZIuKFeLJg17*!&$)(C@08"
 const HOUSE_WIDTH := { "R": 4, "U": 4, "W": 4, "M": 3 }
 
 var rows: PackedStringArray
@@ -574,8 +593,13 @@ var area_started := false
 var current_area := -1
 var visited_areas := {}
 var windmill_blades: Array[Sprite2D] = []
-var stations: Array[Dictionary] = []     # { "pos": Vector2, "kind": "pot" / "bench" }
+var stations: Array[Dictionary] = []     # { "pos": Vector2, "kind": "pot" / "bench" / "fire" / "stove" }
 var current_station := ""
+var dungeon_column := -1                 # hầm ngục ở bên phải cột này
+var cave_entrance := Vector2.INF         # ô miệng hang (ngoài trời)
+var cave_exit := Vector2.INF             # ô lối ra (trong hầm)
+var cave_busy := false                   # đang chuyển cảnh qua hang
+var fade_rect: ColorRect                 # màn đen khi chuyển cảnh
 
 # --- Hầm ngục: bóng tối và ánh sáng
 var darkness: CanvasModulate          # làm tối cả màn hình khi vào hầm ngục
@@ -608,6 +632,14 @@ func _ready() -> void:
 	_build_pathfinding()
 	add_child(entities)  # thêm sau cùng để vẽ đè lên mặt đất
 	_spawn_everything()
+	var fade_layer := CanvasLayer.new()
+	fade_layer.layer = 20
+	add_child(fade_layer)
+	fade_rect = ColorRect.new()
+	fade_rect.color = Color(0, 0, 0, 0)
+	fade_rect.size = Vector2(4000, 4000)
+	fade_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fade_layer.add_child(fade_rect)
 	Game.boss_defeated.connect(_on_boss_defeated)
 	call_deferred("_announce_start")
 
@@ -635,6 +667,9 @@ func _parse_map() -> void:
 		var ax := rows[y].find(":")
 		if ax != -1:
 			arena_column = ax if arena_column == -1 else mini(arena_column, ax)
+		var dx := rows[y].find(";")
+		if dx != -1:
+			dungeon_column = dx - 2 if dungeon_column == -1 else mini(dungeon_column, dx - 2)
 
 
 func cell(x: int, y: int) -> String:
@@ -702,7 +737,7 @@ func _floor_texture(x: int, y: int) -> Texture2D:
 	if WALL_CHARS.contains(c):
 		# Ô tường có ô trống ở dưới thì vẽ mặt tường, còn lại vẽ nóc tường
 		var face := not WALL_CHARS.contains(cell(x, y + 1))
-		if gate_column != -1 and x > gate_column:
+		if dungeon_column != -1 and x > dungeon_column:
 			var walls: Array = DUNGEON_TEX["wall_face" if face else "wall_top"]
 			return walls[rng.randi() % walls.size()]
 		return TEX["wall_face"] if face else TEX["wall_top"]
@@ -715,7 +750,7 @@ func _floor_texture(x: int, y: int) -> Texture2D:
 		if roll < 0.025:
 			return TEX["grass_flower"]
 		return TEX["grass_tuft"] if roll < 0.14 else TEX["grass"]
-	if gate_column == -1 or x <= gate_column:
+	if dungeon_column == -1 or x <= dungeon_column:
 		return TEX["stone2"] if rng.randf() < 0.08 else TEX["stone"]
 	# Hầm ngục: phiến đá lớn 2x2 ô, mỗi khối 2x2 chọn một kiểu phiến
 	var block := posmod(floori(x / 2.0) * 7 + floori(y / 2.0) * 13, 4)
@@ -788,7 +823,7 @@ func _build_ground() -> void:
 				_add_tile_sprite(detail, _fence_texture(x, y), x, y)
 			if c != "T" and (arena_column == -1 or x < arena_column):
 				_add_forest_shade(detail, x, y)
-			if gate_column != -1 and x > gate_column:
+			if dungeon_column != -1 and x > dungeon_column:
 				if c == "Z":
 					var flag := _add_tile_sprite(detail, DUNGEON_TEX["banner"], x, y)
 					flag.position += Vector2(2, 1)
@@ -985,8 +1020,20 @@ func _build_walls() -> void:
 	for y in map_size.y:
 		for x in map_size.x:
 			if cell(x, y) == "G":
+				# Cửa hang: vách đá có miệng hang, phong ấn tím chắn ở miệng hang tới khi hạ Boss
 				_add_rect_shape(gate_body, x, y, 1)
-				gate_sprites.append(_add_tile_sprite(gate_body, TEX["gate"], x, y))
+				var mouth := _add_prop(CAVE_TEX["mouth"], x, y)
+				mouth.position.y += 1.0
+				var seal := Sprite2D.new()
+				seal.texture = CAVE_TEX["seal"]
+				seal.hframes = 2
+				seal.centered = false
+				seal.offset = Vector2(-8, -22)
+				seal.position = Vector2((x + 0.5) * TILE, (y + 1) * TILE + 2.0)
+				entities.add_child(seal)
+				village_anims.append({"sprite": seal, "fps": 3.0, "phase": 0.0})
+				gate_sprites.append(seal)
+				cave_entrance = Vector2((x + 0.5) * TILE, (y + 0.5) * TILE)
 
 
 # ---------------------------------------------------------------- Tìm đường (chuột phải để đi)
@@ -1061,10 +1108,10 @@ func is_open(pos: Vector2, clearance: float = 5.0) -> bool:
 func can_teleport(a: Vector2, b: Vector2) -> bool:
 	if not is_open(b, 5.0):
 		return false
-	if not gate_open and gate_column != -1:
-		var gate_x := gate_column * TILE + TILE / 2.0
-		if (to_local(a).x < gate_x) != (to_local(b).x < gate_x):
-			return false
+	if dungeon_column != -1:
+		var wall_x := (dungeon_column + 1) * TILE
+		if (to_local(a).x < wall_x) != (to_local(b).x < wall_x):
+			return false   # hầm ngục chỉ vào được bằng cửa hang
 	return true
 
 
@@ -1150,12 +1197,31 @@ func _spawn_everything() -> void:
 				"l":
 					_add_small_prop(FOREST_TEX["barrel"] if rng.randf() < 0.5 else FOREST_TEX["barrel2"], x, y)
 				"z":
-					_add_small_prop(FOREST_TEX["stump"] if rng.randf() < 0.6 else FOREST_TEX["stump_axe"], x, y)
+					var stump = HARVEST_SCRIPT.new()
+					stump.setup(STUMP_WOOD)
+					stump.position = Vector2((x + 0.5) * TILE, (y + 1) * TILE)
+					entities.add_child(stump)
+					_add_shadow(FOREST_TEX["small_shadow"], stump.position + Vector2(1, -2))
 				"j":
 					var fire := _add_prop(FOREST_TEX["campfire"], x, y)
 					var flicker := fire.create_tween().set_loops()
 					flicker.tween_property(fire, "modulate", Color(1.3, 1.15, 0.9), 0.12)
 					flicker.tween_property(fire, "modulate", Color(1.0, 0.9, 0.85), 0.18)
+					stations.append({"pos": fire.position + Vector2(0, -6), "kind": "fire"})
+				"8":
+					var pit := _add_prop(CRAFT_TEX["fire_pit"], x, y, 1, 1, 3)
+					village_anims.append({"sprite": pit, "fps": 6.0, "phase": 0.0})
+					stations.append({"pos": pit.position + Vector2(0, -6), "kind": "fire"})
+				"0":
+					var stove := _add_prop(CRAFT_TEX["oven"], x, y, 1, 1, 3)
+					village_anims.append({"sprite": stove, "fps": 5.0, "phase": 0.0})
+					_add_shadow(FOREST_TEX["small_shadow"], stove.position + Vector2(1, -2))
+					stations.append({"pos": stove.position + Vector2(0, -6), "kind": "stove"})
+				"{":
+					var stairs := _add_prop(CAVE_TEX["exit"], x, y)
+					stairs.position.y += 1.0
+					_add_light(pos + Vector2(0, -4), 70.0, Color(1.0, 0.95, 0.8), 1.0, false)
+					cave_exit = pos
 				"H":
 					_add_prop(FOREST_TEX["cabin_grey" if cabin_count % 2 == 0 else "cabin_red"], x, y, 3, 3)
 					cabin_count += 1
@@ -1277,7 +1343,7 @@ func _spawn_everything() -> void:
 			if ENEMY_SCENES.has(c):
 				var enemy := (ENEMY_SCENES[c] as PackedScene).instantiate() as Enemy
 				enemy.position = pos
-				if gate_column != -1 and x > gate_column and c != "B":
+				if dungeon_column != -1 and x > dungeon_column and c != "B":
 					enemy.make_elite()
 				if c == "D":
 					enemy.armor = 6
@@ -1487,6 +1553,15 @@ func _add_portal(x: int, y: int) -> void:
 
 
 ## Vào / ra hầm ngục: làm tối màn hình và bật đèn (chuyển dần trong 0.8 giây).
+## Có Đuốc trong túi thì vòng sáng quanh người to hơn.
+func _update_player_light() -> void:
+	if player_light == null or player == null:
+		return
+	var has_torch := player.count_item("torch") > 0
+	player_light.texture_scale = (170.0 if has_torch else 100.0) * 2.0 / light_texture.width
+	player_light.energy = 0.95 if has_torch else 0.7
+
+
 func _set_in_dungeon(value: bool) -> void:
 	in_dungeon = value
 	dungeon_lights.visible = value
@@ -1531,6 +1606,7 @@ func _process(delta: float) -> void:
 		_set_station("")
 		return
 	_update_station()
+	_update_cave()
 	var tile_x := player.global_position.x / TILE
 	# Biển báo: đi tới gần thì hiện chữ
 	for sign_data in signs:
@@ -1539,19 +1615,75 @@ func _process(delta: float) -> void:
 			Game.message.emit(sign_data["text"])
 		sign_data["near"] = near
 	_update_area(floori(tile_x), floori(player.global_position.y / TILE))
-	if not entered_arena and arena_column != -1 and tile_x > arena_column + 1 and tile_x < gate_column:
+	if not entered_arena and arena_column != -1 and tile_x > arena_column + 1 and tile_x < dungeon_column:
 		entered_arena = true
 		Game.area_entered.emit("Đấu Trường Đá Cổ")
-	var now_in_dungeon := gate_column != -1 and tile_x > gate_column + 1
+	var now_in_dungeon := dungeon_column != -1 and tile_x > dungeon_column + 1
 	if now_in_dungeon != in_dungeon:
 		_set_in_dungeon(now_in_dungeon)
+	if in_dungeon:
+		_update_player_light()
 	if not entered_area2 and now_in_dungeon:
 		entered_area2 = true
 		Game.area_entered.emit("Hầm Ngục Cổ")
-		Game.message.emit("Hầm ngục tối và lạnh, quái nơi đây mạnh hơn. Hãy tìm Cổng Xoáy ở cuối hầm!")
+		Game.message.emit("Hầm ngục tối và lạnh, quái nơi đây mạnh hơn. Hãy tìm Cổng Xoáy ở cuối hầm! (Cầu thang sáng phía sau là lối ra)")
 	if not won and altar_position != Vector2.INF and player.global_position.distance_to(altar_position) < 14.0:
 		won = true
 		Game.game_won.emit()
+
+
+## Đi vào miệng hang (sau khi hạ Boss) thì sang hầm ngục; đi vào cầu thang trong hầm thì ra lại cửa hang.
+func _update_cave() -> void:
+	if cave_busy:
+		return
+	if gate_open and cave_entrance != Vector2.INF and player.global_position.distance_to(cave_entrance) < 9.0:
+		_go_through_cave(cave_exit + Vector2(0, 2 * TILE), "Hầm Ngục Cổ")
+	elif cave_exit != Vector2.INF and player.global_position.distance_to(cave_exit) < 9.0:
+		_go_through_cave(cave_entrance + Vector2(0, 2 * TILE), "Đấu Trường Đá Cổ")
+
+
+## Màn hình tối dần, đưa người chơi sang chỗ mới rồi sáng lại.
+func _go_through_cave(dest: Vector2, area_name: String) -> void:
+	if dest.x == INF:
+		return
+	cave_busy = true
+	player.stop_for_cutscene()
+	var tw := create_tween()
+	tw.tween_property(fade_rect, "color:a", 1.0, 0.35)
+	tw.tween_callback(func():
+		player.teleport_to(to_global(dest))
+		Game.area_entered.emit(area_name))
+	tw.tween_interval(0.15)
+	tw.tween_property(fade_rect, "color:a", 0.0, 0.4)
+	tw.tween_callback(func(): cave_busy = false)
+
+
+## Đặt bộ lửa trại (vật phẩm trong túi) xuống đất: thành bếp lửa nướng đồ ăn được.
+## Trả về chữ báo lỗi, "" = đặt được.
+func place_station(kind: String, world_pos: Vector2) -> String:
+	var local := to_local(world_pos)
+	if not is_open(world_pos, 5.0) or is_water(world_pos):
+		return "Không đặt được ở đây"
+	for st in stations:
+		if local.distance_to(st["pos"]) < 40.0:
+			return "Gần trạm khác quá"
+	match kind:
+		"fire":
+			var pit := Sprite2D.new()
+			pit.texture = CRAFT_TEX["fire_pit"]
+			pit.hframes = 3
+			pit.centered = false
+			pit.offset = Vector2(-CRAFT_TEX["fire_pit"].get_width() / 6.0, -CRAFT_TEX["fire_pit"].get_height())
+			pit.position = local + Vector2(0, 6)
+			entities.add_child(pit)
+			village_anims.append({"sprite": pit, "fps": 6.0, "phase": 0.0})
+			stations.append({"pos": local, "kind": "fire"})
+			if in_dungeon or (dungeon_column != -1 and local.x > (dungeon_column + 1) * TILE):
+				_add_light(local + Vector2(0, -4), 80.0, CANDLE_LIGHT, 1.0, true)
+		_:
+			return "Không đặt được"
+	Game.burst(world_pos, Color(1.0, 0.7, 0.3), 10, 50.0, 60.0, 0.4, 1.5)
+	return ""
 
 
 ## Đứng gần nồi luyện thuốc / bàn chế tạo thì mở bảng chế tạo (HUD nghe tín hiệu Game.station_changed).
@@ -1596,7 +1728,7 @@ func _on_boss_defeated() -> void:
 	if gate_open:
 		return
 	gate_open = true
-	Game.message.emit("Cổng phong ấn đã mở! Khu vực mới: Hầm Ngục Cổ")
+	Game.message.emit("Phong ấn cửa hang đã vỡ! Đi vào hang ở vách bắc đấu trường để xuống Hầm Ngục Cổ")
 	Game.shake(4.0)
 	for col in gate_body.get_children():
 		if col is CollisionShape2D:

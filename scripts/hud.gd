@@ -34,6 +34,8 @@ var shown_bag_slots := -1
 var craft_panel: Panel
 var craft_rows: Array = []   # mỗi dòng: { "recipe": Dictionary, "button": Button, "needs": [[id, cần, Label], ...] }
 var craft_station := ""
+var buff_label: Label        # thuốc / món ăn đang có tác dụng (góc trên, cạnh thanh máu)
+const CRAFT_ROW_W := 226.0
 var bound_player: Player = null
 var weapon_desc: Label
 var shown_weapon := -1
@@ -48,6 +50,9 @@ func _ready() -> void:
 	layer = 10
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_stats_panel()
+	buff_label = _make_label("", 8, Color(1.0, 0.95, 0.8))
+	buff_label.position = Vector2(212, 8)
+	add_child(buff_label)
 	_build_skill_bar()
 	_build_boss_bar()
 	_build_messages()
@@ -367,11 +372,15 @@ func _fill_craft_panel(station: String) -> void:
 	hint.position = Vector2(8, 19)
 	craft_panel.add_child(hint)
 	var recipes := Recipes.for_station(station)
+	# Nhiều công thức thì chia 2 cột cho bảng khỏi dài quá màn hình
+	var cols := 1 if recipes.size() <= 5 else 2
+	var per_col := ceili(recipes.size() / float(cols))
 	for i in recipes.size():
 		var recipe: Dictionary = recipes[i]
+		var col := floori(i / float(per_col))
 		var row := Panel.new()
-		row.position = Vector2(6, 32 + i * 34)
-		row.size = Vector2(238, 31)
+		row.position = Vector2(6 + col * (CRAFT_ROW_W + 6.0), 32 + (i % per_col) * 34)
+		row.size = Vector2(CRAFT_ROW_W, 31)
 		var row_style := StyleBoxFlat.new()
 		row_style.bg_color = Color(0.2, 0.15, 0.11)
 		row_style.border_color = Color(0.4, 0.31, 0.22)
@@ -396,7 +405,7 @@ func _fill_craft_panel(station: String) -> void:
 			x += 44.0
 		var button := Button.new()
 		button.text = "Chế"
-		button.position = Vector2(194, 5)
+		button.position = Vector2(CRAFT_ROW_W - 44.0, 5)
 		button.size = Vector2(40, 21)
 		button.focus_mode = Control.FOCUS_NONE
 		button.add_theme_font_size_override("font_size", 9)
@@ -417,7 +426,7 @@ func _fill_craft_panel(station: String) -> void:
 		button.pressed.connect(_on_craft_pressed.bind(recipe))
 		row.add_child(button)
 		craft_rows.append({ "recipe": recipe, "button": button, "needs": need_labels })
-	craft_panel.size = Vector2(250, 36 + recipes.size() * 34)
+	craft_panel.size = Vector2(6 + cols * (CRAFT_ROW_W + 6.0), 36 + per_col * 34)
 	_refresh_craft()
 
 
@@ -525,8 +534,9 @@ func _build_overlay(title: String, body: String) -> Control:
 ## (để trống thì lấy bộ mặc định của vũ khí đã chọn).
 func _controls_text(skill_ids: Array = []) -> String:
 	var lines := [
-		"Chuột phải: đi tới chỗ bấm / bấm vào quái để tự chạy tới đánh",
-		"Chuột trái: đánh về phía con trỏ (Cung: giữ để gồng)   A + chuột trái: vừa đi vừa đánh   S: đứng lại",
+		"Chuột phải: đi tới chỗ bấm / bấm vào quái (con trỏ hình kiếm, viền đỏ) để khóa mục tiêu và tự đánh tới khi quái chết",
+		"Chuột trái: đánh về phía con trỏ (Cung: giữ để gồng)   A + chuột trái: vừa đi vừa đánh (hiện vòng tầm đánh)   S: đứng lại",
+		"Q W E R: giữ phím để xem tầm kỹ năng, thả ra để tung chiêu (chuột phải để hủy)",
 		"F: lướt né   D: uống bình máu   B: túi đồ   N: tạo nhân vật mới",
 		"Đi tới cây chín để hái. Đi tới nồi luyện thuốc / bàn chế tạo (cạnh giếng Làng Khởi Nguyên) để chế đồ",
 		"",
@@ -558,6 +568,16 @@ func _process(delta: float) -> void:
 	mp_text.text = "%d / %d" % [int(player.mp), player.max_mp]
 	xp_bar.max_value = player.xp_to_next
 	xp_bar.value = player.xp
+
+	# Thuốc / món ăn đang có tác dụng
+	var effects := PackedStringArray()
+	if player.buff_attack_time > 0.0:
+		effects.append("Sức mạnh +%d  (%ds)" % [player.buff_attack, ceili(player.buff_attack_time)])
+	if player.buff_speed_time > 0.0:
+		effects.append("Nhanh nhẹn  (%ds)" % ceili(player.buff_speed_time))
+	if player.regen_left > 0.0:
+		effects.append("Hồi máu +%d/giây  (%ds)" % [player.regen_rate, ceili(player.regen_left)])
+	buff_label.text = "\n".join(effects)
 
 	# Túi đồ: cập nhật khi đồ trong túi thay đổi
 	if bound_player != player:

@@ -39,12 +39,13 @@ Nếu có lỗi, xem tab **Output** / **Debugger** ở dưới cùng của Godot
 | Hành động | Phím |
 |---|---|
 | Đi tới chỗ bấm (tự tìm đường vòng qua cây, nhà, tường) | Chuột phải (giữ chuột phải để đi theo con trỏ) |
-| Chạy tới và tự động đánh một con quái | Chuột phải vào con quái |
+| Khóa mục tiêu: chạy tới và tự đánh tới khi quái chết | Chuột phải vào con quái (con trỏ thành hình kiếm, quái có viền đỏ) |
 | Đánh về phía con trỏ (Cung: giữ để gồng, thả để bắn) | Chuột trái |
-| Vừa đi vừa đánh quái gặp trên đường | A rồi chuột trái |
+| Vừa đi vừa đánh quái gặp trên đường (hiện vòng tầm đánh) | A rồi chuột trái |
 | Đứng lại | S |
-| Kỹ năng 1, 2, 3 của vũ khí | Q, W, E |
-| Tuyệt chiêu | R |
+| Kỹ năng 1, 2, 3 của vũ khí (giữ phím để xem tầm, thả ra để tung) | Q, W, E |
+| Tuyệt chiêu (giữ để xem tầm, thả ra để tung) | R |
+| Hủy kỹ năng đang ngắm | Chuột phải |
 | Lướt né về phía con trỏ (không bị trúng đòn khi lướt) | F |
 | Uống bình máu | D |
 | Mở / đóng túi đồ | B |
@@ -53,6 +54,12 @@ Nếu có lỗi, xem tab **Output** / **Debugger** ở dưới cùng của Godot
 | Chơi lại khi thua / thắng | R |
 
 Kỹ năng luôn tung về phía con trỏ chuột. Muốn chơi bằng bàn phím thì vẫn dùng được phím mũi tên để đi và J để đánh.
+
+**Chọn mục tiêu kiểu LMHT / Dota**: rê chuột lên quái thì quái có viền đỏ, hiện thanh máu và con trỏ đổi thành hình kiếm.
+Chuột phải vào quái là khóa mục tiêu (vòng đỏ dưới chân, mũi tên đỏ trên đầu): nhân vật tự chạy tới và đánh liên tục
+tới khi quái chết hoặc bạn bấm chuột phải xuống đất. Quái bị đánh sẽ hiện thanh máu nhỏ trên đầu.
+Vùng bấm chuột và vùng trúng đòn của quái rộng hơn hình một chút cho dễ đánh. Chỉnh trong scene của quái
+(`scenes/enemies/...`): `hit_radius` = vùng trúng đòn, `visual_scale` = độ to của hình (slime, dơi, cung thủ, sói, heo rừng đang là 1.5).
 
 ## Kỹ năng theo vũ khí
 
@@ -99,8 +106,11 @@ Hiện là kỹ năng dùng vũ khí (chưa có nguyên tố). Kỹ năng luôn 
 Bấm **B** để mở túi (12 ô, làm "Ba lô lớn hơn" ở bàn chế tạo để lên 16 rồi 20 ô).
 Bình máu nhặt được sẽ cất vào túi, bấm **D** hoặc bấm vào bình trong túi để uống (hồi 40% máu).
 Bắt đầu game có sẵn 2 bình máu. Túi đầy thì bình máu nhặt được sẽ uống luôn.
-Bấm vào đồ ăn trong túi để ăn (hồi máu). Súp nấm, canh xương hồi máu từ từ trong vài giây.
-Nguyên liệu (lúa mì, bình nước, da thú, xương, dây thừng) dùng để chế tạo.
+Bấm vào đồ ăn trong túi để ăn (hồi máu). Súp, canh hồi máu từ từ trong vài giây.
+Thuốc sức mạnh / thuốc nhanh nhẹn tăng sức trong 60 giây (hiện ở góc trên màn hình kèm số giây còn lại).
+Nguyên liệu (lúa mì, bình nước, gỗ, da thú, xương, dây thừng) dùng để chế tạo.
+**Công cụ** (rìu, liềm, đuốc) chỉ cần để trong túi là có tác dụng, không cần bấm.
+**Bộ lửa trại**: bấm vào nó trong túi là đặt một bếp lửa xuống trước mặt (ở đâu cũng được, trừ chỗ có nước hoặc sát trạm khác).
 Thêm vật phẩm mới: sửa `scripts/items.gd`.
 
 Kỹ năng nguyên tố (Lửa, Sấm) đang **tạm tắt** để tập trung làm đánh thường trước.
@@ -111,6 +121,7 @@ Muốn bật lại: mở `scripts/player.gd`, đổi `const ELEMENTS_ENABLED := 
 Vào game là bạn đứng ngay giữa **quảng trường**: sân lát đá, đài phun nước ở giữa, ghế dài, cột đèn, chậu hoa,
 hai sạp hàng (trái cây, bánh mì). Đường đá đi ra 4 hướng: **bắc** là khu nhà dân, **nam** là bãi tập,
 **tây** là giếng nước và vườn rau, **đông** là đường ra Rừng Hoang.
+Bốn góc sân là 4 **trạm chế tạo**: nồi luyện thuốc (trên trái), lò nấu ăn (trên phải), bàn chế tạo (dưới trái), bếp lửa (dưới phải).
 Có 6 **dân làng** (trưởng làng, người bán hàng, nông dân, lính gác, một em bé). Đi tới gần là họ quay sang nói chuyện
 (bong bóng chữ trên đầu), mỗi lần tới gần nói câu tiếp theo. Sạp hàng hiện chỉ để trang trí, chưa mua bán được.
 Muốn sửa lời thoại, tên hoặc ngoại hình dân làng: sửa `NPC_DATA` trong `scripts/level.gd` (theo thứ tự chữ `v` trên bản đồ,
@@ -137,35 +148,55 @@ Sói và heo rừng quay lại chỗ cũ sau 2 phút (chỉnh `BEAST_RESPAWN`).
 
 ## Chế tạo
 
-Bên trái quảng trường, cạnh giếng nước, có **góc chế tạo**: nồi luyện thuốc và bàn chế tạo.
-Đi tới gần là bảng chế tạo tự mở (đi ra xa thì đóng). Bảng ghi nguyên liệu đang có / cần (xanh là đủ, đỏ là thiếu),
-đủ đồ thì bấm **Chế**. Nước lấy ở **xô cạnh giếng** (giếng ở cả 3 làng, xô đầy lại sau 20 giây).
+Quanh **quảng trường Làng Khởi Nguyên** (chỗ bắt đầu game) có 4 trạm chế tạo, mỗi trạm làm được món riêng:
+**nồi luyện thuốc** (góc trên trái), **lò nấu ăn** bằng gạch (góc trên phải), **bàn chế tạo** (góc dưới trái),
+**bếp lửa** có xiên nướng (góc dưới phải). Lửa trại trong rừng cũng nướng đồ được như bếp lửa.
+Đi tới gần trạm là bảng chế tạo của trạm đó tự mở (đi ra xa thì đóng). Bảng ghi nguyên liệu đang có / cần
+(xanh là đủ, đỏ là thiếu), đủ đồ thì bấm **Chế**. Nước lấy ở **xô cạnh giếng** (giếng ở cả 3 làng, xô đầy lại sau 20 giây).
 
 | Trạm | Làm ra | Nguyên liệu |
 |---|---|---|
-| Nồi luyện thuốc | Bình máu | 2 thảo dược + 1 bình nước |
-| Nồi luyện thuốc | Súp nấm (hồi 5 máu/giây trong 10 giây) | 2 nấm + 2 quả mọng |
-| Nồi luyện thuốc | Thịt nướng (hồi 35 máu) | 1 thịt sống |
-| Nồi luyện thuốc | Bánh mì (hồi 25 máu) | 2 lúa mì + 1 bình nước |
-| Nồi luyện thuốc | Canh xương (hồi 6 máu/giây trong 15 giây) | 2 xương + 1 cà rốt + 1 bình nước |
+| Nồi luyện thuốc | Bình máu (hồi 40% máu) | 2 thảo dược + 1 bình nước |
+| Nồi luyện thuốc | Bình máu lớn (hồi 80% máu) | 3 thảo dược + 1 táo + 1 bình nước |
+| Nồi luyện thuốc | Thuốc sức mạnh (tấn công +6 trong 60 giây) | 1 thảo dược + 2 xương + 1 bình nước |
+| Nồi luyện thuốc | Thuốc nhanh nhẹn (tốc độ +30% trong 60 giây) | 2 quả mọng + 1 thảo dược + 1 bình nước |
+| Bếp lửa | Thịt nướng (hồi 35 máu) | 1 thịt sống |
+| Bếp lửa | Xiên nấm nướng (hồi 25 máu) | 3 nấm |
+| Bếp lửa | Bí ngô nướng (hồi 50 máu) | 1 bí ngô |
+| Bếp lửa | Xiên thịt rau (hồi 60 máu) | 1 thịt + 1 cà rốt + 1 nấm |
+| Lò nấu ăn | Bánh mì (hồi 25 máu) | 2 lúa mì + 1 bình nước |
+| Lò nấu ăn | Bánh táo (hồi 45 máu) | 2 táo + 2 lúa mì |
+| Lò nấu ăn | Súp nấm (hồi 5 máu/giây trong 10 giây) | 2 nấm + 2 quả mọng |
+| Lò nấu ăn | Súp bí ngô (hồi 8 máu/giây trong 12 giây) | 1 bí ngô + 1 cà rốt + 1 bình nước |
+| Lò nấu ăn | Canh xương (hồi 6 máu/giây trong 15 giây) | 2 xương + 1 cà rốt + 1 bình nước |
 | Bàn chế tạo | Dây thừng | 3 lúa mì |
+| Bàn chế tạo | Rìu (chặt gốc cây lấy gỗ) | 2 xương + 1 dây thừng |
+| Bàn chế tạo | Liềm (hái cây được thêm 1) | 1 xương + 1 gỗ + 1 dây thừng |
+| Bàn chế tạo | Đuốc (vòng sáng to hơn trong hầm ngục) | 1 gỗ + 1 dây thừng |
+| Bàn chế tạo | Bộ lửa trại (đặt bếp lửa ở đâu cũng được) | 3 gỗ + 1 dây thừng |
 | Bàn chế tạo | Ba lô lớn hơn (+4 ô túi, làm 2 lần) | 3 da thú + 2 dây thừng |
 | Bàn chế tạo | Áo giáp da (máu tối đa +25) | 4 da thú + 1 dây thừng |
 | Bàn chế tạo | Bùa răng sói (tấn công +4) | 4 xương + 1 da thú + 1 dây thừng |
 
+Rìu, liềm, đuốc chỉ làm 1 cái (có rồi thì bảng ghi "Đã có rồi").
+**Gỗ**: gốc cây có khúc gỗ (`z` trên bản đồ, có trong các khu rừng) chặt được khi trong túi có Rìu, gỗ mọc lại sau 45 giây.
 Thêm công thức mới: thêm một dòng vào `LIST` trong `scripts/recipes.gd` (hướng dẫn ở đầu file).
-Ký tự bản đồ: `C` nồi luyện thuốc, `@` bàn chế tạo (rộng 2: `@x`).
+Ký tự bản đồ: `C` nồi luyện thuốc, `0` lò nấu ăn, `@` bàn chế tạo (rộng 2: `@x`), `8` bếp lửa, `j` lửa trại.
 
 ## Rừng Hoang
 
 Rừng rậm có nhiều bãi cỏ sáng nối với nhau bằng đường đất, nền rừng tối giữa các gốc cây, nhà gỗ, bãi đất đá,
 luống rau có hàng rào, lửa trại, thùng gỗ và một cái hồ có thác nước. Cây sâu trong rừng tối hơn cây ở bìa rừng.
 Muốn sửa rừng: sửa phần `MAP` trong `scripts/level.gd` (ký tự `T` cây, `-` đường đất, `%` bãi đá, `H` nhà gỗ,
-`V` thác nước, `k` `l` thùng, `z` gốc cây, `j` lửa trại, `p` luống rau). Đường đất và bãi đá tự nối mép với ô bên cạnh.
+`V` thác nước, `k` `l` thùng, `z` gốc cây chặt gỗ, `j` lửa trại, `p` luống rau). Đường đất và bãi đá tự nối mép với ô bên cạnh.
 
 ## Hầm Ngục Cổ
 
-Sau cổng trùm là hầm ngục tối: vào trong thì màn hình tối lại, chỉ có nến, đuốc trên tường, bệ thờ và cổng xoáy
+**Lối vào**: cửa hang ở **vách bắc Đấu Trường Đá Cổ**, ngay sau lưng Boss. Cửa hang bị phong ấn tím cho tới khi hạ Boss.
+Hạ Boss xong, đi vào miệng hang là màn hình tối dần rồi bạn xuống hầm ngục. Ngay chỗ xuống có **cầu thang sáng** trên vách:
+đi vào đó là ra lại cửa hang. Ký tự bản đồ: `G` cửa hang, `{` cầu thang ra.
+
+Hầm ngục tối: vào trong thì màn hình tối lại, chỉ có nến, đuốc trên tường, bệ thờ và cổng xoáy
 phát sáng (dùng đèn 2D của Godot: `PointLight2D` và `CanvasModulate`). Người chơi có một vòng sáng nhỏ quanh người.
 Hai bệ thờ có cột sáng tím, trên bệ có pha lê sức mạnh hoặc bình máu. Cổng xoáy ở phòng cuối là đích đến.
 Muốn chỉnh độ tối: sửa `DUNGEON_DARK` trong `scripts/level.gd`. Ký tự bản đồ hầm ngục ghi ở đầu file đó.
@@ -175,7 +206,7 @@ Muốn chỉnh độ tối: sửa `DUNGEON_DARK` trong `scripts/level.gd`. Ký t
 1. **Làng Khởi Nguyên**: bắt đầu ở quảng trường giữa làng. Nói chuyện với dân làng, đọc biển báo, ra **bãi tập** đánh bù nhìn để quen vũ khí. Bù nhìn có khiên rất cứng, thử phá giáp bằng Thương.
 2. **Rừng Hoang** (phía đông làng): đánh slime, dơi, cung thủ xương. Nhặt ngọc xanh để lấy kinh nghiệm, bình máu, vàng, pha lê tím (+Tấn công).
 3. Đi tiếp về phía đông vào **Đấu Trường Đá Cổ** và hạ Boss **Gorrak**. Boss có 5 giáp, biết nhảy đập (né vòng đỏ!), bắn cầu bóng tối, và nổi điên khi còn nửa máu.
-4. Hạ Boss thì cổng phong ấn mở. Vào **Hầm Ngục Cổ** (tối, quái mạnh hơn), đi qua Sảnh Nến và Điện Thờ, rồi bước vào **Cổng Xoáy** ở phòng cuối để hoàn thành.
+4. Hạ Boss thì phong ấn cửa hang (vách bắc đấu trường) vỡ ra. Đi vào hang xuống **Hầm Ngục Cổ** (tối, quái mạnh hơn), đi qua Sảnh Nến và Điện Thờ, rồi bước vào **Cổng Xoáy** ở phòng cuối để hoàn thành.
 
 ## Cảm giác chiến đấu (chỉnh được)
 
@@ -199,7 +230,7 @@ scripts/
   character_parts.gd   Danh sách màu da, tóc, áo, mũ và cách ghép các lớp hình
   weapons.gd           Thông số 4 loại vũ khí và bộ kỹ năng mặc định của từng loại
   items.gd             Vật phẩm cất trong túi đồ
-  recipes.gd           Công thức chế tạo (nồi luyện thuốc, bàn chế tạo)
+  recipes.gd           Công thức chế tạo của 4 trạm (nồi thuốc, bếp lửa, lò nấu ăn, bàn chế tạo)
   harvestable.gd       Cây thu hoạch được (tự lớn lại sau khi hái), xô nước cạnh giếng
   critter.gd           Thú hiền: thỏ, nai, chim, bướm, ếch, vịt
   skills.gd            Danh sách tất cả kỹ năng (Q W E R)
@@ -219,7 +250,8 @@ assets/
   dungeon/             Hầm ngục: sàn, tường, nến, đuốc, bình gốm, bệ thờ, cột sáng, cổng xoáy (Claude vẽ)
   eco/                 Cây thu hoạch, cây liễu, nấm khổng lồ, cối xay gió, nhà kho, thuyền, cầu tàu... (Claude vẽ)
   critters/            Thú hiền (Claude vẽ)
-  craft/               Nồi luyện thuốc, bàn chế tạo, xô nước (Claude vẽ)
+  craft/               Nồi luyện thuốc, bàn chế tạo, bếp lửa, lò nấu ăn, gốc cây có gỗ, xô nước (Claude vẽ)
+  cave/                Cửa hang, phong ấn, cầu thang ra hang (Claude vẽ)
   forest/              Rừng Hoang: cây, nền rừng tối, đường đất, bãi đá, thác nước (Claude vẽ) và thùng, gốc cây, lửa trại (Kenney)
   kenney/              Nguyên tấm sprite sheet Roguelike RPG để dùng thêm sau
   character/           Các lớp ngoại hình nhân vật: thân, mặt, áo, tay, tóc, mũ (Claude vẽ, khung 24x32, hoạt ảnh 4 hướng)

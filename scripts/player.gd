@@ -96,7 +96,17 @@ var book_msg_cd := 0.0
 var level_ref: Level                 # màn chơi, dùng để tìm đường
 var path := PackedVector2Array()     # các điểm cần đi qua
 var path_index := 0
-var attack_target: Enemy = null      # quái đang được chỉ định tấn công
+## Quái đang bị khóa mục tiêu (chuột phải vào quái). Giữ cho tới khi quái chết hoặc bấm chuột phải xuống đất.
+var attack_target: Enemy = null:
+	set(value):
+		if attack_target != null and is_instance_valid(attack_target):
+			attack_target.set_targeted(false)
+		attack_target = value
+		if value != null and is_instance_valid(value):
+			value.set_targeted(true)
+var hover_enemy: Enemy = null        # quái đang nằm dưới con trỏ chuột (có viền đỏ)
+var aiming_skill := -1               # đang giữ phím Q W E R: hiện tầm kỹ năng, thả phím ra thì tung chiêu
+var indicator: Node2D                # lớp vẽ vòng tầm đánh / tầm kỹ năng dưới chân
 var repath_timer := 0.0
 var stuck_timer := 0.0
 var right_hold_timer := 0.0
@@ -128,6 +138,11 @@ var upgrades := {}                   # đồ nâng cấp đã làm: { "bag": 1, 
 var regen_left := 0.0                # còn bao nhiêu giây hồi máu từ từ (súp nấm, canh xương)
 var regen_rate := 0                  # máu hồi mỗi giây
 var regen_tick := 0.0
+var buff_attack := 0                 # tấn công đang được thuốc cộng thêm
+var buff_attack_time := 0.0
+var buff_speed := 0.0                # tốc độ chạy đang được thuốc cộng thêm
+var buff_speed_time := 0.0
+var cutscene_time := 0.0             # > 0: đang chuyển cảnh (đi qua hang), đứng yên
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var camera: Camera2D = $Camera2D
@@ -139,6 +154,11 @@ var book_sprite: Sprite2D    # sách phép bay lơ lửng cạnh người
 
 func _ready() -> void:
 	add_to_group("player")
+	# Vòng tầm đánh / tầm kỹ năng: vẽ sát mặt đất, dưới mọi nhân vật
+	indicator = Node2D.new()
+	indicator.z_index = -5
+	indicator.draw.connect(_draw_indicators)
+	add_child(indicator)
 	# Bóng dưới chân
 	var shadow := Sprite2D.new()
 	shadow.texture = SHADOW_TEXTURE
@@ -175,9 +195,10 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if is_dead:
+	if is_dead or cutscene_time > 0.0:
 		return
 	if event.is_action_pressed("move_click"):
+		aiming_skill = -1        # chuột phải: hủy ngắm kỹ năng (giống LMHT)
 		attack_move_armed = false
 		attack_moving = false
 		_command_at_mouse()
@@ -198,13 +219,22 @@ func _unhandled_input(event: InputEvent) -> void:
 	else:
 		for i in SKILL_ACTIONS.size():
 			if event.is_action_pressed(SKILL_ACTIONS[i]):
-				_cast_skill(i)
+				_start_aim(i)
 
 
 func _physics_process(delta: float) -> void:
 	if is_dead:
 		return
 	_tick_timers(delta)
+	if cutscene_time > 0.0:
+		cutscene_time -= delta
+		velocity = Vector2.ZERO
+		return
+	# Thả phím kỹ năng đang giữ: tung chiêu về phía con trỏ
+	if aiming_skill != -1 and not Input.is_action_pressed(SKILL_ACTIONS[aiming_skill]):
+		var skill_index := aiming_skill
+		aiming_skill = -1
+		_cast_skill(skill_index)
 
 	# Phím mũi tên (nếu dùng) được ưu tiên và hủy lệnh chuột đang làm
 	var input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
@@ -242,7 +272,9 @@ func _physics_process(delta: float) -> void:
 		_handle_bow(delta, mouse_attack)
 	elif Input.is_action_just_pressed("attack") or mouse_attack:
 		if mouse_attack:
-			_aim_at(get_global_mouse_position())
+			# Chuột trái lên quái: đánh thẳng vào quái đó
+			var aim_enemy: Enemy = hover_enemy if hover_enemy != null and is_instance_valid(hover_enemy) else null
+			_aim_at(aim_enemy.global_position if aim_enemy != null else get_global_mouse_position())
 		if attack_cd > 0.0:
 			attack_buffered = attack_cd < 0.18
 		else:
@@ -259,8 +291,16 @@ func _physics_process(delta: float) -> void:
 
 
 func _process(delta: float) -> void:
-	# Con trỏ hình kiếm khi rê chuột lên quái
-	Game.set_attack_cursor(not is_dead and (attack_move_armed or _enemy_at(get_global_mouse_position()) != null))
+	# Rê chuột lên quái: quái có viền đỏ, hiện thanh máu, con trỏ đổi thành hình kiếm (giống LMHT)
+	var hovered: Enemy = null if is_dead else _enemy_at(get_global_mouse_position())
+	if hovered != hover_enemy:
+		if hover_enemy != null and is_instance_valid(hover_enemy):
+			hover_enemy.set_highlight(false)
+		hover_enemy = hovered
+		if hovered != null:
+			hovered.set_highlight(true)
+	Game.set_attack_cursor(not is_dead and (attack_move_armed or hovered != null))
+	indicator.queue_redraw()
 	# Camera nhìn trước một chút theo hướng đang đi
 	var look := facing * 14.0 if velocity.length() > 10.0 else Vector2.ZERO
 	camera.position = camera.position.lerp(look, 3.0 * delta)
@@ -297,6 +337,57 @@ func _draw() -> void:
 	draw_rect(Rect2(rect.position + Vector2(1, 1), Vector2((rect.size.x - 2) * k, 1)), fill)
 
 
+## Vòng tầm đánh (khi bấm A) và vùng ảnh hưởng của kỹ năng đang ngắm (khi giữ Q W E R).
+func _draw_indicators() -> void:
+	if is_dead:
+		return
+	if attack_move_armed:
+		var reach := float(Weapons.info(weapon)["auto_range"]) + 10.0
+		_draw_zone_circle(Vector2.ZERO, reach, Color(1.0, 0.6, 0.3))
+	if aiming_skill == -1:
+		return
+	var s := slot_skill(aiming_skill)
+	if s.is_empty():
+		return
+	var color := Color(0.5, 0.8, 1.0)
+	var dir := _mouse_dir()
+	var to_mouse := get_global_mouse_position() - global_position
+	if s.has("range"):
+		# Chiêu chọn chỗ: vòng tầm tối đa + vòng nổ ở chỗ con trỏ
+		var max_range := float(s["range"])
+		_draw_zone_circle(Vector2.ZERO, max_range, color, 0.04)
+		var spot := to_mouse.limit_length(max_range)
+		_draw_zone_circle(spot, float(s.get("radius", 8.0)), color, 0.22)
+	elif s.has("radius") or s.has("finisher_radius"):
+		# Chiêu quanh người
+		_draw_zone_circle(Vector2.ZERO, float(s.get("radius", s.get("finisher_radius", 32.0))), color, 0.18)
+	elif s.has("arc"):
+		# Chém vòng cung phía trước
+		var reach := float(s.get("reach", 30.0)) + 8.0
+		var half := deg_to_rad(float(s["arc"])) / 2.0
+		var points := PackedVector2Array([Vector2.ZERO])
+		for k in 17:
+			points.append(dir.rotated(-half + half * 2.0 * k / 16.0) * reach)
+		indicator.draw_colored_polygon(points, Color(color, 0.2))
+		points.append(Vector2.ZERO)
+		indicator.draw_polyline(points, Color(color, 0.7), 1.0)
+	else:
+		# Lướt / đâm / bắn thẳng: một dải theo hướng con trỏ (Lùi Bắn thì lùi ngược lại)
+		var length := float(s.get("distance", s.get("reach", 150.0)))
+		var line_dir := -dir if str(s["cast"]).contains("backstep") else dir
+		var side := line_dir.orthogonal() * 6.0
+		var end := line_dir * length
+		var rect := PackedVector2Array([side, end + side, end - side, -side])
+		indicator.draw_colored_polygon(rect, Color(color, 0.2))
+		rect.append(side)
+		indicator.draw_polyline(rect, Color(color, 0.7), 1.0)
+
+
+func _draw_zone_circle(center: Vector2, radius: float, color: Color, fill_alpha: float = 0.08) -> void:
+	indicator.draw_circle(center, radius, Color(color, fill_alpha))
+	indicator.draw_arc(center, radius, 0.0, TAU, 40, Color(color, 0.7), 1.0)
+
+
 func _tick_timers(delta: float) -> void:
 	attack_cd = maxf(attack_cd - delta, 0.0)
 	book_msg_cd = maxf(book_msg_cd - delta, 0.0)
@@ -312,6 +403,7 @@ func _tick_timers(delta: float) -> void:
 	skill_busy = maxf(skill_busy - delta, 0.0)
 	item_cd = maxf(item_cd - delta, 0.0)
 	_tick_regen(delta)
+	_tick_buffs(delta)
 	for i in skill_cd.size():
 		skill_cd[i] = maxf(skill_cd[i] - delta, 0.0)
 	mp = minf(mp + MANA_REGEN * delta, float(max_mp))
@@ -357,15 +449,16 @@ func _command_at_mouse() -> void:
 
 
 ## Quái gần con trỏ chuột nhất (nếu con trỏ đang nằm trên một con quái).
+## Vùng bấm rộng hơn hình quái một chút (xem Enemy.is_under_mouse) cho dễ chọn quái đang chạy.
 func _enemy_at(pos: Vector2) -> Enemy:
 	var best: Enemy = null
 	var best_dist := INF
 	for node in get_tree().get_nodes_in_group("enemies"):
 		var enemy := node as Enemy
-		if enemy == null or enemy.is_dead:
+		if enemy == null or enemy.is_dead or not enemy.is_under_mouse(pos):
 			continue
 		var d := enemy.global_position.distance_to(pos)
-		if d <= enemy.hit_radius + 6.0 and d < best_dist:
+		if d < best_dist:
 			best = enemy
 			best_dist = d
 	return best
@@ -536,6 +629,17 @@ func slot_skill(slot: int) -> Dictionary:
 ## Tung kỹ năng ở ô index (0 = Q, 1 = W, 2 = E, 3 = R), nhắm theo con trỏ chuột.
 ## Ô chỉ ghi id kỹ năng. Thông số nằm ở scripts/skills.gd, còn cách hoạt động là
 ## hàm có tên ghi ở "cast" (các hàm _skill_... bên dưới).
+## Bấm phím kỹ năng: bắt đầu ngắm (hiện tầm kỹ năng). Thả phím ra thì tung chiêu.
+func _start_aim(index: int) -> void:
+	if aiming_skill != -1 and aiming_skill != index:
+		var held := aiming_skill   # đang ngắm chiêu khác: tung chiêu đó trước
+		aiming_skill = -1
+		_cast_skill(held)
+	if index >= skill_slots.size() or skill_cd[index] > 0.0 or slot_skill(index).is_empty():
+		return
+	aiming_skill = index
+
+
 func _cast_skill(index: int) -> void:
 	if is_dead or skill_busy > 0.0 or dash_timer > 0.0 or charging:
 		return
@@ -1137,6 +1241,59 @@ func apply_upgrade(kind: String, amount: int) -> void:
 			add_attack(amount)
 
 
+## Thuốc tăng sức mạnh / tốc độ trong một thời gian. buff = [loại, lượng, số giây].
+func _apply_buff(buff: Array) -> void:
+	var kind := str(buff[0])
+	var secs := float(buff[2])
+	match kind:
+		"attack":
+			attack -= buff_attack          # uống lại thì không cộng dồn, chỉ làm mới thời gian
+			buff_attack = int(buff[1])
+			attack += buff_attack
+			buff_attack_time = secs
+			Game.popup_text(global_position + Vector2(0, -20), "Tấn công +%d" % buff_attack, Color(1.0, 0.7, 0.3), 10)
+		"speed":
+			move_speed -= buff_speed
+			buff_speed = move_speed * float(buff[1])
+			move_speed += buff_speed
+			buff_speed_time = secs
+			Game.popup_text(global_position + Vector2(0, -20), "Chạy nhanh hơn!", Color(0.5, 1.0, 0.9), 10)
+
+
+func _tick_buffs(delta: float) -> void:
+	if buff_attack_time > 0.0:
+		buff_attack_time -= delta
+		if buff_attack_time <= 0.0:
+			attack -= buff_attack
+			buff_attack = 0
+			Game.popup_text(global_position + Vector2(0, -20), "Hết thuốc sức mạnh", Color(0.8, 0.8, 0.8), 8)
+	if buff_speed_time > 0.0:
+		buff_speed_time -= delta
+		if buff_speed_time <= 0.0:
+			move_speed -= buff_speed
+			buff_speed = 0.0
+			Game.popup_text(global_position + Vector2(0, -20), "Hết thuốc nhanh nhẹn", Color(0.8, 0.8, 0.8), 8)
+
+
+## Đứng yên một lúc (khi đi qua hang chuyển cảnh).
+func stop_for_cutscene() -> void:
+	_clear_commands()
+	aiming_skill = -1
+	velocity = Vector2.ZERO
+	cutscene_time = 0.9
+
+
+## Dịch chuyển tới chỗ mới (đi qua hang), camera theo ngay không trượt.
+func teleport_to(world_pos: Vector2) -> void:
+	global_position = world_pos
+	velocity = Vector2.ZERO
+	knockback = Vector2.ZERO
+	_clear_commands()
+	facing = Vector2.DOWN
+	camera.position = Vector2.ZERO
+	camera.reset_smoothing()
+
+
 ## Hồi máu từ từ: mỗi giây hồi regen_rate máu cho tới khi hết regen_left giây.
 func _tick_regen(delta: float) -> void:
 	if regen_left <= 0.0 or is_dead:
@@ -1166,28 +1323,43 @@ func use_bag_slot(index: int) -> bool:
 		return false
 	var id: String = bag[index]["id"]
 	var data := Items.info(id)
+	var msg_pos := global_position + Vector2(0, -20)
+	if data.get("tool", false):
+		Game.popup_text(msg_pos, "Công cụ: cứ để trong túi là dùng được", Color(0.8, 0.8, 0.8), 9)
+		return false
 	match id:
-		"potion_hp":
-			if hp >= max_hp:
-				Game.popup_text(global_position + Vector2(0, -20), "Máu đang đầy", Color(0.8, 0.8, 0.8), 9)
-				return false
-			heal(roundi(max_hp * float(data["heal_ratio"])))
 		"potion_mp":
 			restore_mana(int(data["mana"]))
 		_:
+			if data.has("place"):
+				# Bộ lửa trại: đặt xuống ngay trước mặt
+				if level_ref == null:
+					return false
+				var err: String = level_ref.place_station(data["place"], global_position + facing * 14.0)
+				if err != "":
+					Game.popup_text(msg_pos, err, Color(1.0, 0.6, 0.5), 9)
+					return false
+			elif data.has("buff"):
+				_apply_buff(data["buff"])
+			elif data.has("heal_ratio"):
+				# Bình máu: hồi theo % máu tối đa
+				if hp >= max_hp:
+					Game.popup_text(msg_pos, "Máu đang đầy", Color(0.8, 0.8, 0.8), 9)
+					return false
+				heal(roundi(max_hp * float(data["heal_ratio"])))
+			elif not data.has("heal") and not data.has("regen"):
+				Game.popup_text(msg_pos, "Nguyên liệu để chế tạo", Color(0.8, 0.8, 0.8), 9)
+				return false
 			# Đồ ăn (quả mọng, táo, thịt nướng...): hồi máu. Súp, canh: hồi máu từ từ
-			if not data.has("heal") and not data.has("regen"):
-				Game.popup_text(global_position + Vector2(0, -20), "Nguyên liệu để chế tạo", Color(0.8, 0.8, 0.8), 9)
+			elif hp >= max_hp:
+				Game.popup_text(msg_pos, "Máu đang đầy", Color(0.8, 0.8, 0.8), 9)
 				return false
-			if hp >= max_hp:
-				Game.popup_text(global_position + Vector2(0, -20), "Máu đang đầy", Color(0.8, 0.8, 0.8), 9)
-				return false
-			if data.has("regen"):
+			elif data.has("regen"):
 				var regen: Array = data["regen"]
 				regen_rate = int(regen[0])
 				regen_left = float(regen[1])
 				regen_tick = 0.0
-				Game.popup_text(global_position + Vector2(0, -20), "Hồi máu từ từ", Color(0.6, 1.0, 0.6), 9)
+				Game.popup_text(msg_pos, "Hồi máu từ từ", Color(0.6, 1.0, 0.6), 9)
 			else:
 				heal(int(data["heal"]))
 	item_cd = ITEM_COOLDOWN

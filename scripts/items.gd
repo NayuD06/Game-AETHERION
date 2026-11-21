@@ -4,6 +4,9 @@ extends RefCounted
 ## Muốn thêm vật phẩm mới: thêm một mục vào DATA rồi viết cách dùng trong Player.use_item().
 ## Đồ ăn có "heal": bấm vào trong túi để ăn, hồi bấy nhiêu máu.
 ## Đồ ăn có "regen": [máu mỗi giây, số giây]: hồi máu từ từ.
+## Thuốc có "buff": ["attack", cộng thêm, số giây] hoặc ["speed", tỉ lệ chạy nhanh hơn, số giây].
+## Công cụ có "tool": để trong túi là có tác dụng (Rìu chặt gỗ, Liềm hái thêm, Đuốc soi sáng hầm ngục).
+## "place": bấm vào trong túi để đặt xuống đất (Bộ lửa trại).
 ## Đồ không có "heal" / "regen" là nguyên liệu để chế tạo (công thức ở scripts/recipes.gd).
 
 const DATA := {
@@ -12,6 +15,24 @@ const DATA := {
 		"icon": preload("res://assets/items/potion_hp.png"),
 		"desc": "Hồi 40% máu tối đa. Phím D để dùng nhanh.",
 		"heal_ratio": 0.4,
+	},
+	"potion_hp_big": {
+		"name": "Bình máu lớn",
+		"icon": preload("res://assets/items/potion_hp_big.png"),
+		"desc": "Hồi 80% máu tối đa.",
+		"heal_ratio": 0.8,
+	},
+	"potion_strength": {
+		"name": "Thuốc sức mạnh",
+		"icon": preload("res://assets/items/potion_strength.png"),
+		"desc": "Tấn công +6 trong 60 giây.",
+		"buff": ["attack", 6, 60.0],
+	},
+	"potion_speed": {
+		"name": "Thuốc nhanh nhẹn",
+		"icon": preload("res://assets/items/potion_speed.png"),
+		"desc": "Chạy nhanh hơn 30% trong 60 giây.",
+		"buff": ["speed", 0.3, 60.0],
 	},
 	"potion_mp": {
 		"name": "Bình năng lượng",
@@ -82,6 +103,36 @@ const DATA := {
 		"icon": preload("res://assets/items/rope.png"),
 		"desc": "Bện từ lúa mì ở bàn chế tạo.",
 	},
+	"wood": {
+		"name": "Gỗ",
+		"icon": preload("res://assets/items/wood.png"),
+		"desc": "Chặt ở gốc cây trong rừng (cần Rìu). Làm liềm, đuốc, bộ lửa trại.",
+	},
+	# --- Công cụ (làm ở bàn chế tạo, để trong túi là dùng được)
+	"axe": {
+		"name": "Rìu",
+		"icon": preload("res://assets/items/axe.png"),
+		"desc": "Công cụ: có rìu trong túi thì đi tới gốc cây là chặt được gỗ.",
+		"tool": true,
+	},
+	"sickle": {
+		"name": "Liềm",
+		"icon": preload("res://assets/items/sickle.png"),
+		"desc": "Công cụ: hái cây, rau, quả được thêm 1 mỗi lần.",
+		"tool": true,
+	},
+	"torch": {
+		"name": "Đuốc",
+		"icon": preload("res://assets/items/torch.png"),
+		"desc": "Công cụ: vòng sáng quanh người to hơn khi ở trong hầm ngục.",
+		"tool": true,
+	},
+	"campfire_kit": {
+		"name": "Bộ lửa trại",
+		"icon": preload("res://assets/items/campfire_kit.png"),
+		"desc": "Bấm vào để đặt bếp lửa ngay chỗ đứng. Ở đâu cũng nướng đồ ăn được.",
+		"place": "fire",
+	},
 	# --- Đồ ăn (thịt sống ăn được, nấu chín thì hồi nhiều hơn)
 	"meat": {
 		"name": "Thịt sống",
@@ -95,6 +146,36 @@ const DATA := {
 		"icon": preload("res://assets/items/cooked_meat.png"),
 		"desc": "Thơm phức! Hồi 35 máu.",
 		"heal": 35,
+	},
+	"mushroom_skewer": {
+		"name": "Xiên nấm nướng",
+		"icon": preload("res://assets/items/mushroom_skewer.png"),
+		"desc": "Nấm nướng thơm lừng. Hồi 25 máu.",
+		"heal": 25,
+	},
+	"roast_pumpkin": {
+		"name": "Bí ngô nướng",
+		"icon": preload("res://assets/items/roast_pumpkin.png"),
+		"desc": "Bí ngô nướng ngọt bùi. Hồi 50 máu.",
+		"heal": 50,
+	},
+	"meat_skewer": {
+		"name": "Xiên thịt rau",
+		"icon": preload("res://assets/items/meat_skewer.png"),
+		"desc": "Thịt nướng xiên với cà rốt, nấm. Hồi 60 máu.",
+		"heal": 60,
+	},
+	"pumpkin_soup": {
+		"name": "Súp bí ngô",
+		"icon": preload("res://assets/items/pumpkin_soup.png"),
+		"desc": "Hồi máu từ từ: 8 máu mỗi giây trong 12 giây.",
+		"regen": [8, 12],
+	},
+	"apple_pie": {
+		"name": "Bánh táo",
+		"icon": preload("res://assets/items/apple_pie.png"),
+		"desc": "Bánh táo nướng lò. Hồi 45 máu.",
+		"heal": 45,
 	},
 	"bread": {
 		"name": "Bánh mì",

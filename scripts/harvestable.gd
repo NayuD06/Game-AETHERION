@@ -12,6 +12,7 @@ var amount_min := 1
 var amount_max := 1
 var reach := 14.0            # đứng gần bao nhiêu pixel thì hái được
 var sway := true             # cây nhỏ đung đưa nhẹ khi chín
+var tool := ""               # cần công cụ này trong túi mới thu hoạch được (gốc cây cần "axe" = Rìu)
 
 var stage := 0
 var timer := 0.0
@@ -30,6 +31,7 @@ func setup(data: Dictionary) -> void:
 	amount_max = int(amount[1])
 	reach = float(data.get("reach", reach))
 	sway = not data.get("tree", false)
+	tool = str(data.get("tool", ""))
 	sprite = Sprite2D.new()
 	sprite.texture = data["tex"]
 	sprite.hframes = frames
@@ -75,7 +77,16 @@ func _stage_time() -> float:
 
 
 func _harvest() -> void:
+	if tool != "" and player.count_item(tool) <= 0:
+		if full_msg_cd <= 0.0:
+			full_msg_cd = 6.0
+			var tool_name: String = Items.info(tool).get("name", tool)
+			Game.popup_text(global_position + Vector2(0, -20), "Cần %s" % tool_name, Color(0.9, 0.85, 0.7), 8)
+		return
 	var amount := randi_range(amount_min, amount_max)
+	# Có Liềm trong túi: hái cây được thêm 1 (không tính nước, gỗ)
+	if tool == "" and item_id != "water" and player.count_item("sickle") > 0:
+		amount += 1
 	if not player.add_item(item_id, amount):
 		if full_msg_cd <= 0.0:
 			full_msg_cd = 3.0

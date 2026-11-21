@@ -12,7 +12,9 @@ signal died(enemy: Enemy)
 @export var xp_reward := 5
 @export var gold_reward := 1
 @export var detect_range := 110.0
-@export var hit_radius := 7.0
+@export var hit_radius := 7.0          # vùng trúng đòn (càng lớn càng dễ đánh trúng)
+@export var visual_scale := 1.0        # phóng to hình quái (1.5 = to gấp rưỡi)
+@export var overhead_bar := true       # hiện thanh máu nhỏ trên đầu (Boss dùng thanh máu lớn riêng)
 @export var knockback_resist := 1.0  # 0 = không bị đẩy lùi, 1 = bị đẩy bình thường
 @export var armor := 0  # giáp: trừ thẳng vào sát thương mỗi đòn (Thương xuyên và phá được giáp)
 @export var death_color := Color(0.5, 0.85, 0.3)  # màu hạt bắn ra khi chết
@@ -38,6 +40,13 @@ var squash := 0.0  # nảy hình khi bị đánh
 
 const SHADOW_TEXTURE := preload("res://assets/sprites/shadow.png")
 const SHIELD_TEXTURE := preload("res://assets/weapons/shield.png")
+const OUTLINE_SHADER := preload("res://scripts/effects/outline.gdshader")
+
+var highlighted := false   # chuột đang rê lên quái này (viền đỏ, hiện thanh máu)
+var targeted := false      # người chơi đang khóa mục tiêu vào quái này (vòng đỏ dưới chân)
+var sprite_base_y := 0.0   # hình được đẩy lên khi phóng to để chân vẫn chạm đất
+var hp_bar: Node2D
+var outline_material: ShaderMaterial
 
 var max_armor := 0
 var shield_icon: Sprite2D  # biểu tượng khiên trên đầu khi còn giáp
@@ -47,17 +56,34 @@ var shield_icon: Sprite2D  # biểu tượng khiên trên đầu khi còn giáp
 
 func _ready() -> void:
 	hp = max_hp
+	var big := hit_radius >= 15.0   # quái to (Boss)
+	var frame_h := float(sprite.texture.get_height()) / float(sprite.vframes) if sprite.texture else 16.0
+	# Phóng to hình: đẩy hình lên để chân vẫn ở chỗ cũ
+	sprite_base_y = -frame_h * (visual_scale - 1.0) / 2.0
+	sprite.position.y = sprite_base_y
+	sprite.scale = Vector2.ONE * visual_scale
+	outline_material = ShaderMaterial.new()
+	outline_material.shader = OUTLINE_SHADER
+	sprite.material = outline_material
 	var shadow := Sprite2D.new()
 	shadow.texture = SHADOW_TEXTURE
-	shadow.position = Vector2(0, 7 if hit_radius < 10.0 else 14)
-	shadow.scale = Vector2.ONE * (1.0 if hit_radius < 10.0 else 2.0)
+	shadow.position = Vector2(0, 14 if big else 7)
+	shadow.scale = Vector2.ONE * (2.0 if big else visual_scale)
 	add_child(shadow)
 	move_child(shadow, 0)
 	max_armor = armor
+	var head_y := sprite_base_y - frame_h * visual_scale / 2.0   # đỉnh đầu
+	# Thanh máu nhỏ trên đầu (hiện khi bị đánh, khi rê chuột lên hoặc khi đang bị khóa mục tiêu)
+	hp_bar = Node2D.new()
+	hp_bar.position = Vector2(0, head_y - 4.0)
+	hp_bar.z_index = 3
+	hp_bar.visible = false
+	hp_bar.draw.connect(_draw_hp_bar)
+	add_child(hp_bar)
 	shield_icon = Sprite2D.new()
 	shield_icon.texture = SHIELD_TEXTURE
 	shield_icon.scale = Vector2.ONE * 0.5
-	shield_icon.position = Vector2(0, -12 if hit_radius < 10.0 else -26)
+	shield_icon.position = Vector2(-_bar_width() / 2.0 - 5.0, head_y - 3.0)
 	shield_icon.visible = armor > 0
 	add_child(shield_icon)
 	add_to_group("enemies")
@@ -124,7 +150,7 @@ func player_in_range(r: float) -> bool:
 
 
 func _check_contact() -> void:
-	if contact_damage <= 0 or contact_cd > 0.0 or not player_in_range(hit_radius + 7.0):
+	if contact_damage <= 0 or contact_cd > 0.0 or not player_in_range(_body_radius() + 8.0):
 		return
 	if player.take_damage(contact_damage, player.global_position - global_position):
 		contact_cd = 0.8
@@ -138,7 +164,7 @@ func _animate(delta: float, move: Vector2) -> void:
 		sprite.flip_h = move.x < 0.0
 	# Nảy hình (bẹp ra rồi trở lại) khi bị đánh
 	squash = move_toward(squash, 0.0, delta * 3.0)
-	sprite.scale = Vector2(1.0 + squash, 1.0 - squash)
+	sprite.scale = Vector2(1.0 + squash, 1.0 - squash) * visual_scale
 	if flash_time > 0.0:
 		sprite.modulate = Color(4, 4, 4)
 	elif stun_time > 0.0:
@@ -171,6 +197,7 @@ func take_damage(amount: int, push: Vector2 = Vector2.ZERO, armor_pierce: float 
 	# Quái nhỏ bị khựng lại một chút khi trúng đòn
 	if knockback_resist >= 0.5:
 		stun(0.18)
+	_update_hp_bar()
 	var color := Color(0.65, 0.72, 0.85) if blocked else Color(1.0, 0.9, 0.4)
 	Game.popup_text(global_position + Vector2(0, -6), str(amount), color)
 	if hp <= 0:
@@ -184,6 +211,9 @@ func stun(time: float) -> void:
 func _die() -> void:
 	is_dead = true
 	remove_from_group("enemies")
+	_update_hp_bar()
+	outline_material.set_shader_parameter("outline_on", false)
+	queue_redraw()
 	$CollisionShape2D.set_deferred("disabled", true)
 	_drop_loot()
 	Game.burst(global_position, death_color, 16, 80.0)
@@ -214,3 +244,75 @@ func _drop_loot() -> void:
 	for drop in item_drops:
 		if drop is Array and drop.size() >= 4 and randf() < float(drop[1]):
 			Pickup.spawn_item(parent, str(drop[0]), global_position, randi_range(int(drop[2]), int(drop[3])))
+
+
+# ---------------------------------------------------------------- Chọn mục tiêu bằng chuột (kiểu LMHT / Dota)
+
+## Bán kính thân (vòng va chạm), dùng để tính quái chạm vào người chơi.
+func _body_radius() -> float:
+	var shape_node := get_node_or_null("CollisionShape2D") as CollisionShape2D
+	if shape_node != null and shape_node.shape is CircleShape2D:
+		return (shape_node.shape as CircleShape2D).radius
+	return 6.0
+
+
+## Con trỏ chuột (toạ độ thế giới) có đang nằm trên quái này không. Vùng bấm rộng hơn hình một chút cho dễ chọn.
+func is_under_mouse(pos: Vector2) -> bool:
+	if is_dead:
+		return false
+	if global_position.distance_to(pos) <= hit_radius + 8.0:
+		return true
+	if sprite.texture == null:
+		return false
+	var frame := Vector2(sprite.texture.get_width() / float(sprite.hframes), sprite.texture.get_height() / float(sprite.vframes))
+	var half := frame * visual_scale / 2.0 + Vector2(4, 4)
+	var local := pos - (global_position + sprite.position)
+	return absf(local.x) <= half.x and absf(local.y) <= half.y
+
+
+func set_highlight(on: bool) -> void:
+	if highlighted == on:
+		return
+	highlighted = on
+	outline_material.set_shader_parameter("outline_on", on)
+	_update_hp_bar()
+	queue_redraw()
+
+
+func set_targeted(on: bool) -> void:
+	if targeted == on:
+		return
+	targeted = on
+	outline_material.set_shader_parameter("outline_color", Color(1.0, 0.15, 0.1) if on else Color(1.0, 0.3, 0.25))
+	_update_hp_bar()
+	queue_redraw()
+
+
+func _bar_width() -> float:
+	return clampf(hit_radius * 2.0 + 4.0, 16.0, 36.0)
+
+
+func _update_hp_bar() -> void:
+	if hp_bar == null:
+		return
+	hp_bar.visible = overhead_bar and not is_dead and (hp < max_hp or highlighted or targeted)
+	hp_bar.queue_redraw()
+
+
+func _draw_hp_bar() -> void:
+	var w := _bar_width()
+	var ratio := clampf(float(hp) / float(maxi(max_hp, 1)), 0.0, 1.0)
+	hp_bar.draw_rect(Rect2(-w / 2.0 - 1.0, -1.0, w + 2.0, 5.0), Color(0.05, 0.03, 0.05, 0.9))
+	hp_bar.draw_rect(Rect2(-w / 2.0, 0.0, w * ratio, 3.0), Color(0.95, 0.2, 0.2) if not is_elite else Color(0.85, 0.3, 0.95))
+	hp_bar.draw_rect(Rect2(-w / 2.0, 0.0, w * ratio, 1.0), Color(1.0, 0.55, 0.5, 0.8))
+
+
+## Vòng dưới chân: đỏ đậm khi đang bị khóa mục tiêu, đỏ nhạt khi rê chuột lên.
+func _draw() -> void:
+	if is_dead or not (targeted or highlighted):
+		return
+	var r := hit_radius + 3.0
+	var color := Color(1.0, 0.15, 0.1, 0.9) if targeted else Color(1.0, 0.45, 0.35, 0.6)
+	draw_set_transform(Vector2(0, 7.0 if hit_radius < 15.0 else 14.0), 0.0, Vector2(1.0, 0.45))
+	draw_arc(Vector2.ZERO, r, 0.0, TAU, 28, color, 2.0)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)

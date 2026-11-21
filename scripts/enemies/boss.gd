@@ -70,9 +70,9 @@ func _ai(delta: float) -> Vector2:
 		State.LEAP:
 			var k := clampf(state_time / 0.35, 0.0, 1.0)
 			global_position = leap_from.lerp(leap_to, k)
-			sprite.position.y = -sin(k * PI) * 18.0
+			sprite.position.y = sprite_base_y - sin(k * PI) * 18.0
 			if k >= 1.0:
-				sprite.position.y = 0.0
+				sprite.position.y = sprite_base_y
 				_slam()
 				_set_state(State.RECOVER)
 		State.RECOVER:
@@ -187,6 +187,7 @@ func _animate(delta: float, move: Vector2) -> void:
 
 
 func _draw() -> void:
+	super._draw()   # vòng chọn mục tiêu dưới chân
 	# Vòng đỏ báo trước chỗ Boss sẽ đáp xuống
 	if state == State.WINDUP or state == State.LEAP:
 		var center := to_local(leap_to)
