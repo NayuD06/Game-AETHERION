@@ -7,3 +7,6 @@
 # OS
 .DS_Store
 Thumbs.db
+
+# Video quay thô từ chế độ demo (--write-movie), không đưa lên git
+_video/

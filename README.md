@@ -4,6 +4,17 @@ Game nhập vai hành động 2D pixel, góc nhìn từ trên xuống, làm bằ
 
 Một chiến binh thức tỉnh trong thế giới bị các thế lực cổ đại xâm chiếm. Bắt đầu yếu ớt, bạn đánh quái, lên cấp, thức tỉnh nguyên tố **Lửa** rồi **Sấm**, hạ Boss để mở cổng sang vùng đất mới.
 
+## Video giới thiệu
+
+| | |
+|---|---|
+| ![Tạo nhân vật](doc/videos/tao_nhan_vat.gif)<br>**Tạo nhân vật** | ![Làng và cửa hàng](doc/videos/lang.gif)<br>**Làng và cửa hàng** |
+| ![Kiếm](doc/videos/kiem.gif)<br>**Kiếm** | ![Cung](doc/videos/cung.gif)<br>**Cung** |
+| ![Thương](doc/videos/giao.gif)<br>**Thương** | ![Hầm ngục 4 tầng](doc/videos/ham_nguc.gif)<br>**Hầm ngục 4 tầng** |
+| ![Mở rương](doc/videos/ruong.gif)<br>**Mở rương** | ![Boss Malakar](doc/videos/boss.gif)<br>**Boss Malakar** |
+
+Các video được quay từ game thật bằng chế độ demo tự chơi (`scripts/demo.gd`), lệnh: `godot --path . --write-movie _video/<cảnh>.avi --fixed-fps 30 -- --demo=<cảnh>`.
+
 ## Cách mở game
 
 1. Mở `Godot_v4.7.2-stable_win64.exe`.
@@ -171,8 +182,10 @@ Mở túi (**B**) là thấy bảng **Trang bị** bên trái túi: 4 ô Mũ, Gi
 - Trong túi, món có dấu **+** xanh là tốt hơn món đang mặc. Rê chuột lên món đồ để xem chỉ số và độ bền.
 - Chỉ số: **Phòng thủ** (giảm sát thương nhận vào: phòng thủ 50 thì chỉ còn nhận một nửa), **Máu**, **Tấn công**, **Tốc độ chạy**.
   Bảng Trang bị ghi tổng chỉ số và phòng thủ chặn được bao nhiêu % sát thương.
-- 5 bậc: **Da, Sắt, Thép xanh, Dung Nham, Bóng Đêm**. Hiện mọi món đều độ hiếm **Thường**.
-  Sau này thêm độ hiếm (Tốt, Hiếm, Sử Thi, Huyền Thoại): đã có sẵn dòng mẫu trong `RARITIES` ở `scripts/equipment.gd`, chỉ cần bỏ dấu `#`.
+- 5 bậc: **Da, Sắt, Thép xanh, Dung Nham, Bóng Đêm** (theo tầng hầm ngục: tầng càng sâu bậc càng cao).
+- 4 độ hiếm: **Thường, Bạc, Vàng, Kim cương** (theo may rủi khi mở rương, xem bảng ở phần Hầm Ngục Cổ).
+  Đồ Bạc / Vàng / Kim cương có chỉ số, độ bền và giá gấp **1.2 / 1.45 / 1.8** lần đồ Thường.
+  Tên và viền ô có màu theo độ hiếm, ví dụ "Mũ sắt [Vàng]". Đồ hiếm nằm dưới đất thì lấp lánh.
 - **Độ bền**: mỗi lần bị đánh trúng, mọi món đang mặc mất 1 độ bền (thanh nhỏ dưới mỗi ô). Còn ít thì có lời nhắc "sắp hỏng".
   Hết độ bền thì món đó **Hỏng** (ô đỏ lên): vẫn mặc nhưng không còn cộng chỉ số. Mang tới **Bác Sắt thợ rèn** ở quảng trường để sửa.
 - Có đồ ở đâu: **rương báu trong Hầm Ngục Cổ** (tầng càng sâu đồ càng xịn), **Bác Sắt** bán đồ Da và Sắt,
@@ -297,16 +310,32 @@ Lướt (F) qua bẫy gai, lỗ lửa, đầm độc thì không bị trúng.
 **Rương báu** `'`: mỗi tầng có 2 đến 3 rương, bị **khoá** tới khi bạn hạ hết quái của tầng đó (bản đồ nhỏ ghi "Còn N quái").
 Dọn sạch tầng thì rương mở khoá, đi tới sát rương là rương tự mở, đồ văng ra đất. Hạ Malakar còn rơi thêm một **Rương kim cương**.
 
-| Rương | Trong rương có |
+Mỗi rương ra **1 hoặc 2 trang bị**. Mỗi món tự quay độ hiếm theo tỉ lệ của loại rương đó:
+
+| Rương | Cơ hội ra 2 món | Đồ Thường | Đồ Bạc | Đồ Vàng | Đồ Kim cương |
+|---|---|---|---|---|---|
+| Thường | 15% | 89.999% | 9% | 1% | 0.001% |
+| Bạc | 30% | 55% | 38% | 6.9% | 0.1% |
+| Vàng | 45% | 20% | 45% | 33% | 2% |
+| Kim cương | 60% | | 20% | 50% | 30% (món đầu tiên chắc chắn 100% là đồ Kim cương) |
+
+Đồ lặt vặt thì rương nào cũng **luôn có**, rương càng xịn càng nhiều:
+
+| Rương | Luôn có |
 |---|---|
-| Thường | 0 đến 1 trang bị (bậc bằng hoặc thấp hơn tầng), 2 loại nguyên liệu, ít vàng |
-| Bạc | 1 trang bị (bậc bằng tầng), 3 loại nguyên liệu, vàng, 1 bình máu |
-| Vàng | 1 đến 2 trang bị (có thể cao hơn tầng 1 bậc), 3 loại nguyên liệu, nhiều vàng, bình máu và bình máu lớn |
-| Kim cương | 2 đến 3 trang bị (cao hơn tầng 1 bậc), 4 loại nguyên liệu, rất nhiều vàng, 2 bình máu lớn, pha lê sức mạnh |
+| Thường | 2 loại nguyên liệu, ít vàng |
+| Bạc | 3 loại nguyên liệu, vàng, 1 bình máu |
+| Vàng | 3 loại nguyên liệu, nhiều vàng, bình máu và bình máu lớn |
+| Kim cương | 4 loại nguyên liệu, rất nhiều vàng, 2 bình máu lớn, pha lê sức mạnh |
+
+Bậc trang bị: rương thường ra bậc bằng hoặc thấp hơn tầng 1 bậc, bạc bằng tầng, vàng có thể cao hơn 1 bậc, kim cương cao hơn 1 bậc.
+Ra được đồ hiếm hơn hẳn loại rương (ví dụ đồ Kim cương từ rương thường) thì hiện chữ **CỰC HIẾM!** và màn hình rung.
 
 Tầng càng sâu càng hay gặp rương xịn: tầng 1 phần lớn là rương thường, tầng 5 chủ yếu rương vàng và kim cương.
 Nguyên liệu trong rương: da thú, xương, dây thừng, gỗ, thảo dược, nước, lúa mì, nấm, trái cây, thịt (để chế tạo).
-Tỉ lệ từng loại rương mỗi tầng: `chest_odds` trong `scripts/dungeon.gd`. Đồ trong từng loại rương: `scripts/chest.gd`.
+Tỉ lệ từng loại rương mỗi tầng: `chest_odds` trong `scripts/dungeon.gd`. Đồ trong từng loại rương: `TIERS` trong `scripts/chest.gd`
+(`gear_two`: cơ hội ra 2 món, `rarity`: tỉ lệ phần trăm từng độ hiếm, `guaranteed`: độ hiếm chắc chắn có).
+Tên, màu và độ mạnh của từng độ hiếm: `RARITIES` trong `scripts/equipment.gd`.
 
 **Boss Malakar** (`}`) có 3 giai đoạn:
 - **Cầu Hồn Xoắn Ốc**: đứng yên bắn cầu tím xoay vòng. Đứng xa và né khe hở.

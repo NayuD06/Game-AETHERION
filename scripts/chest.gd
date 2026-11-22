@@ -8,36 +8,44 @@ extends Node2D
 ## 4 loại rương: thường, bạc, vàng, kim cương. Tầng càng sâu càng hay gặp rương xịn
 ## (tỉ lệ "chest_odds" của từng tầng nằm trong scripts/dungeon.gd).
 ## Đồ trong mỗi loại rương (TIERS bên dưới):
-##   gear: số món trang bị [ít nhất, nhiều nhất]
-##   gear_tier: bậc trang bị = số tầng + [cộng ít nhất, cộng nhiều nhất] (bậc 1 đến 5, xem scripts/equipment.gd)
-##   rarity: tỉ lệ độ hiếm của trang bị (hiện chỉ có "common" = Thường)
-##   materials: số loại nguyên liệu chế tạo, amount: mỗi loại bao nhiêu cái [ít nhất, nhiều nhất]
-##   gold: vàng (nhân với số tầng)
-##   potions: bình máu, big_potions: bình máu lớn, crystals: pha lê sức mạnh (+2 tấn công mỗi viên)
+##   Trang bị: mỗi rương chỉ ra 1 hoặc 2 món.
+##     gear_two: phần trăm cơ hội ra thêm món thứ 2 (0 = luôn 1 món, 100 = luôn 2 món)
+##     gear_tier: bậc trang bị = số tầng + [cộng ít nhất, cộng nhiều nhất] (bậc 1 đến 5, xem scripts/equipment.gd)
+##     rarity: tỉ lệ PHẦN TRĂM ra từng độ hiếm cho mỗi món (Thường, Bạc, Vàng, Kim cương).
+##             Số lẻ cũng được: 0.001 = cứ 100.000 món mới ra 1 món. Cộng lại nên bằng 100.
+##     guaranteed: món đầu tiên chắc chắn có độ hiếm này (Rương kim cương luôn ra 1 món Kim cương)
+##   Đồ lặt vặt thì rương nào cũng luôn có, rương càng xịn càng nhiều:
+##     materials: số loại nguyên liệu chế tạo, amount: mỗi loại bao nhiêu cái [ít nhất, nhiều nhất]
+##     gold: vàng (nhân với số tầng)
+##     potions: bình máu, big_potions: bình máu lớn, crystals: pha lê sức mạnh (+2 tấn công mỗi viên)
 
 const TIERS := {
 	"normal": {
 		"name": "Rương thường", "texture": preload("res://assets/dungeon/chest_normal.png"),
 		"color": Color(1.0, 0.7, 0.4),
-		"gear": [0, 1], "gear_tier": [-1, 0], "rarity": { "common": 1 },
+		"gear_two": 15, "gear_tier": [-1, 0],
+		"rarity": { "common": 89.999, "silver": 9.0, "gold": 1.0, "diamond": 0.001 },
 		"materials": 2, "amount": [1, 3], "gold": 12, "potions": 0, "big_potions": 0, "crystals": 0,
 	},
 	"silver": {
 		"name": "Rương bạc", "texture": preload("res://assets/dungeon/chest_silver.png"),
 		"color": Color(0.82, 0.88, 1.0),
-		"gear": [1, 1], "gear_tier": [0, 0], "rarity": { "common": 1 },
+		"gear_two": 30, "gear_tier": [0, 0],
+		"rarity": { "common": 55.0, "silver": 38.0, "gold": 6.9, "diamond": 0.1 },
 		"materials": 3, "amount": [2, 3], "gold": 25, "potions": 1, "big_potions": 0, "crystals": 0,
 	},
 	"gold": {
 		"name": "Rương vàng", "texture": preload("res://assets/dungeon/chest_gold.png"),
 		"color": Color(1.0, 0.85, 0.3),
-		"gear": [1, 2], "gear_tier": [0, 1], "rarity": { "common": 1 },
+		"gear_two": 45, "gear_tier": [0, 1],
+		"rarity": { "common": 20.0, "silver": 45.0, "gold": 33.0, "diamond": 2.0 },
 		"materials": 3, "amount": [2, 4], "gold": 50, "potions": 1, "big_potions": 1, "crystals": 0,
 	},
 	"diamond": {
 		"name": "Rương kim cương", "texture": preload("res://assets/dungeon/chest_diamond.png"),
 		"color": Color(0.5, 0.95, 1.0),
-		"gear": [2, 3], "gear_tier": [1, 1], "rarity": { "common": 1 },
+		"gear_two": 60, "gear_tier": [1, 1], "guaranteed": "diamond",
+		"rarity": { "silver": 20.0, "gold": 50.0, "diamond": 30.0 },
 		"materials": 4, "amount": [3, 5], "gold": 100, "potions": 0, "big_potions": 2, "crystals": 1,
 	},
 }
@@ -173,18 +181,24 @@ func _drop_loot() -> void:
 	var data: Dictionary = TIERS[tier]
 	var parent := get_parent()
 	var at := position + Vector2(0, 2)
-	# Trang bị: tầng càng sâu bậc càng cao
+	# Trang bị: 1 hoặc 2 món. Bậc theo tầng (tầng càng sâu bậc càng cao), độ hiếm theo may rủi của loại rương
 	var names := PackedStringArray()
-	var gear_range: Array = data["gear"]
 	var tier_range: Array = data["gear_tier"]
-	for i in randi_range(int(gear_range[0]), int(gear_range[1])):
+	var count := 2 if randf() * 100.0 < float(data.get("gear_two", 0)) else 1
+	var best := ""
+	for i in count:
 		var gear_tier := clampi(floor_index + randi_range(int(tier_range[0]), int(tier_range[1])), 1, Equipment.MAX_TIER)
 		var id := Equipment.random_piece(gear_tier)
 		if id == "":
 			continue
 		var rarity := Equipment.roll_rarity(data["rarity"])
+		if i == 0 and str(data.get("guaranteed", "")) != "":
+			rarity = str(data["guaranteed"])
 		Pickup.spawn_item(parent, id, at, 1, rarity)
-		names.append(Equipment.DATA[id]["name"])
+		names.append(Equipment.full_name(id, rarity))
+		if best == "" or Equipment.rarity_rank(rarity) > Equipment.rarity_rank(best):
+			best = rarity
+	_announce_rare(best)
 	# Nguyên liệu chế tạo
 	var amount: Array = data["amount"]
 	for id in _pick_materials(int(data["materials"])):
@@ -204,6 +218,35 @@ func _drop_loot() -> void:
 		Game.message.emit("Mở %s: vàng và nguyên liệu chế tạo." % data["name"])
 	else:
 		Game.message.emit("Mở %s: %s!" % [data["name"], ", ".join(names)])
+
+
+## Ra được đồ hiếm: hiện chữ to theo màu độ hiếm. Rương thường mà ra đồ Kim cương thì báo "CỰC HIẾM".
+func _announce_rare(rarity: String) -> void:
+	var rank := Equipment.rarity_rank(rarity)
+	if rank < 2:   # Thường, Bạc: không cần báo
+		return
+	var info := Equipment.rarity_info(rarity)
+	var color: Color = info["color"]
+	var lucky := rank > Equipment.rarity_rank(_usual_best())   # ra đồ hiếm hơn hẳn loại rương này hay ra
+	var text: String = ("CỰC HIẾM! Trang bị %s!" if lucky else "Trang bị %s!") % info["name"]
+	Game.popup_text(global_position + Vector2(0, -36), text, color, 12 if lucky else 10)
+	Game.burst(global_position + Vector2(0, -8), color, 26 if lucky else 14, 90.0, 70.0, 0.7, 2.2)
+	if lucky:
+		Game.shake(4.0)
+		Game.message.emit("Quá may mắn! %s mà ra được đồ %s!" % [TIERS[tier]["name"], info["name"]])
+
+
+## Độ hiếm cao nhất mà loại rương này hay ra (độ hiếm có tỉ lệ từ 1% trở lên).
+func _usual_best() -> String:
+	var weights: Dictionary = TIERS[tier]["rarity"]
+	var best := Equipment.DEFAULT_RARITY
+	for key in weights:
+		if float(weights[key]) >= 1.0 and Equipment.rarity_rank(key) > Equipment.rarity_rank(best):
+			best = key
+	var sure := str(TIERS[tier].get("guaranteed", ""))
+	if sure != "" and Equipment.rarity_rank(sure) > Equipment.rarity_rank(best):
+		best = sure
+	return best
 
 
 ## Chọn n loại nguyên liệu khác nhau theo độ hay gặp.

@@ -18,6 +18,7 @@ extends Node
 const SCENES := ["tao_nhan_vat", "lang", "kiem", "cung", "giao", "ham_nguc", "ruong", "boss"]
 const COMBAT_SPOT := Vector2i(47, 47)   # khoảng đất trống trong Rừng Hoang (ô trên bản đồ thế giới)
 const BOSS_FIGHT := 13.0                 # đánh Boss khoảng bao nhiêu giây
+const PACK_HP := 8                       # quái gọi ra trong cảnh đánh quái trâu hơn bao nhiêu lần (để kịp tung đủ chiêu)
 
 var scene_name := ""
 var level: Level
@@ -26,6 +27,8 @@ var player: Player
 var creator: Control            # màn hình tạo nhân vật (chỉ cảnh tao_nhan_vat)
 var caption_box: PanelContainer # dòng chú thích góc trên bên phải
 var caption: Label
+var pack: Array[Enemy] = []     # quái do cảnh quay gọi ra còn sống (cảnh kiem / cung / giao chỉ đánh mấy con này)
+var pack_mode := false          # đã gọi quái ra: chỉ đánh quái trong pack
 
 
 ## Tên cảnh được yêu cầu trên dòng lệnh (--demo=...), "" = chơi bình thường.
@@ -56,6 +59,8 @@ func _ready() -> void:
 	else:
 		level = parent.get("level") as Level
 		hud = parent.get("hud") as GameHUD
+		if level != null and scene_name != "lang":
+			level.fade_rect.color.a = 1.0   # bắt đầu từ màn đen ngay khung hình đầu (không loé cảnh làng), sáng dần ở chỗ quay
 	_build_caption()
 	get_viewport().gui_disable_input = true   # chuột thật không bấm được vào giao diện lúc quay
 	_run.call_deferred()
@@ -75,8 +80,6 @@ func _run() -> void:
 	elif level != null and level.player != null:
 		player = level.player
 		player.demo_mode = true
-		if scene_name != "lang":
-			level.fade_rect.color.a = 1.0   # bắt đầu từ màn đen, sáng dần ở chỗ quay
 		match scene_name:
 			"lang":
 				await _scene_village()
@@ -165,20 +168,26 @@ func _scene_village() -> void:
 
 func _scene_weapon() -> void:
 	_set_level(20)
-	player.attack += 6
 	_give_gear(2)
 	var center := _world_cell(COMBAT_SPOT.x, COMBAT_SPOT.y)
 	player.teleport_to(center)
 	await _wait(0.1)
-	_quiet_messages("")
+	_quiet_messages("Rừng Hoang")
 	level.create_tween().tween_property(level.fade_rect, "color:a", 0.0, 0.4)
 	_spawn_pack(center, ["s", "X", "s", "N", "X", "s"], 58.0)
 	var wname: String = Weapons.info(player.weapon)["name"]
 	_say("%s: chuột phải vào quái để tự đánh" % wname)
-	await _fight(2.2)
+	await _fight(2.0)
 	for slot in 4:
+		# Quái gần hết thì gọi thêm một đợt, để chiêu nào cũng có quái mà trúng
+		if _pack_alive() < 3 or slot == 3:
+			_spawn_pack(player.global_position, ["s", "X", "N", "s", "X"], 54.0)
+			await _fight(0.6)
 		await _cast(slot)
 		await _fight(1.5 if slot < 3 else 2.4)
+	if _pack_alive() < 2:
+		_spawn_pack(player.global_position, ["s", "X", "s"], 50.0)
+		await _fight(0.5)
 	await _cast(0)
 	await _fight(1.4)
 
@@ -389,7 +398,15 @@ func _aim_point() -> Vector2:
 func _nearest(radius: float) -> Enemy:
 	var best: Enemy = null
 	var best_dist := radius
-	for node in get_tree().get_nodes_in_group("enemies"):
+	# Cảnh đánh quái: chỉ đánh quái do cảnh quay gọi ra, không chạy đi đuổi quái khác trên bản đồ
+	var list: Array = []
+	if pack_mode:
+		list.assign(pack)
+	else:
+		list = get_tree().get_nodes_in_group("enemies")
+	for node in list:
+		if not is_instance_valid(node):
+			continue
 		var enemy := node as Enemy
 		if enemy == null or enemy.is_dead or enemy.display_name.begins_with("Bù nhìn"):
 			continue
@@ -445,9 +462,21 @@ func _spawn_pack(center: Vector2, kinds: Array, dist: float) -> void:
 			if level.is_open(p, 8.0):
 				pos = p
 				break
+		enemy.max_hp *= PACK_HP
 		enemy.position = level.to_local(pos)
 		level.entities.add_child(enemy)
+		pack.append(enemy)
+		pack_mode = true
+		enemy.died.connect(_on_pack_died)
 		Game.burst(pos, Color(0.8, 0.8, 0.9), 6, 30.0)
+
+
+func _on_pack_died(enemy: Enemy) -> void:
+	pack.erase(enemy)
+
+
+func _pack_alive() -> int:
+	return pack.size()
 
 
 # ================================================================ Tìm đồ vật trong màn chơi
@@ -518,13 +547,14 @@ func _show_bag(on: bool) -> void:
 	hud._refresh_bag()
 
 
-## Xoá các thông báo đang chờ (cảnh quay nhảy thẳng tới chỗ khác). area_name != "" thì hiện tên khu.
+## Xoá các thông báo đang chờ (cảnh quay nhảy thẳng tới chỗ khác).
+## area_name != "": tên khu giữa màn hình đổi thành tên chỗ đang quay (bỏ chữ "Làng Khởi Nguyên" lúc mới vào game).
 func _quiet_messages(area_name: String) -> void:
 	hud.message_queue.clear()
 	hud.message_label.text = ""
 	hud.message_timer = 0.0
 	if area_name != "":
-		hud.show_area_title(area_name)
+		hud.area_label.text = area_name
 
 
 func _say_skill(slot: int) -> void:

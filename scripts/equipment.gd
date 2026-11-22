@@ -20,6 +20,11 @@ extends RefCounted
 ##
 ## Mỗi món trang bị trong túi / trên người là một Dictionary:
 ##   { "id": "helmet_2", "rarity": "common", "dur": 64 }   (dur = độ bền còn lại)
+##
+## Hai thứ khác nhau quyết định món đồ mạnh cỡ nào:
+##   Bậc (Da, Sắt, Thép, Dung Nham, Bóng Đêm): theo tầng hầm ngục, tầng càng sâu bậc càng cao.
+##   Độ hiếm (Thường, Bạc, Vàng, Kim cương): theo may rủi khi mở rương, rương xịn thì dễ ra độ hiếm cao.
+##   Ví dụ "Mũ sắt [Vàng]" = mũ bậc 2, độ hiếm Vàng: chỉ số và độ bền gấp 1.45 lần Mũ sắt thường.
 
 const SLOTS := ["helmet", "armor", "pants", "boots"]
 const SLOT_NAMES := { "helmet": "Mũ", "armor": "Giáp", "pants": "Quần", "boots": "Giày" }
@@ -38,20 +43,21 @@ const REPAIR_GOLD := 0.4
 ## Giá mua ở Thợ rèn theo bậc (bán lại được SELL_RATIO giá, đồ đã mòn thì rẻ hơn).
 const TIER_PRICE := [0, 40, 90, 180, 350, 650]
 
-## Độ hiếm. Hiện mới có "common" (Thường).
-## Muốn thêm độ hiếm: bỏ dấu # ở đầu các dòng mẫu bên dưới (hoặc tự thêm dòng mới),
-## rồi cho rương ra độ hiếm đó: sửa "rarity" của từng loại rương trong scripts/chest.gd,
-## ví dụ "rarity": { "common": 70, "rare": 30 } = 70% Thường, 30% Hiếm.
+## Độ hiếm: 4 bậc giống tên 4 loại rương (Thường, Bạc, Vàng, Kim cương).
+## Tỉ lệ ra từng độ hiếm khi mở rương nằm ở "rarity" của từng loại rương trong scripts/chest.gd.
 ##   name: tên hiện lên      color: màu tên đồ và viền ô
-##   mult: chỉ số gấp bao nhiêu lần đồ Thường
+##   mult: chỉ số, độ bền và giá gấp bao nhiêu lần đồ Thường
+## Muốn thêm độ hiếm mới: thêm một dòng vào RARITIES và thêm tên đó vào RARITY_ORDER,
+## rồi ghi tỉ lệ cho nó trong "rarity" của các loại rương (scripts/chest.gd).
 const DEFAULT_RARITY := "common"
 const RARITIES := {
 	"common": { "name": "Thường", "color": Color(0.88, 0.88, 0.86), "mult": 1.0 },
-	# "uncommon": { "name": "Tốt", "color": Color(0.45, 1.0, 0.45), "mult": 1.3 },
-	# "rare": { "name": "Hiếm", "color": Color(0.45, 0.7, 1.0), "mult": 1.6 },
-	# "epic": { "name": "Sử Thi", "color": Color(0.8, 0.45, 1.0), "mult": 2.0 },
-	# "legendary": { "name": "Huyền Thoại", "color": Color(1.0, 0.65, 0.2), "mult": 2.6 },
+	"silver": { "name": "Bạc", "color": Color(0.72, 0.84, 1.0), "mult": 1.2 },
+	"gold": { "name": "Vàng", "color": Color(1.0, 0.84, 0.3), "mult": 1.45 },
+	"diamond": { "name": "Kim cương", "color": Color(0.45, 0.95, 1.0), "mult": 1.8 },
 }
+## Thứ tự từ thấp tới cao.
+const RARITY_ORDER := ["common", "silver", "gold", "diamond"]
 
 const DATA := {
 	# ---- Bậc 1: Da (bàn chế tạo, rương tầng 1)
@@ -187,6 +193,19 @@ static func tooltip(item: Dictionary) -> String:
 	return text
 
 
+## Tên kèm độ hiếm (đồ Thường thì chỉ có tên): "Mũ sắt [Vàng]".
+static func full_name(id: String, rarity: String = DEFAULT_RARITY) -> String:
+	var name: String = DATA.get(id, {}).get("name", id)
+	if rarity == "" or rarity == DEFAULT_RARITY or not RARITIES.has(rarity):
+		return name
+	return "%s [%s]" % [name, RARITIES[rarity]["name"]]
+
+
+## Độ hiếm cao tới đâu: 0 = Thường, 1 = Bạc, 2 = Vàng, 3 = Kim cương.
+static func rarity_rank(rarity: String) -> int:
+	return maxi(RARITY_ORDER.find(rarity), 0)
+
+
 ## Tên kèm độ bền ngắn gọn: "Mũ sắt (64/80)".
 static func short_name(item: Dictionary) -> String:
 	var id: String = item.get("id", "")
@@ -239,19 +258,22 @@ static func random_piece(tier: int) -> String:
 	return pool[randi() % pool.size()]
 
 
-## Chọn độ hiếm theo tỉ lệ, ví dụ { "common": 70, "rare": 30 }.
+## Chọn độ hiếm theo tỉ lệ phần trăm, số lẻ cũng được,
+## ví dụ { "common": 89.999, "silver": 9, "gold": 1, "diamond": 0.001 } (0.001 = cứ 100.000 lần mới ra 1 lần).
 static func roll_rarity(weights: Dictionary) -> String:
-	var total := 0
+	var total := 0.0
 	for key in weights:
 		if RARITIES.has(key):
-			total += int(weights[key])
-	if total <= 0:
+			total += maxf(float(weights[key]), 0.0)
+	if total <= 0.0:
 		return DEFAULT_RARITY
-	var roll := randi() % total
+	var roll := randf() * total
+	var last := DEFAULT_RARITY
 	for key in weights:
-		if not RARITIES.has(key):
+		if not RARITIES.has(key) or float(weights[key]) <= 0.0:
 			continue
-		roll -= int(weights[key])
-		if roll < 0:
+		last = key
+		roll -= float(weights[key])
+		if roll < 0.0:
 			return key
-	return DEFAULT_RARITY
+	return last

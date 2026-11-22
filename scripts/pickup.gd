@@ -24,6 +24,7 @@ var rarity := ""           # độ hiếm của trang bị (scripts/equipment.gd
 var pop_velocity := Vector2.ZERO
 var _time := 0.0
 var _delay := 0.3  # chờ một chút sau khi rơi rồi mới hút
+var _sparkle := 0.0
 
 @onready var sprite: Sprite2D = $Sprite2D
 
@@ -44,6 +45,12 @@ func _process(delta: float) -> void:
 	pop_velocity = pop_velocity.move_toward(Vector2.ZERO, 300.0 * delta)
 	# Nhấp nhô
 	sprite.position.y = sin(_time * 4.0) * 1.5 - 2.0
+	# Trang bị độ hiếm Bạc trở lên nằm dưới đất thì lấp lánh theo màu độ hiếm
+	if kind == Kind.ITEM and Equipment.rarity_rank(rarity) >= 1:
+		_sparkle -= delta
+		if _sparkle <= 0.0:
+			_sparkle = 0.45
+			Game.burst(global_position + Vector2(randf_range(-4, 4), -6), Equipment.rarity_info(rarity)["color"], 2, 14.0, -8.0, 0.5, 1.2)
 
 	if _delay > 0.0:
 		return

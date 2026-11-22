@@ -1389,7 +1389,7 @@ func pick_up_gear(item: Dictionary) -> bool:
 	var slot := Equipment.slot_of(item["id"])
 	if slot == "":
 		return false
-	var item_name: String = Equipment.DATA[item["id"]]["name"]
+	var item_name: String = Equipment.full_name(item["id"], item.get("rarity", Equipment.DEFAULT_RARITY))
 	var color: Color = Equipment.rarity_info(item.get("rarity", Equipment.DEFAULT_RARITY))["color"]
 	if gear[slot].is_empty() and not is_dead:
 		gear[slot] = _gear_only(item)
@@ -1419,7 +1419,7 @@ func equip_bag_slot(index: int) -> bool:
 		back["count"] = 1
 		bag.insert(index, back)
 	_apply_gear()
-	var item_name: String = Equipment.DATA[item["id"]]["name"]
+	var item_name: String = Equipment.full_name(item["id"], item.get("rarity", Equipment.DEFAULT_RARITY))
 	var text := "Đã mặc %s" % item_name
 	if Equipment.is_broken(item):
 		text += " (đã hỏng!)"
@@ -1482,7 +1482,7 @@ func _wear_gear() -> void:
 		var before := int(item["dur"])
 		item["dur"] = maxi(before - Equipment.WEAR_PER_HIT, 0)
 		worn = true
-		var item_name: String = Equipment.DATA[item["id"]]["name"]
+		var item_name: String = Equipment.full_name(item["id"], item.get("rarity", Equipment.DEFAULT_RARITY))
 		var low := float(dur_max) * Equipment.LOW_DURABILITY
 		if int(item["dur"]) == 0:
 			broke = true

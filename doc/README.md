@@ -19,6 +19,19 @@
 
 ---
 
+## Video giới thiệu
+
+| | |
+|---|---|
+| ![Tạo nhân vật](videos/tao_nhan_vat.gif)<br>**Tạo nhân vật** | ![Làng và cửa hàng](videos/lang.gif)<br>**Làng và cửa hàng** |
+| ![Kiếm](videos/kiem.gif)<br>**Kiếm** | ![Cung](videos/cung.gif)<br>**Cung** |
+| ![Thương](videos/giao.gif)<br>**Thương** | ![Hầm ngục 4 tầng](videos/ham_nguc.gif)<br>**Hầm ngục 4 tầng** |
+| ![Mở rương](videos/ruong.gif)<br>**Mở rương** | ![Boss Malakar](videos/boss.gif)<br>**Boss Malakar** |
+
+Các video được quay từ game thật bằng chế độ demo tự chơi (`scripts/demo.gd`), lệnh: `godot --path . --write-movie _video/<cảnh>.avi --fixed-fps 30 -- --demo=<cảnh>`.
+
+---
+
 ## 1. Game thuộc thể loại gì?
 
 **Fantasy: The Awakening** là game **nhập vai hành động** (Action RPG): bạn điều khiển trực tiếp một nhân vật,
@@ -197,8 +210,19 @@ Mỗi tầng có bản đồ, màu sắc và cơ chế riêng, càng xuống sâ
 Mẹo: lướt (**F**) qua bẫy gai, lỗ lửa, đầm độc thì không bị trúng.
 
 **Rương báu**: mỗi tầng có vài rương, bị **khoá** cho tới khi bạn hạ hết quái của tầng (bản đồ nhỏ ghi "Còn N quái").
-Có 4 loại: **thường, bạc, vàng, kim cương**. Tầng càng sâu càng hay gặp rương xịn, rương xịn ra trang bị bậc cao hơn,
-nhiều vàng, bình máu và **nguyên liệu chế tạo** (da thú, xương, dây thừng, gỗ, thảo dược...). Hạ Malakar rơi thêm một Rương kim cương.
+Có 4 loại: **thường, bạc, vàng, kim cương**. Tầng càng sâu càng hay gặp rương xịn. Hạ Malakar rơi thêm một Rương kim cương.
+
+Mỗi rương ra **1 hoặc 2 trang bị**, độ hiếm của từng món là may rủi theo loại rương:
+
+| Rương | Cơ hội ra 2 món | Đồ Thường | Đồ Bạc | Đồ Vàng | Đồ Kim cương |
+|---|---|---|---|---|---|
+| Thường | 15% | 89.999% | 9% | 1% | 0.001% |
+| Bạc | 30% | 55% | 38% | 6.9% | 0.1% |
+| Vàng | 45% | 20% | 45% | 33% | 2% |
+| Kim cương | 60% | | 20% | 50% | chắc chắn có 1 món |
+
+Vàng, bình máu và **nguyên liệu chế tạo** (da thú, xương, dây thừng, gỗ, thảo dược...) thì rương nào cũng luôn có,
+rương càng xịn càng nhiều. Rương thường mà ra đồ Kim cương (cứ 100.000 món mới có 1) thì hiện chữ **CỰC HIẾM!**
 
 ![Boss Malakar và các loại bẫy](images/ham_nguc_moi.png)
 
@@ -231,7 +255,8 @@ Có quả mọng, thảo dược, nấm, lúa mì, cà rốt, bí ngô, táo. **
 
 Mở túi (B) là thấy bảng **Trang bị** bên cạnh: **Mũ, Giáp, Quần, Giày**. Trang bị tăng **Phòng thủ** (bị đánh đỡ đau hơn),
 **Máu**, có món tăng **Tấn công** hoặc **Tốc độ chạy**. Có 5 bậc: Da, Sắt, Thép xanh, Dung Nham, Bóng Đêm.
-Hiện mọi món đều độ hiếm **Thường** (độ hiếm cao hơn sẽ thêm sau).
+Có 4 độ hiếm: **Thường, Bạc, Vàng, Kim cương**. Đồ càng hiếm thì chỉ số và độ bền càng cao
+(gấp 1.2 / 1.45 / 1.8 lần đồ Thường), tên có màu riêng, ví dụ "Mũ sắt [Vàng]".
 
 Mỗi lần bị đánh trúng, đồ đang mặc **mòn** đi một chút. Hết độ bền thì đồ **hỏng**, không còn tác dụng cho tới khi
 mang về cho **Bác Sắt thợ rèn** sửa (tốn vàng).
@@ -305,7 +330,7 @@ Mẹo: làm **Rìu** trước (chỉ cần xương và dây thừng), có rìu m
 
 - Thức tỉnh **nguyên tố** Lửa và Sấm, gắn kỹ năng nguyên tố vào ô Q W E R.
 - Bộ kỹ năng riêng cho **Sách Phép**.
-- Thêm **độ hiếm** cho trang bị (Tốt, Hiếm, Sử Thi, Huyền Thoại).
+- Hiệu ứng riêng cho đồ **Kim cương** (ví dụ phát sáng trên người nhân vật).
 - Lưu túi đồ và trang bị giữa các lần chơi.
 
 ---
