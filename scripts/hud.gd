@@ -15,6 +15,7 @@ var hp_text: Label
 var mp_bar: ProgressBar
 var mp_text: Label
 var xp_bar: ProgressBar
+var xp_text: Label
 
 var boss_box: Control
 var boss_name: Label
@@ -41,6 +42,17 @@ var weapon_desc: Label
 var shown_weapon := -1
 var shown_skills := ""   # id các kỹ năng đang hiện trên ô Q W E R (để biết khi nào đổi)
 
+# Bảng kỹ năng (phím K): xem cấp mở khóa, đổi thứ tự kỹ năng Q W E R
+var skill_panel: Panel
+var skill_cards: Array = []   # mỗi ô: { "button", "style", "name", "desc", "info" }
+var skill_hint: Label
+var skill_reset_button: Button
+var skill_pick := -1          # ô đang chọn để đổi chỗ (-1 = chưa chọn)
+var shown_panel := ""         # cấp + thứ tự kỹ năng lúc vẽ bảng (để biết khi nào vẽ lại)
+const CARD_SIZE := Vector2(118, 132)
+
+var minimap: Minimap          # bản đồ nhỏ hình tròn góc trên bên trái (scripts/minimap.gd)
+
 var pause_overlay: Control
 var death_overlay: Control
 var win_overlay: Control
@@ -51,7 +63,7 @@ func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_build_stats_panel()
 	buff_label = _make_label("", 8, Color(1.0, 0.95, 0.8))
-	buff_label.position = Vector2(212, 8)
+	buff_label.position = Vector2(314, 8)
 	add_child(buff_label)
 	_build_skill_bar()
 	_build_boss_bar()
@@ -63,6 +75,9 @@ func _ready() -> void:
 	_ignore_mouse(self)
 	_build_bag()
 	_build_craft_panel()
+	_build_skill_panel()
+	minimap = Minimap.new()
+	add_child(minimap)
 
 	Game.message.connect(show_message)
 	Game.area_entered.connect(show_area_title)
@@ -116,7 +131,7 @@ func _bar_text(bar: ProgressBar) -> Label:
 
 func _build_stats_panel() -> void:
 	var panel := Panel.new()
-	panel.position = Vector2(6, 6)
+	panel.position = Vector2(108, 6)  # bên phải bản đồ nhỏ hình tròn
 	panel.size = Vector2(200, 52)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.05, 0.04, 0.1, 0.6)
@@ -126,22 +141,25 @@ func _build_stats_panel() -> void:
 	add_child(panel)
 
 	level_label = _make_label("Cấp 1", 10, Color(1.0, 0.85, 0.3))
-	level_label.position = Vector2(10, 6)
+	level_label.position = Vector2(112, 6)
 	add_child(level_label)
 	gold_label = _make_label("Vàng: 0", 9, Color(1.0, 0.9, 0.5))
-	gold_label.position = Vector2(156, 22)
+	gold_label.position = Vector2(258, 22)
 	add_child(gold_label)
 
-	hp_bar = _make_bar(Vector2(10, 22), Vector2(140, 10), Color(0.85, 0.2, 0.25))
+	hp_bar = _make_bar(Vector2(112, 22), Vector2(140, 10), Color(0.85, 0.2, 0.25))
 	hp_text = _bar_text(hp_bar)
-	mp_bar = _make_bar(Vector2(10, 35), Vector2(140, 9), Color(0.25, 0.45, 0.95))
+	mp_bar = _make_bar(Vector2(112, 35), Vector2(140, 9), Color(0.25, 0.45, 0.95))
 	mp_text = _bar_text(mp_bar)
-	xp_bar = _make_bar(Vector2(10, 47), Vector2(140, 5), Color(1.0, 0.8, 0.25))
+	xp_bar = _make_bar(Vector2(112, 47), Vector2(140, 5), Color(1.0, 0.8, 0.25))
+	xp_text = _make_label("", 7, Color(1.0, 0.9, 0.6))
+	add_child(xp_text)
 	if not Player.ELEMENTS_ENABLED:
 		# Chưa dùng năng lượng: ẩn thanh MP, kéo thanh XP lên
 		mp_bar.visible = false
 		xp_bar.position.y = 36
 		panel.size.y = 42
+	xp_text.position = Vector2(256, xp_bar.position.y - 3)
 
 
 func _build_skill_bar() -> void:
@@ -215,10 +233,10 @@ func _build_skill_bar() -> void:
 		cd_label.position = Vector2(0, 10)
 		slot.add_child(cd_label)
 
-		var lock := _make_label("Khóa", 8, Color(0.7, 0.7, 0.7))
+		var lock := _make_label("Khóa", 9, Color(0.9, 0.9, 0.95))
 		lock.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		lock.size = Vector2(slot_size.x, 12)
-		lock.position = Vector2(0, 26)
+		lock.position = Vector2(0, 14)
 		lock.visible = false
 		slot.add_child(lock)
 
@@ -231,6 +249,7 @@ func _build_skill_bar() -> void:
 		skill_slots[s[0]] = {"cover": cover, "lock": lock, "height": slot_size.y, "style": sb,
 			"cd_label": cd_label, "count": count_label, "name": name_label}
 		x += slot_size.x + gap
+	(skill_slots["item"]["lock"] as Label).text = "Cấp %d" % Player.QUICK_ITEM_LEVEL
 
 	weapon_desc = _make_label("", 8, Color(0.92, 0.92, 1.0))
 	weapon_desc.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -329,6 +348,159 @@ func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("inventory") and not get_tree().paused:
 		bag_panel.visible = not bag_panel.visible
 		_refresh_bag()
+	elif event.is_action_pressed("skills_menu"):
+		toggle_skill_panel()
+	elif event.is_action_pressed("world_map"):
+		minimap.toggle_big()
+
+
+# ---------------------------------------------------------------- Bảng kỹ năng (phím K)
+
+## Bảng 4 ô kỹ năng Q W E R: tên, mô tả, hồi chiêu, cấp mở khóa.
+## Mở hết kỹ năng (cấp 20) thì bấm một ô rồi bấm ô khác để đổi chỗ hai kỹ năng.
+func _build_skill_panel() -> void:
+	var w := 4 * CARD_SIZE.x + 5 * 6.0
+	var h := CARD_SIZE.y + 76.0
+	skill_panel = Panel.new()
+	skill_panel.size = Vector2(w, h)
+	skill_panel.position = Vector2(floorf((SCREEN.x - w) / 2.0), 60)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.06, 0.05, 0.12, 0.95)
+	sb.border_color = Color(0.6, 0.55, 0.75)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(4)
+	skill_panel.add_theme_stylebox_override("panel", sb)
+	skill_panel.visible = false
+	add_child(skill_panel)
+	var title := _make_label("Bộ kỹ năng  (K để đóng)", 12, Color(1.0, 0.85, 0.4))
+	title.position = Vector2(8, 4)
+	skill_panel.add_child(title)
+	skill_hint = _make_label("", 8, Color(0.85, 0.85, 0.95))
+	skill_hint.position = Vector2(8, 22)
+	skill_hint.size = Vector2(w - 16, 12)
+	skill_panel.add_child(skill_hint)
+	for i in Skills.SLOT_KEYS.size():
+		var button := Button.new()
+		button.position = Vector2(6 + i * (CARD_SIZE.x + 6), 38)
+		button.size = CARD_SIZE
+		button.focus_mode = Control.FOCUS_NONE
+		var style := StyleBoxFlat.new()
+		style.bg_color = Color(0.13, 0.11, 0.22, 0.95)
+		style.border_color = Color(0.6, 0.55, 0.75)
+		style.set_border_width_all(1)
+		style.set_corner_radius_all(3)
+		var hover := style.duplicate() as StyleBoxFlat
+		hover.bg_color = Color(0.2, 0.17, 0.32, 0.95)
+		button.add_theme_stylebox_override("normal", style)
+		button.add_theme_stylebox_override("disabled", style)
+		button.add_theme_stylebox_override("hover", hover)
+		button.add_theme_stylebox_override("pressed", hover)
+		button.pressed.connect(_on_skill_card_pressed.bind(i))
+		skill_panel.add_child(button)
+		var key := _make_label(Skills.SLOT_KEYS[i], 14, Color(1.0, 0.9, 0.5))
+		key.position = Vector2(6, 1)
+		button.add_child(key)
+		var name_label := _make_label("", 9)
+		name_label.position = Vector2(24, 5)
+		name_label.size = Vector2(CARD_SIZE.x - 28, 12)
+		name_label.clip_text = true
+		button.add_child(name_label)
+		var desc := _make_label("", 8, Color(0.85, 0.85, 0.92))
+		desc.position = Vector2(6, 24)
+		desc.size = Vector2(CARD_SIZE.x - 12, 76)
+		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		button.add_child(desc)
+		var info := _make_label("", 8, Color(0.6, 0.9, 1.0))
+		info.position = Vector2(6, CARD_SIZE.y - 26)
+		info.size = Vector2(CARD_SIZE.x - 12, 24)
+		info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		button.add_child(info)
+		skill_cards.append({"button": button, "style": style, "hover": hover, "name": name_label,
+			"desc": desc, "info": info})
+	skill_reset_button = Button.new()
+	skill_reset_button.text = "Về thứ tự ban đầu"
+	skill_reset_button.position = Vector2(6, h - 30)
+	skill_reset_button.size = Vector2(120, 22)
+	skill_reset_button.focus_mode = Control.FOCUS_NONE
+	skill_reset_button.add_theme_font_size_override("font_size", 9)
+	skill_reset_button.pressed.connect(_on_skill_reset_pressed)
+	skill_panel.add_child(skill_reset_button)
+	var close := Button.new()
+	close.text = "Đóng (K)"
+	close.position = Vector2(w - 86, h - 30)
+	close.size = Vector2(80, 22)
+	close.focus_mode = Control.FOCUS_NONE
+	close.add_theme_font_size_override("font_size", 9)
+	close.pressed.connect(toggle_skill_panel)
+	skill_panel.add_child(close)
+
+
+func _mouse_on_panel(panel: Control) -> bool:
+	return panel.visible and Rect2(Vector2.ZERO, panel.size).has_point(panel.get_local_mouse_position())
+
+
+func toggle_skill_panel() -> void:
+	skill_panel.visible = not skill_panel.visible
+	skill_pick = -1
+	_refresh_skill_panel()
+
+
+func _refresh_skill_panel() -> void:
+	if player == null or not is_instance_valid(player):
+		return
+	shown_panel = "%d|%s" % [player.level, ",".join(PackedStringArray(player.skill_slots))]
+	var can_reorder := player.can_reorder_skills()
+	if not can_reorder:
+		skill_pick = -1
+		skill_hint.text = "Kỹ năng mở dần ở cấp 5, 10, 15, 20. Mở hết thì đổi được thứ tự. Bạn đang cấp %d." % player.level
+	elif skill_pick == -1:
+		skill_hint.text = "Bấm vào một kỹ năng, rồi bấm ô khác để đổi chỗ hai kỹ năng với nhau."
+	else:
+		skill_hint.text = "Đã chọn %s. Bấm ô muốn đổi tới (bấm lại ô đó để bỏ chọn)." % player.slot_skill(skill_pick).get("name", "")
+	for i in skill_cards.size():
+		var card: Dictionary = skill_cards[i]
+		var info := player.slot_skill(i)
+		var unlocked := player.is_slot_unlocked(i)
+		(card["name"] as Label).text = info.get("name", "")
+		(card["desc"] as Label).text = info.get("desc", "")
+		var line := "Tuyệt chiêu. " if info.get("ult", false) else ""
+		if unlocked:
+			line += "Hồi chiêu %d giây" % int(info.get("cooldown", 0.0))
+		else:
+			line += "Mở ở cấp %d" % player.skill_unlock_level(player.skill_slots[i])
+		(card["info"] as Label).text = line
+		var border := Color(0.6, 0.55, 0.75)
+		if info.get("ult", false):
+			border = Color(1.0, 0.6, 0.3)
+		if i == skill_pick:
+			border = Color(1.0, 0.95, 0.4)
+		for key in ["style", "hover"]:
+			var style: StyleBoxFlat = card[key]
+			style.border_color = border
+			style.set_border_width_all(2 if i == skill_pick else 1)
+		(card["button"] as Button).modulate = Color.WHITE if unlocked else Color(0.6, 0.6, 0.65)
+	skill_reset_button.disabled = not can_reorder
+
+
+func _on_skill_card_pressed(index: int) -> void:
+	if player == null or not is_instance_valid(player) or not player.can_reorder_skills():
+		return
+	if skill_pick == -1:
+		skill_pick = index
+	elif skill_pick == index:
+		skill_pick = -1
+	else:
+		player.swap_skills(skill_pick, index)
+		skill_pick = -1
+	_refresh_skill_panel()
+
+
+func _on_skill_reset_pressed() -> void:
+	if player == null or not is_instance_valid(player) or not player.can_reorder_skills():
+		return
+	player.reset_skill_order()
+	skill_pick = -1
+	_refresh_skill_panel()
 
 
 # ---------------------------------------------------------------- Bảng chế tạo
@@ -336,7 +508,7 @@ func _unhandled_input(event: InputEvent) -> void:
 ## Bảng chế tạo: tự mở khi đứng gần nồi luyện thuốc / bàn chế tạo (công thức ở scripts/recipes.gd).
 func _build_craft_panel() -> void:
 	craft_panel = Panel.new()
-	craft_panel.position = Vector2(6, 64)
+	craft_panel.position = Vector2(6, 110)  # dưới bản đồ nhỏ
 	craft_panel.size = Vector2(250, 100)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.12, 0.09, 0.07, 0.92)
@@ -479,7 +651,7 @@ func _ignore_mouse(node: Node) -> void:
 
 func _build_boss_bar() -> void:
 	boss_box = Control.new()
-	boss_box.position = Vector2((SCREEN.x - 300) / 2.0, 8)
+	boss_box.position = Vector2((SCREEN.x - 300) / 2.0, 56)  # dưới thanh máu
 	boss_box.size = Vector2(300, 30)
 	boss_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	boss_box.visible = false
@@ -505,7 +677,7 @@ func _build_messages() -> void:
 	area_label = _make_label("", 22, Color(1.0, 0.95, 0.8))
 	area_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	area_label.size = Vector2(SCREEN.x, 30)
-	area_label.position = Vector2(0, 70)
+	area_label.position = Vector2(0, 92)
 	area_label.modulate.a = 0.0
 	add_child(area_label)
 
@@ -536,9 +708,10 @@ func _controls_text(skill_ids: Array = []) -> String:
 	var lines := [
 		"Chuột phải: đi tới chỗ bấm / bấm vào quái (con trỏ hình kiếm, viền đỏ) để khóa mục tiêu và tự đánh tới khi quái chết",
 		"Chuột trái: đánh về phía con trỏ (Cung: giữ để gồng)   A + chuột trái: vừa đi vừa đánh (hiện vòng tầm đánh)   S: đứng lại",
-		"Q W E R: giữ phím để xem tầm kỹ năng, thả ra để tung chiêu (chuột phải để hủy)",
-		"F: lướt né   D: uống bình máu   B: túi đồ   N: tạo nhân vật mới",
-		"Đi tới cây chín để hái. Đi tới nồi luyện thuốc / bàn chế tạo (cạnh giếng Làng Khởi Nguyên) để chế đồ",
+		"Q W E R: giữ phím để xem tầm kỹ năng, thả ra để tung chiêu (chuột phải để hủy). Mở ở cấp 5, 10, 15, 20",
+		"F: lướt né   D: uống bình máu (mở ở cấp 30)   B: túi đồ   K: bảng kỹ năng / đổi thứ tự   N: nhân vật mới",
+		"Bản đồ nhỏ (vòng tròn góc trên bên trái): bấm chuột phải lên bản đồ để đi tới đó   M: bản đồ lớn",
+		"Đi tới cây chín để hái. Đi tới 4 trạm chế tạo quanh quảng trường Làng Khởi Nguyên để chế đồ",
 		"",
 	]
 	var weapon_index := int(Game.appearance.get("weapon", 0)) % Weapons.ORDER.size()
@@ -568,6 +741,7 @@ func _process(delta: float) -> void:
 	mp_text.text = "%d / %d" % [int(player.mp), player.max_mp]
 	xp_bar.max_value = player.xp_to_next
 	xp_bar.value = player.xp
+	xp_text.text = "KN %d/%d" % [player.xp, player.xp_to_next]
 
 	# Thuốc / món ăn đang có tác dụng
 	var effects := PackedStringArray()
@@ -583,6 +757,10 @@ func _process(delta: float) -> void:
 	if bound_player != player:
 		bound_player = player
 		player.bag_changed.connect(_refresh_bag)
+	# Bản đồ nhỏ: con trỏ nằm trên bản đồ / bảng giao diện thì nhân vật không đi theo chuột dưới đó
+	minimap.player = player
+	player.mouse_on_ui = minimap.is_mouse_over() or _mouse_on_panel(bag_panel) \
+		or _mouse_on_panel(skill_panel) or _mouse_on_panel(craft_panel)
 	if bag_panel.visible:
 		bag_gold.text = "Vàng: %d" % player.gold
 
@@ -601,12 +779,15 @@ func _process(delta: float) -> void:
 			continue
 		var info := player.slot_skill(i)
 		var cd: float = info.get("cooldown", 1.0)
-		_set_cooldown("skill_%d" % i, player.skill_cd[i] / maxf(cd, 0.01), not info.is_empty(),
-			false, player.skill_cd[i])
-	# Ô bình máu
+		var open: bool = not info.is_empty() and player.is_slot_unlocked(i)
+		_set_cooldown("skill_%d" % i, player.skill_cd[i] / maxf(cd, 0.01), open, false, player.skill_cd[i])
+	if skill_panel.visible and shown_panel != "%d|%s" % [player.level, key]:
+		_refresh_skill_panel()
+	# Ô bình máu (phím D mở ở cấp 30)
 	var potions := player.count_item("potion_hp")
 	skill_slots["item"]["count"].text = "x%d" % potions
-	_set_cooldown("item", player.item_cd / Player.ITEM_COOLDOWN, true, potions == 0)
+	_set_cooldown("item", player.item_cd / Player.ITEM_COOLDOWN, player.level >= Player.QUICK_ITEM_LEVEL,
+		potions == 0)
 	if shown_weapon != player.weapon:
 		shown_weapon = player.weapon
 		weapon_desc.text = Weapons.info(player.weapon)["desc"]
@@ -628,8 +809,13 @@ func _process(delta: float) -> void:
 func _refresh_skill_names() -> void:
 	for i in player.skill_slots.size():
 		if skill_slots.has("skill_%d" % i):
-			var label: Label = skill_slots["skill_%d" % i]["name"]
-			label.text = player.slot_skill(i).get("short", "")
+			var slot: Dictionary = skill_slots["skill_%d" % i]
+			var info := player.slot_skill(i)
+			(slot["name"] as Label).text = info.get("short", "")
+			(slot["lock"] as Label).text = "Cấp %d" % player.skill_unlock_level(player.skill_slots[i])
+			# tuyệt chiêu có viền cam (đi theo kỹ năng khi đổi thứ tự)
+			var style: StyleBoxFlat = slot["style"]
+			style.border_color = Color(1.0, 0.6, 0.3) if info.get("ult", false) else Color(0.6, 0.55, 0.75)
 	var body := pause_overlay.get_child(1) as Label
 	body.text = _controls_text(player.skill_slots) + "\n\nNhấn Esc để chơi tiếp"
 

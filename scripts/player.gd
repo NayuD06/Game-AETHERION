@@ -25,6 +25,23 @@ const BAG_SLOTS_START := 12    # số ô túi lúc đầu
 const BAG_SLOTS_MAX := 20      # tối đa (làm "Ba lô lớn hơn" ở bàn chế tạo để thêm ô)
 const ITEM_COOLDOWN := 1.0
 
+# --- Cấp độ mở khóa ---
+## Cấp 1 chỉ có đánh thường (chuột) và lướt (F). Kỹ năng mở dần theo cấp:
+## Q ở cấp 5, W ở cấp 10, E ở cấp 15, R (tuyệt chiêu) ở cấp 20. Phím D (uống máu nhanh) mở ở cấp 30.
+## Mở hết 4 kỹ năng thì đổi được thứ tự kỹ năng (phím K).
+const SKILL_UNLOCK_LEVELS := [5, 10, 15, 20]
+const QUICK_ITEM_LEVEL := 30
+## Kinh nghiệm cần để lên cấp tiếp theo = XP_BASE + XP_STEP x (cấp hiện tại - 1).
+## Cấp 1 cần 10, cấp 2 cần 15, cấp 3 cần 20... (tổng: cấp 5 khoảng 70, cấp 10 khoảng 270, cấp 20 khoảng 1000, cấp 30 khoảng 2300)
+const XP_BASE := 10
+const XP_STEP := 5
+## Mỗi lần lên cấp được thêm bao nhiêu
+const LEVEL_HP := 8
+const LEVEL_ATTACK := 1
+## Bấm L để lên cấp ngay. Chỉ chạy khi mở game từ Godot (F5) để thử cho nhanh, bản xuất ra không có.
+## Đổi thành false để tắt hẳn.
+const TEST_LEVEL_KEY := true
+
 # --- Di chuyển (chỉnh trong Inspector khi chọn node Player) ---
 @export var move_speed := 95.0
 @export var acceleration := 900.0     # tăng tốc nhanh cỡ nào
@@ -50,7 +67,7 @@ const MANA_REGEN := 2.5  # năng lượng hồi mỗi giây
 # --- Chỉ số (thay đổi khi lên cấp / nhặt đồ) ---
 var level := 1
 var xp := 0
-var xp_to_next := 20
+var xp_to_next := XP_BASE
 var max_hp := 60
 var hp := 60
 var max_mp := 30
@@ -124,6 +141,8 @@ var scan_timer := 0.0
 var skill_slots: Array[String] = ["", "", "", ""]
 var skill_cd: Array[float] = [0.0, 0.0, 0.0, 0.0]   # thời gian hồi chiêu còn lại của từng ô
 var skill_busy := 0.0                # > 0: đang tung kỹ năng nhiều đòn, chưa tung chiêu khác được
+var lock_msg_cd := 0.0               # chống hiện chữ "chưa mở khóa" liên tục
+var mouse_on_ui := false             # con trỏ đang ở trên bản đồ nhỏ / bảng giao diện: không đi theo chuột, không chọn quái dưới đó
 var weapon_tween: Tween              # chuyển động của vũ khí đang vung
 signal skills_changed
 
@@ -215,7 +234,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		attack_move_armed = false
 		_clear_commands()
 	elif event.is_action_pressed("use_item"):
-		use_item("potion_hp")
+		if level >= QUICK_ITEM_LEVEL:
+			use_item("potion_hp")
+		else:
+			_locked_message("Phím D mở ở cấp %d. Giờ mở túi (B) bấm vào bình máu để uống" % QUICK_ITEM_LEVEL)
+	elif event.is_action_pressed("test_level_up") and TEST_LEVEL_KEY and OS.is_debug_build():
+		add_xp(xp_to_next - xp)
 	else:
 		for i in SKILL_ACTIONS.size():
 			if event.is_action_pressed(SKILL_ACTIONS[i]):
@@ -243,7 +267,7 @@ func _physics_process(delta: float) -> void:
 		_clear_commands()
 	else:
 		# Giữ chuột phải trên mặt đất: liên tục đi theo con trỏ
-		if Input.is_action_pressed("move_click") and attack_target == null:
+		if Input.is_action_pressed("move_click") and attack_target == null and not mouse_on_ui:
 			right_hold_timer -= delta
 			if right_hold_timer <= 0.0:
 				right_hold_timer = 0.12
@@ -292,7 +316,7 @@ func _physics_process(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	# Rê chuột lên quái: quái có viền đỏ, hiện thanh máu, con trỏ đổi thành hình kiếm (giống LMHT)
-	var hovered: Enemy = null if is_dead else _enemy_at(get_global_mouse_position())
+	var hovered: Enemy = null if (is_dead or mouse_on_ui) else _enemy_at(get_global_mouse_position())
 	if hovered != hover_enemy:
 		if hover_enemy != null and is_instance_valid(hover_enemy):
 			hover_enemy.set_highlight(false)
@@ -402,6 +426,7 @@ func _tick_timers(delta: float) -> void:
 	face_lock = maxf(face_lock - delta, 0.0)
 	skill_busy = maxf(skill_busy - delta, 0.0)
 	item_cd = maxf(item_cd - delta, 0.0)
+	lock_msg_cd = maxf(lock_msg_cd - delta, 0.0)
 	_tick_regen(delta)
 	_tick_buffs(delta)
 	for i in skill_cd.size():
@@ -462,6 +487,18 @@ func _enemy_at(pos: Vector2) -> Enemy:
 			best = enemy
 			best_dist = d
 	return best
+
+
+## Đi tới chỗ world_pos (bấm trên bản đồ nhỏ). show_marker: hiện dấu xanh chỗ đến.
+func command_move(world_pos: Vector2, show_marker: bool = true) -> void:
+	if is_dead or cutscene_time > 0.0:
+		return
+	attack_target = null
+	attack_move_armed = false
+	attack_moving = false
+	_move_to(world_pos)
+	if show_marker:
+		_spawn_marker(world_pos, Color(0.45, 1.0, 0.5))
 
 
 func _move_to(target: Vector2) -> void:
@@ -626,6 +663,63 @@ func slot_skill(slot: int) -> Dictionary:
 	return Skills.info(skill_slots[slot])
 
 
+## Cấp cần để dùng kỹ năng id: kỹ năng thứ 1, 2, 3, 4 của vũ khí mở ở cấp 5, 10, 15, 20.
+func skill_unlock_level(id: String) -> int:
+	var defaults: Array = Weapons.info(weapon)["skills"]
+	var index := defaults.find(id)
+	if index < 0 or index >= SKILL_UNLOCK_LEVELS.size():
+		return 1
+	return SKILL_UNLOCK_LEVELS[index]
+
+
+func is_slot_unlocked(slot: int) -> bool:
+	if slot < 0 or slot >= skill_slots.size():
+		return false
+	return level >= skill_unlock_level(skill_slots[slot])
+
+
+## Đã mở hết kỹ năng (cấp 20) thì được đổi thứ tự kỹ năng.
+func can_reorder_skills() -> bool:
+	return level >= SKILL_UNLOCK_LEVELS[SKILL_UNLOCK_LEVELS.size() - 1]
+
+
+## Đổi chỗ hai kỹ năng ở ô a và ô b (0 = Q, 1 = W, 2 = E, 3 = R). Thời gian hồi chiêu đi theo kỹ năng.
+func swap_skills(a: int, b: int) -> bool:
+	if not can_reorder_skills() or a == b:
+		return false
+	if a < 0 or b < 0 or a >= skill_slots.size() or b >= skill_slots.size():
+		return false
+	var id := skill_slots[a]
+	skill_slots[a] = skill_slots[b]
+	skill_slots[b] = id
+	var cd := skill_cd[a]
+	skill_cd[a] = skill_cd[b]
+	skill_cd[b] = cd
+	aiming_skill = -1
+	skills_changed.emit()
+	return true
+
+
+## Trả kỹ năng về thứ tự mặc định của vũ khí (Q W E R như lúc đầu).
+func reset_skill_order() -> void:
+	var defaults: Array = Weapons.info(weapon)["skills"]
+	var old_cd := {}
+	for i in skill_slots.size():
+		old_cd[skill_slots[i]] = skill_cd[i]
+	for i in mini(defaults.size(), skill_slots.size()):
+		skill_slots[i] = defaults[i]
+		skill_cd[i] = float(old_cd.get(defaults[i], 0.0))
+	aiming_skill = -1
+	skills_changed.emit()
+
+
+func _locked_message(text: String) -> void:
+	if lock_msg_cd > 0.0:
+		return
+	lock_msg_cd = 1.2
+	Game.popup_text(global_position + Vector2(0, -22), text, Color(0.85, 0.85, 0.9), 9)
+
+
 ## Tung kỹ năng ở ô index (0 = Q, 1 = W, 2 = E, 3 = R), nhắm theo con trỏ chuột.
 ## Ô chỉ ghi id kỹ năng. Thông số nằm ở scripts/skills.gd, còn cách hoạt động là
 ## hàm có tên ghi ở "cast" (các hàm _skill_... bên dưới).
@@ -635,7 +729,12 @@ func _start_aim(index: int) -> void:
 		var held := aiming_skill   # đang ngắm chiêu khác: tung chiêu đó trước
 		aiming_skill = -1
 		_cast_skill(held)
-	if index >= skill_slots.size() or skill_cd[index] > 0.0 or slot_skill(index).is_empty():
+	if index >= skill_slots.size() or slot_skill(index).is_empty():
+		return
+	if not is_slot_unlocked(index):
+		_locked_message("%s: mở ở cấp %d" % [slot_skill(index)["name"], skill_unlock_level(skill_slots[index])])
+		return
+	if skill_cd[index] > 0.0:
 		return
 	aiming_skill = index
 
@@ -643,7 +742,7 @@ func _start_aim(index: int) -> void:
 func _cast_skill(index: int) -> void:
 	if is_dead or skill_busy > 0.0 or dash_timer > 0.0 or charging:
 		return
-	if index >= skill_slots.size() or skill_cd[index] > 0.0:
+	if index >= skill_slots.size() or skill_cd[index] > 0.0 or not is_slot_unlocked(index):
 		return
 	var s := slot_skill(index)
 	if s.is_empty() or not has_method(s["cast"]):
@@ -1676,19 +1775,50 @@ func add_xp(amount: int) -> void:
 		_level_up()
 
 
+## Kinh nghiệm cần để từ cấp lv lên cấp lv + 1.
+static func xp_needed(lv: int) -> int:
+	return XP_BASE + XP_STEP * (lv - 1)
+
+
 func _level_up() -> void:
 	level += 1
-	xp_to_next = int(xp_to_next * 1.5) + 5
-	max_hp += 12
-	max_mp += 5
-	attack += 3
+	xp_to_next = xp_needed(level)
+	max_hp += LEVEL_HP
+	max_mp += 3
+	attack += LEVEL_ATTACK
 	hp = max_hp
 	mp = max_mp
 	Game.popup_text(global_position + Vector2(0, -10), "LÊN CẤP!", Color(1.0, 0.85, 0.3), 12)
-	Game.message.emit("Lên cấp %d!  Máu +12, Tấn công +3" % level)
+	Game.message.emit("Lên cấp %d!  Máu +%d, Tấn công +%d" % [level, LEVEL_HP, LEVEL_ATTACK])
+	_check_unlocks()
 	if ELEMENTS_ENABLED and level >= 2 and not fire_unlocked:
 		fire_unlocked = true
 		Game.message.emit("Thức tỉnh nguyên tố LỬA! Nhấn Q (hoặc chuột phải) để bắn Cầu Lửa")
+
+
+## Lên tới cấp mở khóa: báo kỹ năng mới (hoặc phím D) và tỏa vòng sáng.
+func _check_unlocks() -> void:
+	var text := ""
+	var index := SKILL_UNLOCK_LEVELS.find(level)
+	if index != -1:
+		var id: String = Weapons.info(weapon)["skills"][index]
+		var slot := skill_slots.find(id)
+		var key: String = Skills.SLOT_KEYS[slot] if slot != -1 else Skills.SLOT_KEYS[index]
+		text = "Mở khóa kỹ năng %s (phím %s)!" % [Skills.info(id).get("name", id), key]
+		Game.popup_text(global_position + Vector2(0, -32), "MỞ KHÓA %s!" % key, Color(0.6, 1.0, 0.7), 12)
+		if index == SKILL_UNLOCK_LEVELS.size() - 1:
+			text += "  Đã mở hết kỹ năng: bấm K để đổi thứ tự kỹ năng theo ý bạn."
+	elif level == QUICK_ITEM_LEVEL:
+		text = "Mở khóa phím D: bấm D để uống bình máu nhanh!"
+		Game.popup_text(global_position + Vector2(0, -32), "MỞ KHÓA D!", Color(0.6, 1.0, 0.7), 12)
+	if text == "":
+		return
+	Game.message.emit(text)
+	var ring := RING_EFFECT.new()
+	ring.max_radius = 46.0
+	ring.color = Color(0.6, 1.0, 0.7)
+	ring.global_position = global_position
+	get_parent().add_child(ring)
 
 
 func add_attack(amount: int) -> void:

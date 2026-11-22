@@ -49,7 +49,7 @@ Ngoại hình thì không phụ thuộc vũ khí: bạn muốn mặc gì cũng �
 | **Cung** | Xạ Thủ | Bắn từ xa. Giữ nút đánh để gồng, thả ra bắn mũi tên đau gấp 3, xuyên qua 2 quái. |
 | **Sách Phép** | Pháp Sư | Sách bay cạnh người, bắn tia phép. Sức mạnh nguyên tố sẽ thức tỉnh ở bản sau. |
 
-### Kỹ năng (Q, W, E là chiêu thường, R là tuyệt chiêu)
+### Kỹ năng (Q, W, E là chiêu thường, R là tuyệt chiêu, mở dần ở cấp 5, 10, 15, 20)
 
 | Vũ khí | Q | W | E | R |
 |---|---|---|---|---|
@@ -59,6 +59,7 @@ Ngoại hình thì không phụ thuộc vũ khí: bạn muốn mặc gì cũng �
 | **Sách Phép** | Cầu Phép | Vòng Phép | Dịch Chuyển | Thiên Thạch |
 
 Giữ phím kỹ năng để xem tầm và vùng trúng chiêu, thả phím ra là tung chiêu về phía con trỏ chuột.
+Mở hết 4 kỹ năng (cấp 20) thì bấm **K** để đổi thứ tự kỹ năng theo ý mình, ví dụ đưa tuyệt chiêu sang phím Q.
 
 ---
 
@@ -73,14 +74,27 @@ Giữ phím kỹ năng để xem tầm và vùng trúng chiêu, thả phím ra l
 | Đánh về phía con trỏ (Cung: giữ để gồng, thả để bắn) | **Chuột trái** |
 | Vừa đi vừa đánh quái gặp trên đường | **A** rồi chuột trái |
 | Đứng lại | **S** |
-| Kỹ năng 1, 2, 3 | **Q, W, E** |
-| Tuyệt chiêu | **R** |
+| Kỹ năng 1, 2, 3 (mở ở cấp 5, 10, 15) | **Q, W, E** |
+| Tuyệt chiêu (mở ở cấp 20) | **R** |
 | Hủy chiêu đang ngắm | Chuột phải |
 | Lướt né (không bị trúng đòn lúc lướt) | **F** |
-| Uống bình máu | **D** |
-| Mở / đóng túi đồ | **B** |
+| Uống bình máu nhanh (mở ở cấp 30) | **D** |
+| Mở / đóng túi đồ (bấm vào bình máu để uống) | **B** |
+| Bảng kỹ năng, đổi thứ tự kỹ năng | **K** |
+| Đi tới chỗ bấm trên bản đồ nhỏ (vòng tròn góc trên bên trái) | **Chuột phải** lên bản đồ nhỏ |
+| Mở / đóng bản đồ lớn | **M** |
 | Tạm dừng, xem danh sách kỹ năng | **Esc** |
 | Tạo nhân vật mới (lúc tạm dừng, thua hoặc thắng) | **N** |
+
+### Bản đồ nhỏ
+
+Giống Liên Minh Huyền Thoại: góc trên bên trái có **bản đồ nhỏ hình tròn**, bạn luôn ở giữa vòng tròn.
+Bấm chuột phải vào chỗ nào trên bản đồ là nhân vật tự tìm đường đi tới đó, có đường xanh chỉ lối. Bấm **M** để mở bản đồ lớn có tên các khu.
+Chấm trắng là bạn, chấm đỏ là quái, chấm đỏ to là Boss, ô cam là trạm chế tạo, chấm tím là cửa hang.
+
+![Bản đồ nhỏ ở góc màn hình](images/ban_do_nho.png)
+
+![Bản đồ lớn (phím M)](images/ban_do_lon.png)
 
 ### Đánh quái
 
@@ -91,6 +105,20 @@ Giữ phím kỹ năng để xem tầm và vùng trúng chiêu, thả phím ra l
 - Quái có **giáp** (hình khiên trên đầu) bị trừ bớt sát thương mỗi đòn. Thương phá được giáp.
 - Đánh trúng có rung màn hình, khựng hình, quái nháy trắng cho đã tay.
 - Hạ quái rơi **ngọc xanh** (kinh nghiệm), bình máu, vàng, pha lê tím (+tấn công). Đủ kinh nghiệm là **lên cấp**.
+
+### Lên cấp và mở khóa kỹ năng
+
+Mới vào game bạn chỉ có **đánh thường** và **lướt (F)**. Đánh quái để lên cấp, cứ 5 cấp lại mở thêm một kỹ năng:
+
+| Cấp | Mở khóa |
+|---|---|
+| 5 | Kỹ năng **Q** |
+| 10 | Kỹ năng **W** |
+| 15 | Kỹ năng **E** |
+| 20 | Tuyệt chiêu **R**, và được đổi thứ tự kỹ năng (phím K) |
+| 30 | Phím **D** uống bình máu nhanh |
+
+Mỗi cấp được thêm 8 máu tối đa và 1 tấn công. Ô kỹ năng chưa mở có màu tối và ghi cấp cần đạt.
 
 ### Quái vật
 
@@ -105,13 +133,13 @@ Giữ phím kỹ năng để xem tầm và vùng trúng chiêu, thả phím ra l
 | **Heo rừng** | Rừng Thông, Đầm Lầy Nấm | Cào chân lấy đà rồi húc thẳng rất mạnh: né sang bên! Rơi da, thịt, xương. |
 | **Boss Gorrak** (Thạch Vương Cổ Đại) | Đấu Trường Đá Cổ | 5 giáp. Nhảy đập (né vòng đỏ!), bắn cầu bóng tối tỏa tròn, dưới nửa máu thì gọi thêm slime. |
 
-Sói và heo rừng hạ xong sẽ quay lại sau 2 phút.
+Quái thường (trừ Boss) hạ xong sẽ quay lại sau 2 phút, nên cứ đánh tiếp để luyện cấp. Quái trong hầm ngục cho nhiều kinh nghiệm hơn.
 
 ### Mục tiêu bản chơi thử
 
-1. **Làng Khởi Nguyên**: bắt đầu ở quảng trường. Nói chuyện với dân làng, đọc biển báo, ra **bãi tập** đánh bù nhìn cho quen tay.
+1. **Làng Khởi Nguyên**: bắt đầu ở quảng trường. Nói chuyện với dân làng, đọc biển báo, ra **bãi tập** đánh bù nhìn cho quen tay (lúc này mới có đánh thường và lướt).
 2. **Hái lượm và chế tạo**: hái quả, thảo dược, săn sói và heo rừng, về quảng trường nấu ăn, luyện thuốc, làm rìu, ba lô, áo giáp.
-3. **Rừng Hoang** (phía đông làng): đánh slime, dơi, cung thủ xương để lên cấp.
+3. **Rừng Hoang** (phía đông làng): đánh slime, dơi, cung thủ xương để lên cấp và mở kỹ năng Q, W, E.
 4. **Đấu Trường Đá Cổ**: hạ Boss **Gorrak**. Phong ấn ở cửa hang sau lưng Boss sẽ vỡ ra.
 5. **Hầm Ngục Cổ**: đi vào hang, vượt qua hầm ngục tối và bước vào **Cổng Xoáy** ở phòng cuối để chiến thắng.
 

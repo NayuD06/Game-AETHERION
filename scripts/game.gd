@@ -30,6 +30,9 @@ const KEY_BINDINGS := {
 	"dash": [KEY_F],               # lướt
 	"use_item": [KEY_D],           # dùng bình máu
 	"inventory": [KEY_B],          # mở / đóng túi đồ
+	"world_map": [KEY_M],          # mở / đóng bản đồ lớn
+	"skills_menu": [KEY_K],        # bảng kỹ năng: xem cấp mở khóa, đổi thứ tự kỹ năng Q W E R
+	"test_level_up": [KEY_L],      # chỉ để chạy thử: lên cấp ngay (xem TEST_LEVEL_KEY trong player.gd)
 	"move_up": [KEY_UP],
 	"move_down": [KEY_DOWN],
 	"move_left": [KEY_LEFT],

@@ -43,12 +43,16 @@ Nếu có lỗi, xem tab **Output** / **Debugger** ở dưới cùng của Godot
 | Đánh về phía con trỏ (Cung: giữ để gồng, thả để bắn) | Chuột trái |
 | Vừa đi vừa đánh quái gặp trên đường (hiện vòng tầm đánh) | A rồi chuột trái |
 | Đứng lại | S |
-| Kỹ năng 1, 2, 3 của vũ khí (giữ phím để xem tầm, thả ra để tung) | Q, W, E |
-| Tuyệt chiêu (giữ để xem tầm, thả ra để tung) | R |
+| Kỹ năng 1, 2, 3 của vũ khí (giữ phím để xem tầm, thả ra để tung). Mở ở cấp 5, 10, 15 | Q, W, E |
+| Tuyệt chiêu (giữ để xem tầm, thả ra để tung). Mở ở cấp 20 | R |
 | Hủy kỹ năng đang ngắm | Chuột phải |
 | Lướt né về phía con trỏ (không bị trúng đòn khi lướt) | F |
-| Uống bình máu | D |
+| Uống bình máu (mở ở cấp 30, trước đó mở túi bấm vào bình máu) | D |
 | Mở / đóng túi đồ | B |
+| Bảng kỹ năng: xem cấp mở khóa, đổi thứ tự kỹ năng (khi đã mở hết) | K |
+| Đi tới một chỗ trên bản đồ nhỏ (vòng tròn góc trên bên trái). Giữ chuột và kéo để đổi chỗ đến | Chuột phải (hoặc trái) lên bản đồ nhỏ |
+| Mở / đóng bản đồ lớn giữa màn hình (có tên các khu, cũng bấm để đi được) | M |
+| Lên cấp ngay để chạy thử (chỉ khi mở game từ Godot bằng F5) | L |
 | Tạm dừng (xem danh sách kỹ năng) | Esc |
 | Tạo nhân vật mới (khi đang tạm dừng, thua hoặc thắng) | N |
 | Chơi lại khi thua / thắng | R |
@@ -60,6 +64,47 @@ Chuột phải vào quái là khóa mục tiêu (vòng đỏ dưới chân, mũi
 tới khi quái chết hoặc bạn bấm chuột phải xuống đất. Quái bị đánh sẽ hiện thanh máu nhỏ trên đầu.
 Vùng bấm chuột và vùng trúng đòn của quái rộng hơn hình một chút cho dễ đánh. Chỉnh trong scene của quái
 (`scenes/enemies/...`): `hit_radius` = vùng trúng đòn, `visual_scale` = độ to của hình (slime, dơi, cung thủ, sói, heo rừng đang là 1.5).
+
+## Bản đồ nhỏ (giống LMHT)
+
+Góc trên bên trái có **bản đồ nhỏ hình tròn**. Bạn luôn ở giữa vòng tròn, bản đồ trượt theo khi bạn đi.
+Bấm **chuột phải** (hoặc chuột trái) vào chỗ nào trong vòng tròn là nhân vật tự tìm đường đi tới đó
+(có đường xanh chỉ lối đi). Giữ chuột rồi kéo trên bản đồ để đổi chỗ đến.
+Bấm **M** để mở bản đồ lớn của cả thế giới giữa màn hình (có tên các khu), bấm M lần nữa để đóng.
+Thanh máu, cấp độ nằm ngay bên phải vòng tròn.
+
+Trên bản đồ: chấm trắng là bạn, chấm đỏ là quái (tím là quái tinh anh trong hầm ngục), chấm đỏ to là Boss,
+ô cam là trạm chế tạo / lửa trại, chấm tím là cửa hang, khung trắng là phần đang thấy trên màn hình.
+Hầm Ngục Cổ chỉ hiện lên bản đồ sau khi bạn vào đó lần đầu.
+Muốn đổi màu, độ to bản đồ: sửa đầu file `scripts/minimap.gd` (`SMALL_SCALE` = nhìn gần hay xa, `SMALL_SIZE` = độ to vòng tròn,
+`SMALL_POS` = vị trí, `BIG_SCALE`, các màu `COLOR_...`). Phần cắt hình tròn nằm ở `scripts/effects/circle_mask.gdshader`.
+
+## Cấp độ và mở khóa kỹ năng
+
+Đánh quái rơi **ngọc xanh** (kinh nghiệm, thanh vàng mỏng dưới thanh máu, số "KN" bên cạnh). Đủ kinh nghiệm là lên cấp:
+máu tối đa +8, tấn công +1, hồi đầy máu. Mới vào game (cấp 1) chỉ có **đánh thường** (chuột) và **lướt** (F).
+Kỹ năng mở dần theo cấp:
+
+| Cấp | Mở khóa |
+|---|---|
+| 5 | Kỹ năng thứ 1 (phím Q) |
+| 10 | Kỹ năng thứ 2 (phím W) |
+| 15 | Kỹ năng thứ 3 (phím E) |
+| 20 | Tuyệt chiêu (phím R). Mở hết kỹ năng: được **đổi thứ tự kỹ năng** |
+| 30 | Phím **D** uống bình máu nhanh (trước đó mở túi B rồi bấm vào bình máu) |
+
+Ô kỹ năng chưa mở có màu tối và ghi "Cấp 5", "Cấp 10"... Lên tới cấp mở khóa thì có thông báo và vòng sáng xanh.
+
+**Đổi thứ tự kỹ năng**: bấm **K** mở bảng kỹ năng. Từ cấp 20, bấm vào một kỹ năng rồi bấm ô khác là hai kỹ năng đổi chỗ
+(ví dụ đưa tuyệt chiêu sang Q). Bấm "Về thứ tự ban đầu" để trả lại như cũ. Thời gian hồi chiêu đi theo kỹ năng.
+
+Kinh nghiệm cần để lên cấp tiếp = 10 + 5 x (cấp hiện tại - 1): cấp 1 cần 10, cấp 2 cần 15, cấp 3 cần 20...
+Tổng cộng khoảng 70 kinh nghiệm để tới cấp 5, 270 tới cấp 10, 600 tới cấp 15, 1000 tới cấp 20, 2300 tới cấp 30.
+Quái thường (trừ Boss và bù nhìn) hạ xong sẽ quay lại chỗ cũ sau 2 phút để bạn luyện cấp. Quái trong hầm ngục cho gấp 2.5 kinh nghiệm.
+
+Muốn chỉnh: mở `scripts/player.gd`, phần "Cấp độ mở khóa" ở đầu file: `SKILL_UNLOCK_LEVELS` (cấp mở Q W E R),
+`QUICK_ITEM_LEVEL` (cấp mở D), `XP_BASE` và `XP_STEP` (kinh nghiệm cần), `LEVEL_HP` và `LEVEL_ATTACK` (thêm mỗi cấp),
+`TEST_LEVEL_KEY` (phím L lên cấp để thử, đổi thành `false` để tắt). Thời gian quái hồi sinh: `ENEMY_RESPAWN` trong `scripts/level.gd`.
 
 ## Kỹ năng theo vũ khí
 
@@ -104,7 +149,7 @@ Hiện là kỹ năng dùng vũ khí (chưa có nguyên tố). Kỹ năng luôn 
 ## Túi đồ
 
 Bấm **B** để mở túi (12 ô, làm "Ba lô lớn hơn" ở bàn chế tạo để lên 16 rồi 20 ô).
-Bình máu nhặt được sẽ cất vào túi, bấm **D** hoặc bấm vào bình trong túi để uống (hồi 40% máu).
+Bình máu nhặt được sẽ cất vào túi, bấm vào bình trong túi để uống (hồi 40% máu). Từ cấp 30 bấm **D** là uống nhanh.
 Bắt đầu game có sẵn 2 bình máu. Túi đầy thì bình máu nhặt được sẽ uống luôn.
 Bấm vào đồ ăn trong túi để ăn (hồi máu). Súp, canh hồi máu từ từ trong vài giây.
 Thuốc sức mạnh / thuốc nhanh nhẹn tăng sức trong 60 giây (hiện ở góc trên màn hình kèm số giây còn lại).
@@ -144,7 +189,7 @@ Cây: `1` quả mọng, `2` thảo dược, `3` nấm, `4` lúa mì, `5` cà r�
 **Thú hiền** (thỏ, nai, chim, bướm, ếch, vịt) đi lại, ăn cỏ, bỏ chạy khi bạn tới gần, không đánh được.
 Số thú mỗi khu chỉnh trong `AREAS` ở `scripts/level.gd`.
 **Thú dữ**: `X` sói (lao tới cắn), `N` heo rừng (gồng rồi húc). Hạ chúng rơi da thú, thịt, xương.
-Sói và heo rừng quay lại chỗ cũ sau 2 phút (chỉnh `BEAST_RESPAWN`).
+Sói, heo rừng và các quái thường khác quay lại chỗ cũ sau 2 phút (chỉnh `ENEMY_RESPAWN`).
 
 ## Chế tạo
 
@@ -204,7 +249,7 @@ Muốn chỉnh độ tối: sửa `DUNGEON_DARK` trong `scripts/level.gd`. Ký t
 ## Mục tiêu bản demo
 
 1. **Làng Khởi Nguyên**: bắt đầu ở quảng trường giữa làng. Nói chuyện với dân làng, đọc biển báo, ra **bãi tập** đánh bù nhìn để quen vũ khí. Bù nhìn có khiên rất cứng, thử phá giáp bằng Thương.
-2. **Rừng Hoang** (phía đông làng): đánh slime, dơi, cung thủ xương. Nhặt ngọc xanh để lấy kinh nghiệm, bình máu, vàng, pha lê tím (+Tấn công).
+2. **Rừng Hoang** (phía đông làng): đánh slime, dơi, cung thủ xương. Nhặt ngọc xanh để lấy kinh nghiệm và lên cấp mở kỹ năng (Q ở cấp 5), bình máu, vàng, pha lê tím (+Tấn công).
 3. Đi tiếp về phía đông vào **Đấu Trường Đá Cổ** và hạ Boss **Gorrak**. Boss có 5 giáp, biết nhảy đập (né vòng đỏ!), bắn cầu bóng tối, và nổi điên khi còn nửa máu.
 4. Hạ Boss thì phong ấn cửa hang (vách bắc đấu trường) vỡ ra. Đi vào hang xuống **Hầm Ngục Cổ** (tối, quái mạnh hơn), đi qua Sảnh Nến và Điện Thờ, rồi bước vào **Cổng Xoáy** ở phòng cuối để hoàn thành.
 
@@ -238,11 +283,12 @@ scripts/
   main.gd              Tạm dừng, thua, thắng, chơi lại
   level.gd             Bản đồ (vẽ bằng chữ), sinh quái, cổng, khu vực, tìm đường cho chuột phải
   player.gd            Nhân vật: điều khiển chuột, đánh, kỹ năng Q W E R, túi đồ, lên cấp
-  hud.gd               Thanh máu, năng lượng, kỹ năng, thông báo, túi đồ, bảng chế tạo
+  hud.gd               Thanh máu, năng lượng, kỹ năng, thông báo, túi đồ, bảng chế tạo, bảng kỹ năng (K)
+  minimap.gd           Bản đồ nhỏ hình tròn góc trên bên trái, bản đồ lớn (M), bấm lên bản đồ để đi tới đó
   enemies/             enemy.gd (lớp chung, có giáp, đồ rơi), slime, bat, archer, wolf (sói), boar (heo rừng), boss, dummy
   projectile.gd        Đạn (cầu lửa, mũi tên, cầu bóng tối)
   pickup.gd            Vật phẩm rơi
-  effects/             Hiệu ứng chém, vòng nổ, tia sét, dấu chỗ bấm chuột, mưa tên / thiên thạch
+  effects/             Hiệu ứng chém, vòng nổ, tia sét, dấu chỗ bấm chuột, mưa tên / thiên thạch, khung tròn bản đồ nhỏ
 assets/
   town/                Hình từ Kenney Tiny Town (làng, cỏ, nhà, hàng rào...)
   tiles/, decor/       Hình từ Kenney Roguelike RPG (nước, đá, tường...)

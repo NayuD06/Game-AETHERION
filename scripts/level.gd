@@ -105,7 +105,7 @@ const SIGN_TEXTS := [
 	"Giếng làng: đi tới xô nước cạnh giếng để lấy Bình nước (dùng nấu thuốc, nấu ăn).",
 	"Phía đông là Rừng Hoang. Quái vật đang tràn tới, hãy cẩn thận!",
 	"Quảng trường Làng Khởi Nguyên. Quanh đây có bàn chế tạo, bếp lửa, nồi luyện thuốc và lò nấu ăn: đi tới gần là chế đồ. Bắc: Làng Ven Hồ. Nam: Xóm Ruộng. Đông: Rừng Hoang.",
-	"Bãi tập: thử đánh và kỹ năng Q W E R lên bù nhìn. Bù nhìn có khiên rất cứng, Thương phá giáp dễ nhất.",
+	"Bãi tập: tập đánh thường lên bù nhìn. Lên cấp 5 mở kỹ năng Q, rồi W, E, R ở cấp 10, 15, 20. Bù nhìn có khiên rất cứng, Thương phá giáp dễ nhất.",
 	"Xóm Ruộng: ruộng lúa, vườn cà rốt, bí ngô và vườn táo. Hái xong một lúc cây sẽ chín lại.",
 	"Phía đông là Đầm Lầy Nấm. Nhiều nấm và thảo dược, nhưng có slime và heo rừng.",
 	"Đầm Lầy Nấm. Đất lầy ẩm ướt, đi trên cầu gỗ để qua ao.",
@@ -187,7 +187,7 @@ const NPC_DATA := [
 		"name": "Lính gác",
 		"lines": [
 			"Qua khỏi đây là Rừng Hoang. Nhớ bấm F để lướt né đòn nha!",
-			"Bị thương thì bấm D để uống bình máu, hoặc mở túi (B) ăn trái cây.",
+			"Bị thương thì mở túi (B) bấm vào bình máu hoặc trái cây. Tới cấp 30 bấm D là uống máu nhanh luôn.",
 			"Thấy quái thì rê chuột lên rồi bấm chuột phải, cứ thế mà đánh tới khi nó gục.",
 		],
 		"look": { "skin": 0, "hair": 0, "hair_color": 0, "outfit": 1, "outfit_color": 6, "hat": 1 },
@@ -197,7 +197,7 @@ const NPC_DATA := [
 		"name": "Bé Tí",
 		"lines": [
 			"Bạn là lữ khách hả? Ngầu quá!",
-			"Bạn đánh thử bù nhìn ở bãi tập phía nam chưa? Bấm Q W E R đó!",
+			"Đánh quái nhiều vào là lên cấp. Cứ 5 cấp lại mở một kỹ năng mới, bấm K mà xem!",
 		],
 		"look": { "skin": 1, "hair": 3, "hair_color": 3, "outfit": 0, "outfit_color": 7, "hat": 0 },
 		"wander": 40.0,
@@ -552,7 +552,7 @@ const WELL_BUCKET := { "item": "water", "tex": preload("res://assets/craft/bucke
 	"amount": [1, 2], "reach": 18.0, "tree": true }
 const STATION_RANGE := 30.0   # đứng gần trạm chế tạo bao nhiêu pixel thì mở bảng chế tạo
 ## Sói, heo rừng bị hạ sẽ quay lại chỗ cũ sau bấy nhiêu giây (khi người chơi không đứng gần)
-const BEAST_RESPAWN := 120.0
+const ENEMY_RESPAWN := 120.0   # quái thường hồi sinh sau bao nhiêu giây (Boss và bù nhìn thì không)
 const WATER_CHARS := "~[$"    # các ô có nước bên dưới (cầu gỗ và thuyền nằm trên nước)
 const CROP_CHARS := "456"     # cây trồng trên ruộng (có đất cày)
 
@@ -646,7 +646,7 @@ func _ready() -> void:
 
 func _announce_start() -> void:
 	Game.area_entered.emit("Làng Khởi Nguyên")
-	Game.message.emit("Chuột phải để đi / đánh quái, Q W E R: kỹ năng, Esc: xem hướng dẫn")
+	Game.message.emit("Chuột phải để đi / đánh quái, F: lướt. Lên cấp để mở kỹ năng Q W E R (K: xem kỹ năng, Esc: hướng dẫn)")
 	Game.message.emit("Đi tới gần dân làng để nghe họ nói chuyện. Luyện tập ở bãi tập rồi lên đường về phía đông!")
 
 
@@ -1348,8 +1348,8 @@ func _spawn_everything() -> void:
 				if c == "D":
 					enemy.armor = 6
 					enemy.display_name = "Bù nhìn giáp"
-				if c == "X" or c == "N":
-					enemy.died.connect(_on_beast_died.bind(c, pos))
+				if c != "B" and c != "D":
+					enemy.died.connect(_on_enemy_died.bind(c, pos))
 				entities.add_child(enemy)
 			elif ITEM_KINDS.has(c):
 				var item := (load("res://scenes/pickup.tscn") as PackedScene).instantiate() as Pickup
@@ -1374,21 +1374,24 @@ func _spawn_everything() -> void:
 
 # ---------------------------------------------------------------- Hệ sinh thái: thú hiền, đom đóm
 
-## Sói / heo rừng chết: một lúc sau con khác quay về chỗ cũ (để luôn có da, thịt, xương).
-func _on_beast_died(_enemy: Enemy, c: String, pos: Vector2) -> void:
-	get_tree().create_timer(BEAST_RESPAWN, false).timeout.connect(_respawn_beast.bind(c, pos))
+## Quái thường chết: một lúc sau con khác quay về chỗ cũ (để luyện cấp, lấy da, thịt, xương).
+## Boss và bù nhìn thì không.
+func _on_enemy_died(_enemy: Enemy, c: String, pos: Vector2) -> void:
+	get_tree().create_timer(ENEMY_RESPAWN, false).timeout.connect(_respawn_enemy.bind(c, pos))
 
 
-func _respawn_beast(c: String, pos: Vector2) -> void:
+func _respawn_enemy(c: String, pos: Vector2) -> void:
 	if not is_inside_tree():
 		return
 	# Người chơi đang đứng gần thì đợi thêm, không cho quái hiện ra ngay trước mặt
 	if player != null and player.global_position.distance_to(to_global(pos)) < 220.0:
-		get_tree().create_timer(15.0, false).timeout.connect(_respawn_beast.bind(c, pos))
+		get_tree().create_timer(15.0, false).timeout.connect(_respawn_enemy.bind(c, pos))
 		return
 	var enemy := (ENEMY_SCENES[c] as PackedScene).instantiate() as Enemy
 	enemy.position = pos
-	enemy.died.connect(_on_beast_died.bind(c, pos))
+	if dungeon_column != -1 and floori(pos.x / TILE) > dungeon_column:
+		enemy.make_elite()   # quái trong hầm ngục mạnh hơn
+	enemy.died.connect(_on_enemy_died.bind(c, pos))
 	entities.add_child(enemy)
 
 
