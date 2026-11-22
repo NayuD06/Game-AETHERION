@@ -68,6 +68,8 @@ var minimap: Minimap          # bản đồ nhỏ hình tròn góc trên bên tr
 var pause_overlay: Control
 var death_overlay: Control
 var win_overlay: Control
+var saved_label: Label        # chữ "Đã lưu game" góc dưới bên phải (main.gd gọi show_saved)
+var saved_tween: Tween
 
 
 func _ready() -> void:
@@ -80,10 +82,10 @@ func _ready() -> void:
 	_build_skill_bar()
 	_build_boss_bar()
 	_build_messages()
-	pause_overlay = _build_overlay("TẠM DỪNG", _controls_text() + "\n\nNhấn Esc để chơi tiếp")
-	death_overlay = _build_overlay("BẠN ĐÃ GỤC NGÃ", "Nhấn R để chơi lại, N để tạo nhân vật mới")
+	pause_overlay = _build_overlay("TẠM DỪNG", _controls_text() + "\n\nNhấn Esc để chơi tiếp (game vừa tự lưu)")
+	death_overlay = _build_overlay("BẠN ĐÃ GỤC NGÃ", "Nhấn R để chơi tiếp từ lần lưu gần nhất, N để đổi tài khoản")
 	win_overlay = _build_overlay("HOÀN THÀNH BẢN DEMO!",
-		"Bạn đã hạ Malakar, vượt qua 5 tầng Hầm Ngục Cổ và bước vào Cổng Xoáy.\nVùng đất mới và sức mạnh nguyên tố sẽ có ở phần sau.\nCảm ơn bạn đã chơi thử!\n\nNhấn R để chơi lại, N để tạo nhân vật mới")
+		"Bạn đã hạ Malakar, vượt qua 5 tầng Hầm Ngục Cổ và bước vào Cổng Xoáy.\nVùng đất mới và sức mạnh nguyên tố sẽ có ở phần sau.\nCảm ơn bạn đã chơi thử!\n\nNhấn R để chơi lại từ lần lưu gần nhất, N để đổi tài khoản")
 	_ignore_mouse(self)
 	_build_bag()
 	_build_equip_panel()
@@ -1116,7 +1118,7 @@ func _controls_text(skill_ids: Array = []) -> String:
 		"Chuột phải: đi tới chỗ bấm / bấm vào quái (con trỏ hình kiếm, viền đỏ) để khóa mục tiêu và tự đánh tới khi quái chết",
 		"Chuột trái: đánh về phía con trỏ (Cung: giữ để gồng)   A + chuột trái: vừa đi vừa đánh (hiện vòng tầm đánh)   S: đứng lại",
 		"Q W E R: giữ phím để xem tầm kỹ năng, thả ra để tung chiêu (chuột phải để hủy). Mở ở cấp 5, 10, 15, 20",
-		"F: lướt né   D: uống bình máu (mở ở cấp 30)   B: túi đồ + trang bị   K: bảng kỹ năng / đổi thứ tự   N: nhân vật mới",
+		"F: lướt né   D: uống bình máu (mở ở cấp 30)   B: túi đồ + trang bị   K: bảng kỹ năng / đổi thứ tự   N: đổi tài khoản",
 		"Bản đồ nhỏ (vòng tròn góc trên bên trái): bấm chuột phải lên bản đồ để đi tới đó   M: bản đồ lớn",
 		"Đi tới cây chín để hái. Đi tới 4 trạm chế tạo quanh quảng trường Làng Khởi Nguyên để chế đồ",
 		"Người có đồng xu trên đầu bán đồ: tới gần để mua / bán. Bác Sắt thợ rèn sửa trang bị bị mòn",
@@ -1149,8 +1151,12 @@ func _process(delta: float) -> void:
 	mp_bar.value = player.mp
 	mp_text.text = "%d / %d" % [int(player.mp), player.max_mp]
 	xp_bar.max_value = player.xp_to_next
-	xp_bar.value = player.xp
-	xp_text.text = "KN %d/%d" % [player.xp, player.xp_to_next]
+	if player.level >= Player.MAX_LEVEL:
+		xp_bar.value = player.xp_to_next
+		xp_text.text = "KN MAX"
+	else:
+		xp_bar.value = player.xp
+		xp_text.text = "KN %d/%d" % [player.xp, player.xp_to_next]
 
 	# Thuốc / món ăn đang có tác dụng
 	var effects := PackedStringArray()
@@ -1230,7 +1236,7 @@ func _refresh_skill_names() -> void:
 			var style: StyleBoxFlat = slot["style"]
 			style.border_color = Color(1.0, 0.6, 0.3) if info.get("ult", false) else Color(0.6, 0.55, 0.75)
 	var body := pause_overlay.get_child(1) as Label
-	body.text = _controls_text(player.skill_slots) + "\n\nNhấn Esc để chơi tiếp"
+	body.text = _controls_text(player.skill_slots) + "\n\nNhấn Esc để chơi tiếp (game vừa tự lưu)"
 
 
 func _set_cooldown(skill: String, ratio: float, unlocked: bool, no_mana: bool = false,
@@ -1302,6 +1308,23 @@ func _on_boss_health(current: int, maximum: int) -> void:
 
 func set_paused(paused: bool) -> void:
 	pause_overlay.visible = paused
+
+
+## Hiện chữ "Đã lưu game" nhỏ ở góc dưới bên phải rồi mờ dần.
+func show_saved() -> void:
+	if saved_label == null:
+		saved_label = _make_label("Đã lưu game", 8, Color(0.7, 1.0, 0.7))
+		saved_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		saved_label.size = Vector2(100, 12)
+		saved_label.position = Vector2(SCREEN.x - 104, SCREEN.y - 14)
+		saved_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(saved_label)
+	if saved_tween != null:
+		saved_tween.kill()
+	saved_label.modulate.a = 1.0
+	saved_tween = saved_label.create_tween()
+	saved_tween.tween_interval(1.5)
+	saved_tween.tween_property(saved_label, "modulate:a", 0.0, 0.8)
 
 
 func show_death() -> void:

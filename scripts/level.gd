@@ -654,6 +654,11 @@ var light_beams: Array[Sprite2D] = []
 var slab_tiles: Array[AtlasTexture] = []     # 4 kiểu phiến đá x 4 góc
 var player_light: PointLight2D
 var in_dungeon := false
+# Lưu tài khoản (xem get_save_data / apply_save_data ở cuối file)
+var loaded_save := false                 # vào game từ tài khoản đã chơi (không hiện lời chào người mới)
+var placed_fires: Array = []             # chỗ người chơi đã đặt bếp lửa (lưu lại, vào game lại vẫn còn)
+var save_pos := Vector2.INF              # chỗ đứng an toàn gần nhất để lưu (không lưu lúc đang đi qua hang)
+var save_floor := 0
 
 
 func _ready() -> void:
@@ -683,10 +688,20 @@ func _ready() -> void:
 	fade_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fade_layer.add_child(fade_rect)
 	Game.boss_defeated.connect(_on_boss_defeated)
+	# Tài khoản đã chơi: nạp lại tiến độ thế giới và chỗ đứng lần trước
+	var saved: Dictionary = Game.progress.get("the_gioi", {})
+	if Game.progress.has("tien_do"):
+		apply_save_data(saved)
 	call_deferred("_announce_start")
 
 
 func _announce_start() -> void:
+	if loaded_save:
+		Game.area_entered.emit(_current_area_name())
+		Game.message.emit("Chào mừng trở lại, %s! Game tự lưu, cứ thế chơi tiếp nhé." % Game.appearance.get("name", ""))
+		if gate_open and current_floor == 0:
+			Game.message.emit("Cửa hang sau Đấu Trường Đá Cổ đã mở: đi vào để xuống Hầm Ngục Cổ.")
+		return
 	Game.area_entered.emit("Làng Khởi Nguyên")
 	Game.message.emit("Chuột phải để đi / đánh quái, F: lướt. Lên cấp để mở kỹ năng Q W E R (K: xem kỹ năng, Esc: hướng dẫn)")
 	Game.message.emit("Đi tới gần dân làng để nghe họ nói chuyện. Luyện tập ở bãi tập rồi lên đường về phía đông!")
@@ -1998,6 +2013,9 @@ func _process(delta: float) -> void:
 	var fl := floor_of(player.global_position)
 	if fl != -1 and fl != current_floor:
 		_enter_floor(fl)
+	if not cave_busy and fl == current_floor:
+		save_pos = player.position    # chỗ đứng để lưu tài khoản
+		save_floor = current_floor
 	seal_msg_cd = maxf(seal_msg_cd - delta, 0.0)
 	if in_dungeon:
 		_update_player_light()
@@ -2077,6 +2095,7 @@ func place_station(kind: String, world_pos: Vector2) -> String:
 			entities.add_child(pit)
 			village_anims.append({"sprite": pit, "fps": 6.0, "phase": 0.0})
 			stations.append({"pos": local, "kind": "fire"})
+			placed_fires.append(local)
 			if in_dungeon or (dungeon_column != -1 and local.x > (dungeon_column + 1) * TILE):
 				_add_light(local + Vector2(0, -4), 80.0, CANDLE_LIGHT, 1.0, true)
 		_:
@@ -2129,9 +2148,15 @@ func _on_boss_defeated() -> void:
 		return
 	if gate_open:
 		return
+	_open_cave_seal(true)
+
+
+## Phá phong ấn cửa hang sau đấu trường (hạ Boss Gorrak, hoặc tài khoản đã hạ từ lần chơi trước).
+func _open_cave_seal(announce: bool) -> void:
 	gate_open = true
-	Game.message.emit("Phong ấn cửa hang đã vỡ! Đi vào hang ở vách bắc đấu trường để xuống Hầm Ngục Cổ (5 tầng)")
-	Game.shake(4.0)
+	if announce:
+		Game.message.emit("Phong ấn cửa hang đã vỡ! Đi vào hang ở vách bắc đấu trường để xuống Hầm Ngục Cổ (5 tầng)")
+		Game.shake(4.0)
 	for col in gate_body.get_children():
 		if col is CollisionShape2D:
 			col.set_deferred("disabled", true)
@@ -2140,5 +2165,64 @@ func _on_boss_defeated() -> void:
 			if cell(x, y) == "G":
 				astar.set_point_solid(Vector2i(x, y), false)
 	for s in gate_sprites:
-		var tw := s.create_tween()
-		tw.tween_property(s, "modulate:a", 0.0, 1.0)
+		if announce:
+			var tw := s.create_tween()
+			tw.tween_property(s, "modulate:a", 0.0, 1.0)
+		else:
+			s.modulate.a = 0.0
+
+
+# ---------------------------------------------------------------- Lưu tài khoản
+
+## Tiến độ thế giới lưu vào tài khoản (scripts/accounts.gd): đã phá phong ấn cửa hang chưa,
+## chỗ đứng (tầng nào), khu đã ghé, bếp lửa đã đặt. Quái, cây, rương thì mỗi lần vào game lại mới
+## (rương hầm ngục khoá lại tới khi dọn sạch tầng lần nữa).
+func get_save_data() -> Dictionary:
+	var data := {
+		"gate_open": gate_open,
+		"visited_areas": visited_areas.keys(),
+		"visited_floors": visited_floors.keys(),
+		"fires": placed_fires.duplicate(),
+	}
+	if save_pos != Vector2.INF:
+		data["pos"] = save_pos
+		data["floor"] = save_floor
+	return data
+
+
+func apply_save_data(d: Dictionary) -> void:
+	loaded_save = true
+	if bool(d.get("gate_open", false)) and not gate_open:
+		_open_cave_seal(false)
+	for a in d.get("visited_areas", []):
+		visited_areas[int(a)] = true
+	for f in d.get("visited_floors", []):
+		visited_floors[int(f)] = true
+	for p in d.get("fires", []):
+		if p is Vector2:
+			place_station("fire", to_global(p))
+	# Về lại chỗ đứng lần trước (chỗ đó phải đi được, tầng hầm ngục thì cửa hang phải mở rồi)
+	var pos = d.get("pos", null)
+	var fl := int(d.get("floor", 0))
+	if player == null or not pos is Vector2 or fl < 0 or fl > floor_rects.size() or (fl > 0 and not gate_open):
+		return
+	var world_pos := to_global(pos)
+	if floor_of(world_pos) != fl or not is_open(world_pos, 4.0):
+		return
+	player.set_camera_limits(region_pixels(fl))
+	player.teleport_to(world_pos)
+	save_pos = pos
+	save_floor = fl
+	if fl > 0:
+		_enter_floor(fl)
+
+
+## Tên khu đang đứng (hiện ở giữa màn hình khi vào game).
+func _current_area_name() -> String:
+	if current_floor > 0:
+		return Dungeon.floor_name(current_floor)
+	var c := _to_cell(player.position)
+	var index := _area_index(c.x, c.y)
+	if index == -1:
+		return "Làng Khởi Nguyên"
+	return AREAS[index]["name"]

@@ -47,7 +47,8 @@ Game trộn thêm vài thứ:
 
 ![Ngoại hình nhân vật](images/nhan_vat.png)
 
-Vào game là tới **màn hình tạo nhân vật**: đặt tên, chọn **ngoại hình** (màu da, kiểu tóc, màu tóc, trang phục, màu áo, mũ)
+Vào game là tới **màn hình chọn tài khoản**. Bấm **Chơi** để chơi tiếp một nhân vật đã có, hoặc bấm **Tạo tài khoản mới**.
+Ở **màn hình tạo nhân vật**: đặt tên, chọn **ngoại hình** (màu da, kiểu tóc, màu tóc, trang phục, màu áo, mũ)
 và chọn **1 trong 4 vũ khí**. Vũ khí gắn với nhân vật luôn, **không đổi được khi đang chơi**, nên hãy chọn kỹ nha.
 Ngoại hình thì không phụ thuộc vũ khí: bạn muốn mặc gì cũng được.
 
@@ -95,7 +96,7 @@ Mở hết 4 kỹ năng (cấp 20) thì bấm **K** để đổi thứ tự kỹ
 | Đi tới chỗ bấm trên bản đồ nhỏ (vòng tròn góc trên bên trái) | **Chuột phải** lên bản đồ nhỏ |
 | Mở / đóng bản đồ lớn | **M** |
 | Tạm dừng, xem danh sách kỹ năng | **Esc** |
-| Tạo nhân vật mới (lúc tạm dừng, thua hoặc thắng) | **N** |
+| Về màn hình chọn tài khoản (lúc tạm dừng, thua hoặc thắng) | **N** |
 
 ### Bản đồ nhỏ
 
@@ -132,7 +133,16 @@ Mới vào game bạn chỉ có **đánh thường** và **lướt (F)**. Đánh
 | 20 | Tuyệt chiêu **R**, và được đổi thứ tự kỹ năng (phím K) |
 | 30 | Phím **D** uống bình máu nhanh |
 
-Mỗi cấp được thêm 8 máu tối đa và 1 tấn công. Ô kỹ năng chưa mở có màu tối và ghi cấp cần đạt.
+Mỗi cấp được thêm 8 máu tối đa và 1 tấn công. Ô kỹ năng chưa mở có màu tối và ghi cấp cần đạt. Cấp tối đa là **999**.
+
+### Tài khoản và lưu game
+
+Mỗi nhân vật là một **tài khoản**. Game **tự lưu** mỗi 30 giây, khi lên cấp, khi bấm **Esc** và khi tắt game
+(góc dưới bên phải hiện chữ "Đã lưu game"). Lần sau mở game, bấm **Chơi** là vào lại đúng chỗ cũ với đủ cấp, vàng, túi đồ, trang bị.
+Gục ngã thì bấm **R** để chơi tiếp từ lần lưu gần nhất.
+
+Có sẵn **Tài Khoản Full** để thử mọi thứ: Kiếm Sĩ cấp 999, mở hết kỹ năng, đủ bộ đồ Thần thánh, rất nhiều vàng và đồ trong túi,
+cửa hang đã mở sẵn. Lỡ xóa thì bấm **Thêm tài khoản Full** ở màn hình chọn tài khoản.
 
 ### Quái vật
 

@@ -11,6 +11,7 @@ extends CharacterBody2D
 ## Q W E: kỹ năng vũ khí, R: tuyệt chiêu (tung về phía con trỏ). F: lướt. D: dùng bình máu.
 
 signal died
+signal leveled_up(new_level: int)   # vừa lên cấp (main.gd nghe để tự lưu game)
 
 const PROJECTILE_SCENE := preload("res://scenes/projectile.tscn")
 const SLASH_EFFECT := preload("res://scripts/effects/slash_effect.gd")
@@ -37,7 +38,14 @@ const XP_BASE := 10
 const XP_STEP := 5
 ## Mỗi lần lên cấp được thêm bao nhiêu
 const LEVEL_HP := 8
+const LEVEL_MP := 3
 const LEVEL_ATTACK := 1
+## Cấp tối đa. Tới cấp này thì không nhận thêm kinh nghiệm nữa (thanh KN ghi "MAX").
+const MAX_LEVEL := 999
+## Chỉ số lúc mới tạo nhân vật (cấp 1, chưa mặc gì)
+const BASE_HP := 60
+const BASE_MP := 30
+const BASE_ATTACK := 8
 ## Bấm L để lên cấp ngay. Chỉ chạy khi mở game từ Godot (F5) để thử cho nhanh, bản xuất ra không có.
 ## Đổi thành false để tắt hẳn.
 const TEST_LEVEL_KEY := true
@@ -68,11 +76,12 @@ const MANA_REGEN := 2.5  # năng lượng hồi mỗi giây
 var level := 1
 var xp := 0
 var xp_to_next := XP_BASE
-var max_hp := 60
-var hp := 60
-var max_mp := 30
-var mp := 30.0
-var attack := 8
+var max_hp := BASE_HP
+var hp := BASE_HP
+var max_mp := BASE_MP
+var mp := float(BASE_MP)
+var attack := BASE_ATTACK
+var bonus_attack := 0          # tấn công cộng mãi mãi (pha lê tím, bùa răng sói), được lưu vào tài khoản
 var gold := 0
 
 # --- Sức mạnh nguyên tố đã thức tỉnh ---
@@ -222,7 +231,12 @@ func _ready() -> void:
 	var defaults: Array = Weapons.info(weapon)["skills"]
 	for i in mini(defaults.size(), skill_slots.size()):
 		skill_slots[i] = defaults[i]
-	# Vũ khí khởi đầu: bậc 1, đúng loại vũ khí đã chọn (ô Vũ khí trong bảng Trang bị)
+	# Tài khoản đã chơi trước đó: nạp cấp, đồ, vàng... đã lưu (scripts/accounts.gd)
+	var saved: Dictionary = Game.progress.get("tien_do", {})
+	if not saved.is_empty():
+		apply_save_data(saved)
+		return
+	# Nhân vật mới. Vũ khí khởi đầu: bậc 1, đúng loại vũ khí đã chọn (ô Vũ khí trong bảng Trang bị)
 	var starter := Equipment.weapon_id(weapon, 1)
 	if starter != "":
 		gear["weapon"] = Equipment.make(starter)
@@ -256,7 +270,8 @@ func _unhandled_input(event: InputEvent) -> void:
 		else:
 			_locked_message("Phím D mở ở cấp %d. Giờ mở túi (B) bấm vào bình máu để uống" % QUICK_ITEM_LEVEL)
 	elif event.is_action_pressed("test_level_up") and TEST_LEVEL_KEY and OS.is_debug_build():
-		add_xp(xp_to_next - xp)
+		if level < MAX_LEVEL:
+			add_xp(xp_to_next - xp)
 	else:
 		for i in SKILL_ACTIONS.size():
 			if event.is_action_pressed(SKILL_ACTIONS[i]):
@@ -2073,13 +2088,112 @@ func _die() -> void:
 	died.emit()
 
 
+# ---------------------------------------------------------------- Lưu tài khoản
+
+## Những gì của nhân vật được lưu vào tài khoản (scripts/accounts.gd).
+## Máu, tấn công... không lưu thẳng mà tính lại từ cấp, trang bị và bonus_attack khi nạp.
+func get_save_data() -> Dictionary:
+	var gear_copy := {}
+	for slot in gear:
+		gear_copy[slot] = (gear[slot] as Dictionary).duplicate()
+	var bag_copy := []
+	for entry in bag:
+		bag_copy.append((entry as Dictionary).duplicate())
+	var slots := []
+	slots.assign(skill_slots)
+	return {
+		"level": level,
+		"xp": xp,
+		"gold": gold,
+		"bonus_attack": bonus_attack,
+		"bag_slots": bag_slots,
+		"bag": bag_copy,
+		"gear": gear_copy,
+		"upgrades": upgrades.duplicate(),
+		"skill_slots": slots,
+		"weapon_uses": weapon_uses,
+	}
+
+
+## Nạp lại nhân vật từ dữ liệu đã lưu. Món nào sai (vật phẩm không còn trong game, vũ khí khác loại)
+## thì bỏ qua, thứ tự kỹ năng sai thì về mặc định. Vào game là đầy máu.
+func apply_save_data(d: Dictionary) -> void:
+	level = clampi(int(d.get("level", 1)), 1, MAX_LEVEL)
+	xp_to_next = xp_needed(level)
+	xp = clampi(int(d.get("xp", 0)), 0, xp_to_next - 1) if level < MAX_LEVEL else 0
+	gold = maxi(int(d.get("gold", 0)), 0)
+	bonus_attack = maxi(int(d.get("bonus_attack", 0)), 0)
+	max_hp = BASE_HP + LEVEL_HP * (level - 1)
+	max_mp = BASE_MP + LEVEL_MP * (level - 1)
+	attack = BASE_ATTACK + LEVEL_ATTACK * (level - 1) + bonus_attack
+	var saved_upgrades = d.get("upgrades", {})
+	upgrades = (saved_upgrades as Dictionary).duplicate() if saved_upgrades is Dictionary else {}
+	bag_slots = clampi(int(d.get("bag_slots", BAG_SLOTS_START)), BAG_SLOTS_START, BAG_SLOTS_MAX)
+	bag = []
+	for entry in d.get("bag", []):
+		if bag.size() >= bag_slots:
+			break
+		if not entry is Dictionary:
+			continue
+		var id := str(entry.get("id", ""))
+		if Equipment.is_gear(id):
+			var piece := _saved_gear(entry)
+			piece["count"] = 1
+			bag.append(piece)
+		elif Items.DATA.has(id) and int(entry.get("count", 0)) > 0:
+			bag.append({ "id": id, "count": int(entry["count"]) })
+	# Trang bị: tính lại chỉ số từ đầu
+	gear_bonus = { "defense": 0, "hp": 0, "attack": 0, "speed": 0 }
+	var saved_gear = d.get("gear", {})
+	for slot in gear:
+		gear[slot] = {}
+		var item = saved_gear.get(slot, {}) if saved_gear is Dictionary else {}
+		if item is Dictionary and not item.is_empty():
+			var id := str(item.get("id", ""))
+			if Equipment.slot_of(id) == slot and can_use_gear(id):
+				gear[slot] = _saved_gear(item)
+	_apply_gear()
+	weapon_uses = maxi(int(d.get("weapon_uses", 0)), 0)
+	# Thứ tự kỹ năng: phải đúng bộ kỹ năng của vũ khí, sai thì giữ mặc định
+	var defaults: Array = Weapons.info(weapon)["skills"]
+	var saved_slots = d.get("skill_slots", [])
+	if saved_slots is Array and saved_slots.size() == skill_slots.size():
+		var ok := true
+		for id in defaults:
+			if not saved_slots.has(id):
+				ok = false
+		if ok:
+			for i in skill_slots.size():
+				skill_slots[i] = str(saved_slots[i])
+	hp = max_hp
+	mp = float(max_mp)
+	bag_changed.emit()
+	gear_changed.emit()
+	skills_changed.emit()
+
+
+## Một món trang bị đọc từ file lưu: độ hiếm lạ thì về Thường, độ bền nằm trong giới hạn.
+func _saved_gear(item: Dictionary) -> Dictionary:
+	var id := str(item["id"])
+	var rarity := str(item.get("rarity", Equipment.DEFAULT_RARITY))
+	if not Equipment.RARITIES.has(rarity):
+		rarity = Equipment.DEFAULT_RARITY
+	var top := Equipment.max_durability(id, rarity)
+	return { "id": id, "rarity": rarity, "dur": clampi(int(item.get("dur", top)), 0, top) }
+
+
 # ---------------------------------------------------------------- Kinh nghiệm & lên cấp
 
 func add_xp(amount: int) -> void:
+	if level >= MAX_LEVEL:
+		xp = 0
+		return
 	xp += amount
-	while xp >= xp_to_next:
+	while xp >= xp_to_next and level < MAX_LEVEL:
 		xp -= xp_to_next
 		_level_up()
+	if level >= MAX_LEVEL:
+		xp = 0
 
 
 ## Kinh nghiệm cần để từ cấp lv lên cấp lv + 1.
@@ -2088,16 +2202,21 @@ static func xp_needed(lv: int) -> int:
 
 
 func _level_up() -> void:
+	if level >= MAX_LEVEL:
+		return
 	level += 1
 	xp_to_next = xp_needed(level)
 	max_hp += LEVEL_HP
-	max_mp += 3
+	max_mp += LEVEL_MP
 	attack += LEVEL_ATTACK
 	hp = max_hp
 	mp = max_mp
 	Game.popup_text(global_position + Vector2(0, -10), "LÊN CẤP!", Color(1.0, 0.85, 0.3), 12)
 	Game.message.emit("Lên cấp %d!  Máu +%d, Tấn công +%d" % [level, LEVEL_HP, LEVEL_ATTACK])
+	if level >= MAX_LEVEL:
+		Game.message.emit("Đã đạt cấp tối đa %d!" % MAX_LEVEL)
 	_check_unlocks()
+	leveled_up.emit(level)
 	if ELEMENTS_ENABLED and level >= 2 and not fire_unlocked:
 		fire_unlocked = true
 		Game.message.emit("Thức tỉnh nguyên tố LỬA! Nhấn Q (hoặc chuột phải) để bắn Cầu Lửa")
@@ -2130,6 +2249,7 @@ func _check_unlocks() -> void:
 
 func add_attack(amount: int) -> void:
 	attack += amount
+	bonus_attack += amount
 	Game.popup_text(global_position, "+%d Tấn công" % amount, Color(0.8, 0.5, 1.0))
 
 

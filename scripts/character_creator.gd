@@ -1,5 +1,6 @@
 extends Control
 ## Màn hình tạo nhân vật: chọn tên, vũ khí (cố định cho nhân vật đó) và ngoại hình.
+## Bấm "Bắt đầu phiêu lưu" là tạo một tài khoản mới cho nhân vật này (scripts/accounts.gd).
 ## Giao diện được tạo hoàn toàn bằng code.
 
 const SCREEN := Vector2(640, 360)
@@ -202,6 +203,9 @@ func _build_buttons() -> void:
 	random.pressed.connect(_randomize)
 	var start := _button("Bắt đầu phiêu lưu", Vector2(440, 310), Vector2(170, 26), 12)
 	start.pressed.connect(_start_game)
+	if not Accounts.list().is_empty():
+		var back := _button("Quay lại", Vector2(370, 310), Vector2(66, 26), 10)
+		back.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/account_select.tscn"))
 	var note := _label("Vũ khí gắn liền với nhân vật, không đổi được khi đang chơi.", 8, Color(0.8, 0.8, 0.85))
 	note.position = Vector2(30, 316)
 	note.size = Vector2(220, 14)
@@ -266,4 +270,7 @@ func _start_game() -> void:
 	look["name"] = player_name if player_name != "" else "Lữ Khách"
 	Game.appearance = look
 	Game.save_appearance()
+	# Tạo tài khoản mới cho nhân vật này (đang quay video demo thì không tạo, không lưu)
+	if Demo.requested() == "":
+		Game.use_account(Accounts.create(look))
 	get_tree().change_scene_to_file("res://scenes/main.tscn")

@@ -56,9 +56,15 @@ const CURSOR_ATTACK := preload("res://assets/ui/cursor_attack.png")
 var attack_cursor := false
 
 
-## Ngoại hình + vũ khí của nhân vật (chọn ở màn hình tạo nhân vật, lưu vào máy).
+## Ngoại hình + vũ khí của nhân vật đang chơi (chọn ở màn hình tạo nhân vật).
+## SAVE_PATH chỉ nhớ lần tạo nhân vật gần nhất để màn hình tạo nhân vật điền sẵn.
 const SAVE_PATH := "user://nhan_vat.cfg"
 var appearance: Dictionary = CharacterParts.DEFAULT.duplicate()
+
+## Tài khoản đang chơi (scripts/accounts.gd). "" = chưa chọn, hoặc đang quay video demo: không lưu gì.
+var account_id := ""
+## Tiến độ đã lưu của tài khoản đang chơi: { "tien_do": {...}, "the_gioi": {...} }. {} = nhân vật mới.
+var progress: Dictionary = {}
 
 
 func _ready() -> void:
@@ -74,6 +80,30 @@ func set_attack_cursor(on: bool) -> void:
 		return
 	attack_cursor = on
 	Input.set_custom_mouse_cursor(CURSOR_ATTACK if on else CURSOR_NORMAL, Input.CURSOR_ARROW, Vector2(2, 2))
+
+
+## Chọn tài khoản id để chơi: lấy ngoại hình và tiến độ đã lưu. Trả về false nếu không đọc được file.
+func use_account(id: String) -> bool:
+	var data := Accounts.read(id)
+	if data.is_empty():
+		return false
+	account_id = id
+	appearance = CharacterParts.DEFAULT.duplicate()
+	appearance.merge(data["look"], true)
+	progress = {}
+	if not (data["tien_do"] as Dictionary).is_empty():
+		progress = { "tien_do": data["tien_do"], "the_gioi": data["the_gioi"] }
+	return true
+
+
+## Lưu tiến độ vào tài khoản đang chơi (main.gd gọi khi tự lưu). Trả về true nếu lưu được.
+func save_progress(data: Dictionary) -> bool:
+	if account_id == "":
+		return false
+	if Accounts.write(account_id, appearance, data) != OK:
+		return false
+	progress = data
+	return true
 
 
 func load_appearance() -> void:

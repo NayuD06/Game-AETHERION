@@ -21,7 +21,29 @@ rồi ghép lại thành một video dài có tấm tiêu đề cho từng phầ
 2. Trong cửa sổ **Project Manager**, bấm **Import**.
 3. Chọn file `project.godot` trong thư mục này (ví dụ `E:\DEV\projects\game\project.godot`), rồi bấm **Import** (hoặc **Import & Edit**).
 4. Lần đầu mở, Godot sẽ mất vài giây để nạp hình ảnh. Đợi xong rồi bấm **F5** (hoặc nút ▶ góc trên bên phải) để chơi.
-5. Game mở ra ở **màn hình tạo nhân vật**. Đặt tên, chọn vũ khí và ngoại hình, rồi bấm **Bắt đầu phiêu lưu** (hoặc Enter ở ô tên).
+5. Game mở ra ở **màn hình chọn tài khoản**. Bấm **Chơi** ở một tài khoản để chơi tiếp, hoặc bấm **Tạo tài khoản mới**
+   để tạo nhân vật (đặt tên, chọn vũ khí và ngoại hình, rồi bấm **Bắt đầu phiêu lưu** hoặc Enter ở ô tên).
+
+## Tài khoản và lưu game
+
+Mỗi nhân vật là một **tài khoản** riêng. Game **tự lưu**: cấp, kinh nghiệm, vàng, túi đồ, trang bị (cả độ hiếm, độ bền),
+thứ tự kỹ năng, chỗ đang đứng (kể cả đang ở tầng mấy của hầm ngục), cửa hang đã mở chưa, bếp lửa đã đặt.
+Lần sau mở game chỉ cần bấm **Chơi** là vào lại đúng chỗ cũ, không phải tạo lại nhân vật.
+
+- Game lưu mỗi **30 giây**, khi **lên cấp**, khi bấm **Esc** (tạm dừng), khi bấm **N** và khi tắt cửa sổ game.
+  Mỗi lần lưu, góc dưới bên phải hiện chữ "Đã lưu game".
+- Gục ngã thì bấm **R** để chơi tiếp từ lần lưu gần nhất. Bấm **N** (lúc tạm dừng, thua hoặc thắng) để về màn hình chọn tài khoản.
+- Quái, cây, rương mỗi lần vào game lại mới. Rương hầm ngục khoá lại cho tới khi dọn sạch tầng lần nữa.
+- **Xóa** tài khoản: bấm "Xóa" rồi bấm "Chắc chắn?" trong 3 giây. Xóa rồi thì không lấy lại được.
+
+**Tài Khoản Full** (viền vàng, chữ FULL) được tạo sẵn để thử mọi tính năng: Kiếm Sĩ **cấp 999** (cấp tối đa),
+mở hết kỹ năng Q W E R và phím D, mặc đủ bộ trang bị **Thần thánh** bậc 5 (kể cả Kiếm bóng đêm), 999.999 vàng,
+túi đồ 20 ô có sẵn thuốc, đồ ăn, rìu, liềm, đuốc, bộ lửa trại, nguyên liệu, và **cửa hang đã mở** để vào thẳng Hầm Ngục Cổ.
+Lỡ xóa thì bấm **Thêm tài khoản Full** ở màn hình chọn tài khoản để tạo lại.
+
+File lưu nằm trong thư mục dữ liệu của game: trong Godot chọn **Project > Open User Data Folder**, mở thư mục `tai_khoan`
+(mỗi tài khoản một file `.cfg`). Muốn chỉnh tài khoản Full (cấp, vàng, đồ trong túi): sửa phần đầu `scripts/accounts.gd`.
+Muốn đổi thời gian tự lưu: `AUTOSAVE_SECONDS` trong `scripts/main.gd`.
 
 ## Tạo nhân vật
 
@@ -36,7 +58,8 @@ Sau này mỗi loại sẽ có cây kỹ năng riêng (có thể thêm nguyên t
 | Sách Phép | Pháp Sư | Sách bay cạnh người, bắn tia phép. Sức mạnh nguyên tố sẽ thức tỉnh ở bản sau. |
 
 Ngoại hình chọn được: màu da, kiểu tóc, màu tóc, trang phục, màu áo, mũ. Nút **Ngẫu nhiên** chọn bừa hết cho vui.
-Nhân vật luôn cầm vũ khí đã chọn trên tay. Nhân vật được lưu vào máy (`user://nhan_vat.cfg`), lần sau mở game sẽ nhớ. Muốn tạo nhân vật khác: bấm **Esc** rồi **N**.
+Nhân vật luôn cầm vũ khí đã chọn trên tay. Bấm **Bắt đầu phiêu lưu** là tạo một tài khoản mới cho nhân vật đó (xem phần "Tài khoản và lưu game").
+Muốn tạo nhân vật khác: bấm **Esc** rồi **N** để về màn hình chọn tài khoản, rồi bấm **Tạo tài khoản mới**.
 
 ## Giáp của quái
 
@@ -99,7 +122,7 @@ Nếu có lỗi, xem tab **Output** / **Debugger** ở dưới cùng của Godot
 | Mở / đóng bản đồ lớn giữa màn hình (có tên các khu, cũng bấm để đi được) | M |
 | Lên cấp ngay để chạy thử (chỉ khi mở game từ Godot bằng F5) | L |
 | Tạm dừng (xem danh sách kỹ năng) | Esc |
-| Tạo nhân vật mới (khi đang tạm dừng, thua hoặc thắng) | N |
+| Về màn hình chọn tài khoản (khi đang tạm dừng, thua hoặc thắng) | N |
 | Chơi lại khi thua / thắng | R |
 
 Kỹ năng luôn tung về phía con trỏ chuột. Muốn chơi bằng bàn phím thì vẫn dùng được phím mũi tên để đi và J để đánh.
@@ -147,6 +170,7 @@ Kỹ năng mở dần theo cấp:
 
 Kinh nghiệm cần để lên cấp tiếp = 10 + 5 x (cấp hiện tại - 1): cấp 1 cần 10, cấp 2 cần 15, cấp 3 cần 20...
 Tổng cộng khoảng 70 kinh nghiệm để tới cấp 5, 270 tới cấp 10, 600 tới cấp 15, 1000 tới cấp 20, 2300 tới cấp 30.
+**Cấp tối đa là 999** (`MAX_LEVEL` trong `scripts/player.gd`): tới đó thì thanh kinh nghiệm ghi "KN MAX".
 Quái thường (trừ Boss và bù nhìn) hạ xong sẽ quay lại chỗ cũ sau 2 phút để bạn luyện cấp. Quái trong hầm ngục
 cấp cao hơn nên mạnh hơn và cho nhiều kinh nghiệm hơn, tầng càng sâu càng cao cấp (xem phần "Cấp của quái").
 
@@ -422,7 +446,9 @@ và trong `scripts/game.gd` (hàm `hit_stop`).
 project.godot          Cấu hình project (mở file này bằng Godot)
 scenes/                Các scene: main, player, quái, đạn, vật phẩm
 scripts/
-  game.gd              Autoload "Game": phím điều khiển, tín hiệu dùng chung, lưu nhân vật
+  game.gd              Autoload "Game": phím điều khiển, tín hiệu dùng chung, tài khoản đang chơi
+  accounts.gd          Tài khoản: đọc / ghi file lưu, tài khoản Full tạo sẵn
+  account_select.gd    Màn hình chọn tài khoản (màn hình đầu tiên khi mở game)
   character_creator.gd Màn hình tạo nhân vật (giao diện tạo bằng code)
   character_parts.gd   Danh sách màu da, tóc, áo, mũ và cách ghép các lớp hình
   weapons.gd           Thông số 4 loại vũ khí và bộ kỹ năng mặc định của từng loại
@@ -435,7 +461,7 @@ scripts/
   critter.gd           Thú hiền: thỏ, nai, chim, bướm, ếch, vịt
   skills.gd            Danh sách tất cả kỹ năng (Q W E R)
   npc.gd               Dân làng: đi dạo, quay sang nói chuyện khi người chơi tới gần, người bán hàng mở cửa hàng
-  main.gd              Tạm dừng, thua, thắng, chơi lại
+  main.gd              Tạm dừng, thua, thắng, chơi lại, tự lưu game
   level.gd             Bản đồ (vẽ bằng chữ), sinh quái, cổng, khu vực, tìm đường cho chuột phải, ghép các tầng hầm ngục
   dungeon.gd           Hầm Ngục Cổ: bản đồ, màu, độ tối, độ mạnh quái của 5 tầng
   dungeon_trap.gd      Bẫy gai, lỗ phun lửa trong hầm ngục
