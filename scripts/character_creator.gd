@@ -80,7 +80,6 @@ func _button(text: String, pos: Vector2, button_size: Vector2, font_size: int = 
 	var b := Button.new()
 	b.text = text
 	b.position = pos
-	b.size = button_size
 	b.add_theme_font_size_override("font_size", font_size)
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = Color(0.22, 0.18, 0.32)
@@ -97,6 +96,7 @@ func _button(text: String, pos: Vector2, button_size: Vector2, font_size: int = 
 	b.add_theme_stylebox_override("hover", hover)
 	b.add_theme_stylebox_override("focus", hover)
 	b.add_theme_stylebox_override("pressed", pressed)
+	b.size = button_size   # đặt kích thước sau cùng (sau cỡ chữ, viền) để nút không bị to ra
 	add_child(b)
 	return b
 
@@ -172,7 +172,6 @@ func _build_options() -> void:
 	name_edit.text = str(look.get("name", "Lữ Khách"))
 	name_edit.max_length = Accounts.NAME_MAX
 	name_edit.position = Vector2(370, y)
-	name_edit.size = Vector2(228, 20)
 	name_edit.add_theme_font_size_override("font_size", 10)
 	var edit_style := StyleBoxFlat.new()
 	edit_style.bg_color = Color(0.05, 0.04, 0.09)
@@ -186,6 +185,7 @@ func _build_options() -> void:
 	edit_focus.border_color = Color(1.0, 0.85, 0.4)
 	name_edit.add_theme_stylebox_override("focus", edit_focus)
 	name_edit.text_submitted.connect(func(_t): _start_game())
+	name_edit.size = Vector2(228, 20)
 	add_child(name_edit)
 	y += 26.0
 	for row in rows:
@@ -220,9 +220,9 @@ func _build_buttons() -> void:
 		var back := _button("Quay lại", Vector2(370, 310), Vector2(66, 26), 10)
 		back.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/account_select.tscn"))
 	var note := _label("Vũ khí gắn liền với nhân vật, không đổi được khi đang chơi.", 8, Color(0.8, 0.8, 0.85))
-	note.position = Vector2(30, 316)
-	note.size = Vector2(220, 14)
-	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART   # bật xuống dòng trước khi đặt kích thước
+	note.position = Vector2(30, 312)
+	note.size = Vector2(216, 24)
 	add_child(note)
 
 

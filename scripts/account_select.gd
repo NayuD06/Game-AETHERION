@@ -72,13 +72,13 @@ func _button(text: String, pos: Vector2, button_size: Vector2, font_size: int, p
 	var b := Button.new()
 	b.text = text
 	b.position = pos
-	b.size = button_size
 	b.add_theme_font_size_override("font_size", font_size)
 	var normal := StyleBoxFlat.new()
 	normal.bg_color = color
 	normal.border_color = Color(0.6, 0.55, 0.8)
 	normal.set_border_width_all(1)
 	normal.set_corner_radius_all(3)
+	normal.set_content_margin_all(2)
 	var hover := normal.duplicate() as StyleBoxFlat
 	hover.bg_color = color.lightened(0.15)
 	hover.border_color = Color(1.0, 0.85, 0.4)
@@ -88,6 +88,8 @@ func _button(text: String, pos: Vector2, button_size: Vector2, font_size: int, p
 	b.add_theme_stylebox_override("hover", hover)
 	b.add_theme_stylebox_override("focus", hover)
 	b.add_theme_stylebox_override("pressed", pressed)
+	b.clip_text = true
+	b.size = button_size   # đặt kích thước sau cùng (sau cỡ chữ, viền) để nút không bị to ra
 	parent.add_child(b)
 	return b
 
@@ -286,13 +288,13 @@ func _start_rename(id: String, row: Panel, old_name: String) -> void:
 	rename_edit.text = old_name
 	rename_edit.max_length = Accounts.NAME_MAX
 	rename_edit.position = Vector2(68, 3)
-	rename_edit.size = Vector2(130, 18)
 	rename_edit.add_theme_font_size_override("font_size", 10)
 	rename_edit.placeholder_text = "Tên mới"
 	var sb := _panel_style(Color(0.05, 0.04, 0.09), Color(1.0, 0.85, 0.4))
 	sb.set_content_margin_all(2)
 	rename_edit.add_theme_stylebox_override("normal", sb)
 	rename_edit.add_theme_stylebox_override("focus", sb)
+	rename_edit.size = Vector2(130, 18)
 	rename_edit.text_submitted.connect(func(_t: String) -> void: _finish_rename())
 	rename_edit.focus_exited.connect(_cancel_rename)
 	var name_label := row.get_node_or_null("NameLabel") as Label
