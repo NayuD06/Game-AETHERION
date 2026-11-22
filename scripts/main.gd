@@ -3,19 +3,23 @@ extends Node2D
 
 ## Tự lưu tài khoản sau mỗi bấy nhiêu giây chơi. Game còn lưu khi lên cấp, khi bấm Esc (tạm dừng),
 ## khi bấm N (về màn hình chọn tài khoản) và khi tắt cửa sổ game.
+## Đã đăng nhập Google (scripts/cloud.gd) thì mỗi lần lưu cũng gửi tài khoản lên mạng.
 const AUTOSAVE_SECONDS := 30.0
 const ACCOUNT_SCENE := "res://scenes/account_select.tscn"
+const QUIT_UPLOAD_WAIT := 4.0   # tắt game khi đã đăng nhập Google: chờ gửi lên mạng tối đa bấy nhiêu giây
 
 @onready var level: Level = $Level
 @onready var hud: GameHUD = $HUD
 
 var game_over := false
 var autosave_timer := 0.0
+var quitting := false
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	level.process_mode = Node.PROCESS_MODE_PAUSABLE
+	get_tree().set_auto_accept_quit(false)   # tắt game: lưu (và gửi lên mạng) xong mới thoát
 	hud.player = level.player
 	level.player.died.connect(_on_player_died)
 	level.player.leveled_up.connect(func(_lv: int) -> void: save_game())
@@ -47,12 +51,34 @@ func save_game(show_text: bool = true) -> bool:
 		return false
 	if show_text:
 		hud.show_saved()
+	Cloud.upload(Game.account_id)   # đã đăng nhập Google thì gửi lên mạng (không chờ)
 	return true
 
 
+func _exit_tree() -> void:
+	get_tree().set_auto_accept_quit(true)
+
+
 func _notification(what: int) -> void:
-	if what == NOTIFICATION_WM_CLOSE_REQUEST:
-		save_game(false)   # tắt cửa sổ game: lưu lần cuối
+	if what == NOTIFICATION_WM_CLOSE_REQUEST and not quitting:
+		_save_and_quit()
+
+
+## Tắt cửa sổ game: lưu lần cuối, đã đăng nhập Google thì đợi gửi lên mạng (tối đa QUIT_UPLOAD_WAIT giây) rồi thoát.
+func _save_and_quit() -> void:
+	quitting = true
+	var saved := save_game(false)
+	if saved and Cloud.is_logged_in():
+		var done := [false]
+		var send := func() -> void:
+			await Cloud.upload(Game.account_id, true)
+			done[0] = true
+		send.call()
+		var waited := 0.0
+		while not done[0] and waited < QUIT_UPLOAD_WAIT:
+			await get_tree().create_timer(0.1, true, false, true).timeout
+			waited += 0.1
+	get_tree().quit()
 
 
 func _unhandled_input(event: InputEvent) -> void:

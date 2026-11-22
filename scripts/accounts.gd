@@ -13,6 +13,7 @@ const DIR := "user://tai_khoan"
 const SETTINGS_PATH := "user://tai_khoan/cai_dat.ini"   # ghi nhớ đã tạo tài khoản Full / đã chuyển nhân vật cũ chưa
 const OLD_SAVE_PATH := "user://nhan_vat.cfg"            # file nhân vật kiểu cũ (trước khi có tài khoản)
 const VERSION := 1
+const NAME_MAX := 14                                    # tên nhân vật dài tối đa bấy nhiêu chữ
 
 # --- Tài khoản Full (tạo sẵn để thử mọi tính năng) ---
 const FULL_NAME := "Tài Khoản Full"
@@ -130,6 +131,51 @@ static func create(look: Dictionary, progress: Dictionary = {}, full: bool = fal
 static func delete(id: String) -> void:
 	if FileAccess.file_exists(path(id)):
 		DirAccess.remove_absolute(path(id))
+
+
+## Đổi tên nhân vật của tài khoản id. Trả về false nếu tên trống hoặc không ghi được.
+static func rename(id: String, new_name: String) -> bool:
+	new_name = new_name.strip_edges().left(NAME_MAX)
+	var cfg := ConfigFile.new()
+	if new_name == "" or cfg.load(path(id)) != OK:
+		return false
+	cfg.set_value("nhan_vat", "name", new_name)
+	cfg.set_value("tai_khoan", "choi_luc", int(Time.get_unix_time_from_system()))   # để máy khác (Google) lấy tên mới
+	return cfg.save(path(id)) == OK
+
+
+## Thông tin ngắn của một tài khoản (giống một mục của list()), {} nếu không có.
+static func summary(id: String) -> Dictionary:
+	for acc in list():
+		if acc["id"] == id:
+			return acc
+	return {}
+
+
+## Lần chơi cuối của tài khoản id (giây), -1 nếu không có trong máy.
+static func last_played(id: String) -> int:
+	var cfg := ConfigFile.new()
+	if cfg.load(path(id)) != OK:
+		return -1
+	return int(cfg.get_value("tai_khoan", "choi_luc", 0))
+
+
+## Cả file lưu dưới dạng chữ (để gửi lên mạng, scripts/cloud.gd).
+static func read_text(id: String) -> String:
+	var cfg := ConfigFile.new()
+	if cfg.load(path(id)) != OK:
+		return ""
+	return cfg.encode_to_text()
+
+
+## Ghi file lưu từ chữ tải trên mạng về. Chữ hỏng thì không ghi.
+static func write_text(id: String, text: String) -> Error:
+	var cfg := ConfigFile.new()
+	var err := cfg.parse(text)
+	if err != OK or not cfg.has_section("nhan_vat"):
+		return ERR_PARSE_ERROR
+	DirAccess.make_dir_recursive_absolute(DIR)
+	return cfg.save(path(id))
 
 
 static func has_full() -> bool:

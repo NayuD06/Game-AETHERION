@@ -143,6 +143,10 @@ Gục ngã thì bấm **R** để chơi tiếp từ lần lưu gần nhất.
 
 Có sẵn **Tài Khoản Full** để thử mọi thứ: Kiếm Sĩ cấp 999, mở hết kỹ năng, đủ bộ đồ Thần thánh, rất nhiều vàng và đồ trong túi,
 cửa hang đã mở sẵn. Lỡ xóa thì bấm **Thêm tài khoản Full** ở màn hình chọn tài khoản.
+Bấm **Đổi tên** cạnh một tài khoản để đặt lại tên nhân vật.
+
+Muốn chơi cùng nhân vật trên nhiều máy: bấm **Đăng nhập Google** ở góc trên bên phải màn hình chọn tài khoản.
+Lần đầu cần cài Firebase theo [hướng dẫn từng bước](dang_nhap_google.md).
 
 ### Quái vật
 

@@ -1,7 +1,9 @@
 extends Control
 ## Màn hình chọn tài khoản (màn hình đầu tiên khi mở game).
 ## Mỗi tài khoản là một nhân vật đã lưu (scripts/accounts.gd): bấm "Chơi" để chơi tiếp đúng chỗ lần trước.
-## "Tạo tài khoản mới" mở màn hình tạo nhân vật. "Xóa" phải bấm 2 lần mới xóa (xóa rồi không lấy lại được).
+## "Tạo tài khoản mới" mở màn hình tạo nhân vật. "Đổi tên": gõ tên mới rồi Enter (Esc để thôi).
+## "Xóa" phải bấm 2 lần mới xóa (xóa rồi không lấy lại được).
+## Góc trên bên phải: đăng nhập Google để lưu tài khoản lên mạng (scripts/cloud.gd).
 ## Giao diện được tạo hoàn toàn bằng code.
 
 const SCREEN := Vector2(640, 360)
@@ -18,6 +20,11 @@ var delete_armed := ""             # id tài khoản đang chờ bấm xóa lầ
 var delete_timer := 0.0
 var delete_buttons := {}           # id -> nút Xóa
 var full_button: Button
+var google_button: Button
+var google_label: Label
+var status_label: Label
+var rename_edit: LineEdit          # ô gõ tên mới đang mở (null = không đổi tên)
+var rename_id := ""
 
 
 func _ready() -> void:
@@ -30,7 +37,13 @@ func _ready() -> void:
 	_build_background()
 	_build_list()
 	_build_buttons()
+	_build_google()
 	_refresh()
+	Cloud.status.connect(_on_cloud_status)
+	Cloud.synced.connect(_refresh)
+	Cloud.login_changed.connect(_refresh_google)
+	if Cloud.is_logged_in():
+		Cloud.sync_all()   # lấy tài khoản mới nhất trên mạng về
 
 
 func _process(delta: float) -> void:
@@ -133,8 +146,46 @@ func _build_buttons() -> void:
 	var note := _label("Game tự lưu mỗi 30 giây, khi lên cấp, khi bấm Esc và khi tắt game.", 8, Color(0.8, 0.8, 0.85))
 	note.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	note.size = Vector2(SCREEN.x, 12)
-	note.position = Vector2(0, 336)
+	note.position = Vector2(0, 344)
 	add_child(note)
+	status_label = _label("", 8, Color(0.75, 0.95, 1.0))
+	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status_label.size = Vector2(SCREEN.x, 12)
+	status_label.position = Vector2(0, 331)
+	add_child(status_label)
+
+
+## Nút đăng nhập Google và tên tài khoản Google (góc trên bên phải).
+func _build_google() -> void:
+	google_button = _button("Đăng nhập Google", Vector2(SCREEN.x - 120, 8), Vector2(112, 20), 9, self, Color(0.15, 0.25, 0.45))
+	google_button.pressed.connect(_on_google_pressed)
+	google_label = _label("", 7, Color(0.8, 0.9, 1.0))
+	google_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	google_label.size = Vector2(200, 10)
+	google_label.position = Vector2(SCREEN.x - 208, 31)
+	google_label.clip_text = true
+	add_child(google_label)
+	_refresh_google()
+
+
+func _refresh_google() -> void:
+	if Cloud.is_logged_in():
+		google_button.text = "Đăng xuất Google"
+		google_label.text = "Google: %s" % (Cloud.email if Cloud.email != "" else Cloud.display_name)
+	else:
+		google_button.text = "Đăng nhập Google"
+		google_label.text = "Chưa đăng nhập: chỉ lưu trong máy này"
+
+
+func _on_google_pressed() -> void:
+	if Cloud.is_logged_in():
+		Cloud.logout()
+	else:
+		Cloud.login()
+
+
+func _on_cloud_status(text: String) -> void:
+	status_label.text = text
 
 
 ## Vẽ lại danh sách tài khoản.
@@ -143,6 +194,8 @@ func _refresh() -> void:
 		child.queue_free()
 	delete_buttons.clear()
 	delete_armed = ""
+	rename_edit = null
+	rename_id = ""
 	var accounts := Accounts.list()
 	full_button.visible = not Accounts.has_full()
 	if accounts.is_empty():
@@ -177,6 +230,7 @@ func _make_row(acc: Dictionary) -> Panel:
 	icon.position = Vector2(56, 34)
 	row.add_child(icon)
 	var name_label := _label(str(acc["name"]), 11, Color(1.0, 0.9, 0.55))
+	name_label.name = "NameLabel"
 	name_label.position = Vector2(70, 5)
 	row.add_child(name_label)
 	if acc["full"]:
@@ -190,10 +244,12 @@ func _make_row(acc: Dictionary) -> Panel:
 	var time := _label("Chơi lần cuối: %s" % Accounts.time_text(int(acc["last_played"])), 7, Color(0.7, 0.7, 0.8))
 	time.position = Vector2(70, 36)
 	row.add_child(time)
-	var play := _button("Chơi", Vector2(row.custom_minimum_size.x - 138, 13), Vector2(62, 28), 11, row,
+	var play := _button("Chơi", Vector2(row.custom_minimum_size.x - 182, 13), Vector2(58, 28), 11, row,
 		Color(0.16, 0.34, 0.2))
 	play.pressed.connect(_play.bind(str(acc["id"])))
-	var del := _button("Xóa", Vector2(row.custom_minimum_size.x - 70, 13), Vector2(62, 28), 9, row,
+	var ren := _button("Đổi tên", Vector2(row.custom_minimum_size.x - 120, 13), Vector2(54, 28), 8, row)
+	ren.pressed.connect(_start_rename.bind(str(acc["id"]), row, str(acc["name"])))
+	var del := _button("Xóa", Vector2(row.custom_minimum_size.x - 62, 13), Vector2(56, 28), 8, row,
 		Color(0.34, 0.14, 0.14))
 	del.pressed.connect(_on_delete_pressed.bind(str(acc["id"])))
 	delete_buttons[str(acc["id"])] = del
@@ -222,9 +278,61 @@ func _add_full() -> void:
 	_refresh()
 
 
+## Đổi tên: hiện ô gõ chữ đè lên tên cũ. Enter để lưu, Esc hoặc bấm ra ngoài để thôi.
+func _start_rename(id: String, row: Panel, old_name: String) -> void:
+	_cancel_rename()
+	rename_id = id
+	rename_edit = LineEdit.new()
+	rename_edit.text = old_name
+	rename_edit.max_length = Accounts.NAME_MAX
+	rename_edit.position = Vector2(68, 3)
+	rename_edit.size = Vector2(130, 18)
+	rename_edit.add_theme_font_size_override("font_size", 10)
+	rename_edit.placeholder_text = "Tên mới"
+	var sb := _panel_style(Color(0.05, 0.04, 0.09), Color(1.0, 0.85, 0.4))
+	sb.set_content_margin_all(2)
+	rename_edit.add_theme_stylebox_override("normal", sb)
+	rename_edit.add_theme_stylebox_override("focus", sb)
+	rename_edit.text_submitted.connect(func(_t: String) -> void: _finish_rename())
+	rename_edit.focus_exited.connect(_cancel_rename)
+	var name_label := row.get_node_or_null("NameLabel") as Label
+	if name_label != null:
+		name_label.visible = false
+	row.add_child(rename_edit)
+	rename_edit.grab_focus()
+	rename_edit.select_all()
+
+
+func _finish_rename() -> void:
+	if rename_edit == null:
+		return
+	var id := rename_id
+	var new_name := rename_edit.text.strip_edges()
+	rename_edit = null
+	rename_id = ""
+	if new_name != "" and Accounts.rename(id, new_name):
+		status_label.text = "Đã đổi tên thành \"%s\"" % new_name
+		Cloud.upload(id, true)
+	_refresh()
+
+
+func _cancel_rename() -> void:
+	if rename_edit == null:
+		return
+	rename_edit = null
+	rename_id = ""
+	_refresh.call_deferred()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if rename_edit != null and event.is_action_pressed("ui_cancel"):
+		_cancel_rename()
+
+
 func _on_delete_pressed(id: String) -> void:
 	if delete_armed == id:
 		Accounts.delete(id)
+		Cloud.delete_account(id)
 		_refresh()
 		return
 	_disarm_delete()

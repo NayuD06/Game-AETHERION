@@ -34,6 +34,7 @@ Lần sau mở game chỉ cần bấm **Chơi** là vào lại đúng chỗ cũ,
   Mỗi lần lưu, góc dưới bên phải hiện chữ "Đã lưu game".
 - Gục ngã thì bấm **R** để chơi tiếp từ lần lưu gần nhất. Bấm **N** (lúc tạm dừng, thua hoặc thắng) để về màn hình chọn tài khoản.
 - Quái, cây, rương mỗi lần vào game lại mới. Rương hầm ngục khoá lại cho tới khi dọn sạch tầng lần nữa.
+- **Đổi tên** nhân vật: bấm "Đổi tên", gõ tên mới (tối đa 14 chữ) rồi Enter. Esc để thôi.
 - **Xóa** tài khoản: bấm "Xóa" rồi bấm "Chắc chắn?" trong 3 giây. Xóa rồi thì không lấy lại được.
 
 **Tài Khoản Full** (viền vàng, chữ FULL) được tạo sẵn để thử mọi tính năng: Kiếm Sĩ **cấp 999** (cấp tối đa),
@@ -44,6 +45,14 @@ Lỡ xóa thì bấm **Thêm tài khoản Full** ở màn hình chọn tài kho�
 File lưu nằm trong thư mục dữ liệu của game: trong Godot chọn **Project > Open User Data Folder**, mở thư mục `tai_khoan`
 (mỗi tài khoản một file `.cfg`). Muốn chỉnh tài khoản Full (cấp, vàng, đồ trong túi): sửa phần đầu `scripts/accounts.gd`.
 Muốn đổi thời gian tự lưu: `AUTOSAVE_SECONDS` trong `scripts/main.gd`.
+
+### Đăng nhập Google (lưu tài khoản lên mạng)
+
+Nút **Đăng nhập Google** ở góc trên bên phải màn hình chọn tài khoản. Đăng nhập rồi thì mỗi lần game tự lưu, nhân vật cũng được
+gửi lên mạng (Firebase của Google). Sang máy khác đăng nhập cùng Gmail là có lại đủ nhân vật. Không đăng nhập thì vẫn lưu trong máy như cũ.
+
+Lần đầu cần tự tạo một project Firebase miễn phí rồi điền 4 dòng đầu file `scripts/cloud.gd`.
+Làm theo từng bước trong **[doc/dang_nhap_google.md](doc/dang_nhap_google.md)** (khoảng 15 phút).
 
 ## Tạo nhân vật
 
@@ -447,7 +456,8 @@ project.godot          Cấu hình project (mở file này bằng Godot)
 scenes/                Các scene: main, player, quái, đạn, vật phẩm
 scripts/
   game.gd              Autoload "Game": phím điều khiển, tín hiệu dùng chung, tài khoản đang chơi
-  accounts.gd          Tài khoản: đọc / ghi file lưu, tài khoản Full tạo sẵn
+  accounts.gd          Tài khoản: đọc / ghi file lưu, tài khoản Full tạo sẵn, đổi tên
+  cloud.gd             Autoload "Cloud": đăng nhập Google qua Firebase, gửi / tải tài khoản trên mạng
   account_select.gd    Màn hình chọn tài khoản (màn hình đầu tiên khi mở game)
   character_creator.gd Màn hình tạo nhân vật (giao diện tạo bằng code)
   character_parts.gd   Danh sách màu da, tóc, áo, mũ và cách ghép các lớp hình

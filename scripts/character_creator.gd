@@ -87,6 +87,7 @@ func _button(text: String, pos: Vector2, button_size: Vector2, font_size: int = 
 	normal.border_color = Color(0.6, 0.55, 0.8)
 	normal.set_border_width_all(1)
 	normal.set_corner_radius_all(3)
+	normal.set_content_margin_all(1)   # nút gọn, không cao hơn khoảng cách giữa các dòng
 	var hover := normal.duplicate() as StyleBoxFlat
 	hover.bg_color = Color(0.32, 0.26, 0.46)
 	hover.border_color = Color(1.0, 0.85, 0.4)
@@ -153,8 +154,9 @@ func _build_preview() -> void:
 	preview_book.texture = Weapons.info(Weapons.Type.BOOK)["texture"]
 	preview_book.scale = Vector2.ONE * 0.75
 	preview_root.add_child(preview_book)
-	var hint := _label("Nhân vật đang xoay để bạn xem 4 hướng", 8, Color(0.75, 0.75, 0.85))
+	var hint := _label("Nhân vật đang xoay để bạn xem 4 hướng", 7, Color(0.75, 0.75, 0.85))
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint.size = Vector2(210, 12)
 	hint.position = Vector2(30, 282)
 	add_child(hint)
@@ -168,10 +170,21 @@ func _build_options() -> void:
 	add_child(name_title)
 	name_edit = LineEdit.new()
 	name_edit.text = str(look.get("name", "Lữ Khách"))
-	name_edit.max_length = 14
+	name_edit.max_length = Accounts.NAME_MAX
 	name_edit.position = Vector2(370, y)
 	name_edit.size = Vector2(228, 20)
 	name_edit.add_theme_font_size_override("font_size", 10)
+	var edit_style := StyleBoxFlat.new()
+	edit_style.bg_color = Color(0.05, 0.04, 0.09)
+	edit_style.border_color = Color(0.6, 0.55, 0.8)
+	edit_style.set_border_width_all(1)
+	edit_style.set_corner_radius_all(3)
+	edit_style.set_content_margin_all(2)
+	edit_style.content_margin_left = 6
+	name_edit.add_theme_stylebox_override("normal", edit_style)
+	var edit_focus := edit_style.duplicate() as StyleBoxFlat
+	edit_focus.border_color = Color(1.0, 0.85, 0.4)
+	name_edit.add_theme_stylebox_override("focus", edit_focus)
 	name_edit.text_submitted.connect(func(_t): _start_game())
 	add_child(name_edit)
 	y += 26.0
