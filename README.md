@@ -75,7 +75,9 @@ Thanh máu, cấp độ nằm ngay bên phải vòng tròn.
 
 Trên bản đồ: chấm trắng là bạn, chấm đỏ là quái (tím là quái tinh anh trong hầm ngục), chấm đỏ to là Boss,
 ô cam là trạm chế tạo / lửa trại, chấm tím là cửa hang, khung trắng là phần đang thấy trên màn hình.
-Hầm Ngục Cổ chỉ hiện lên bản đồ sau khi bạn vào đó lần đầu.
+Bản đồ chỉ hiện **khu bạn đang đứng**: ở ngoài thì là thế giới bên ngoài (không thấy hầm ngục), xuống hầm ngục
+thì chỉ thấy tầng đang đứng (vòng tròn ghi "Tầng N"; hố đen viền trắng là lối xuống, ô vàng là cầu thang lên,
+chấm xanh ngọc là bia cổ ngữ, xanh lá là đầm độc, cam là dung nham). Bản đồ lớn (M) của tầng hầm ngục tự phóng to cho vừa màn hình.
 Muốn đổi màu, độ to bản đồ: sửa đầu file `scripts/minimap.gd` (`SMALL_SCALE` = nhìn gần hay xa, `SMALL_SIZE` = độ to vòng tròn,
 `SMALL_POS` = vị trí, `BIG_SCALE`, các màu `COLOR_...`). Phần cắt hình tròn nằm ở `scripts/effects/circle_mask.gdshader`.
 
@@ -100,7 +102,8 @@ Kỹ năng mở dần theo cấp:
 
 Kinh nghiệm cần để lên cấp tiếp = 10 + 5 x (cấp hiện tại - 1): cấp 1 cần 10, cấp 2 cần 15, cấp 3 cần 20...
 Tổng cộng khoảng 70 kinh nghiệm để tới cấp 5, 270 tới cấp 10, 600 tới cấp 15, 1000 tới cấp 20, 2300 tới cấp 30.
-Quái thường (trừ Boss và bù nhìn) hạ xong sẽ quay lại chỗ cũ sau 2 phút để bạn luyện cấp. Quái trong hầm ngục cho gấp 2.5 kinh nghiệm.
+Quái thường (trừ Boss và bù nhìn) hạ xong sẽ quay lại chỗ cũ sau 2 phút để bạn luyện cấp. Quái trong hầm ngục
+mạnh hơn và cho nhiều kinh nghiệm hơn, tầng càng sâu càng nhiều (tầng 1 gấp 1.6 lần, tầng 5 gấp 5 lần).
 
 Muốn chỉnh: mở `scripts/player.gd`, phần "Cấp độ mở khóa" ở đầu file: `SKILL_UNLOCK_LEVELS` (cấp mở Q W E R),
 `QUICK_ITEM_LEVEL` (cấp mở D), `XP_BASE` và `XP_STEP` (kinh nghiệm cần), `LEVEL_HP` và `LEVEL_ATTACK` (thêm mỗi cấp),
@@ -158,6 +161,44 @@ Nguyên liệu (lúa mì, bình nước, gỗ, da thú, xương, dây thừng) d
 **Bộ lửa trại**: bấm vào nó trong túi là đặt một bếp lửa xuống trước mặt (ở đâu cũng được, trừ chỗ có nước hoặc sát trạm khác).
 Thêm vật phẩm mới: sửa `scripts/items.gd`.
 
+## Trang bị (mũ, giáp, quần, giày) và độ bền
+
+![Trang bị và rương](doc/images/trang_bi.png)
+
+Mở túi (**B**) là thấy bảng **Trang bị** bên trái túi: 4 ô Mũ, Giáp, Quần, Giày.
+- **Bấm vào món trang bị trong túi** để mặc (món đang mặc chỗ đó quay về túi). **Bấm vào ô đang mặc** để tháo ra.
+- Nhặt được món mới mà chỗ đó còn trống thì **tự mặc luôn**.
+- Trong túi, món có dấu **+** xanh là tốt hơn món đang mặc. Rê chuột lên món đồ để xem chỉ số và độ bền.
+- Chỉ số: **Phòng thủ** (giảm sát thương nhận vào: phòng thủ 50 thì chỉ còn nhận một nửa), **Máu**, **Tấn công**, **Tốc độ chạy**.
+  Bảng Trang bị ghi tổng chỉ số và phòng thủ chặn được bao nhiêu % sát thương.
+- 5 bậc: **Da, Sắt, Thép xanh, Dung Nham, Bóng Đêm**. Hiện mọi món đều độ hiếm **Thường**.
+  Sau này thêm độ hiếm (Tốt, Hiếm, Sử Thi, Huyền Thoại): đã có sẵn dòng mẫu trong `RARITIES` ở `scripts/equipment.gd`, chỉ cần bỏ dấu `#`.
+- **Độ bền**: mỗi lần bị đánh trúng, mọi món đang mặc mất 1 độ bền (thanh nhỏ dưới mỗi ô). Còn ít thì có lời nhắc "sắp hỏng".
+  Hết độ bền thì món đó **Hỏng** (ô đỏ lên): vẫn mặc nhưng không còn cộng chỉ số. Mang tới **Bác Sắt thợ rèn** ở quảng trường để sửa.
+- Có đồ ở đâu: **rương báu trong Hầm Ngục Cổ** (tầng càng sâu đồ càng xịn), **Bác Sắt** bán đồ Da và Sắt,
+  bàn chế tạo làm được **Áo giáp da**.
+
+Tự chỉnh: `scripts/equipment.gd` (tên, chỉ số từng món trong `DATA`, độ bền theo bậc `TIER_DURABILITY`,
+mòn mỗi lần trúng đòn `WEAR_PER_HIT`, giá sửa `REPAIR_GOLD`, giá bán `TIER_PRICE`, độ mạnh của phòng thủ `DEFENSE_SCALE`).
+Hình trang bị: `assets/gear/` (16x16).
+
+## Cửa hàng và thợ rèn
+
+Người có **đồng xu vàng trên đầu** là người bán hàng. Đi tới gần là bảng cửa hàng tự mở (đi ra xa thì đóng):
+- Tab **Mua**: mua đồ người đó bán. Tab **Bán**: bán đồ trong túi lấy vàng (cửa hàng nào cũng mua mọi thứ, bằng 40% giá gốc,
+  trang bị mòn thì bán rẻ hơn). Bấm **<** **>** để lật trang.
+- **Bác Sắt thợ rèn** (cạnh cái đe, phía đông quảng trường) có thêm tab **Sửa đồ**: sửa từng món hoặc "Sửa hết".
+
+| Người bán | Ở đâu | Bán gì |
+|---|---|---|
+| Bà Lan | Sạp trái cây, quảng trường | Táo, quả mọng, cà rốt, bí ngô, nấm, thảo dược, lúa mì, nước |
+| Chú Tư | Sạp bánh, quảng trường | Bánh mì, bánh táo, thịt nướng, xiên thịt, bí nướng, các loại súp |
+| Bác Sắt thợ rèn | Phía đông quảng trường | Mũ, giáp, quần, giày bậc Da và Sắt, rìu, liềm, đuốc, dây thừng, bộ lửa trại. **Sửa đồ** |
+| Bà thầy thuốc | Đầm Lầy Nấm | Bình máu, bình máu lớn, thuốc sức mạnh, thuốc nhanh nhẹn, thảo dược, nước |
+
+Tự chỉnh: `scripts/shops.gd` (cửa hàng nào bán gì trong `SHOPS`, giá trong `PRICES`, tỉ lệ bán lại `SELL_RATIO`).
+Cho dân làng khác bán hàng: thêm `"shop": "<tên cửa hàng>"` vào người đó trong `NPC_DATA` (`scripts/level.gd`).
+
 Kỹ năng nguyên tố (Lửa, Sấm) đang **tạm tắt** để tập trung làm đánh thường trước.
 Muốn bật lại: mở `scripts/player.gd`, đổi `const ELEMENTS_ENABLED := false` thành `true`.
 
@@ -167,8 +208,8 @@ Vào game là bạn đứng ngay giữa **quảng trường**: sân lát đá, �
 hai sạp hàng (trái cây, bánh mì). Đường đá đi ra 4 hướng: **bắc** là khu nhà dân, **nam** là bãi tập,
 **tây** là giếng nước và vườn rau, **đông** là đường ra Rừng Hoang.
 Bốn góc sân là 4 **trạm chế tạo**: nồi luyện thuốc (trên trái), lò nấu ăn (trên phải), bàn chế tạo (dưới trái), bếp lửa (dưới phải).
-Có 6 **dân làng** (trưởng làng, người bán hàng, nông dân, lính gác, một em bé). Đi tới gần là họ quay sang nói chuyện
-(bong bóng chữ trên đầu), mỗi lần tới gần nói câu tiếp theo. Sạp hàng hiện chỉ để trang trí, chưa mua bán được.
+Có 7 **dân làng** (trưởng làng, 2 người bán ở sạp hàng, Bác Sắt thợ rèn, nông dân, lính gác, một em bé). Đi tới gần là họ quay sang nói chuyện
+(bong bóng chữ trên đầu), mỗi lần tới gần nói câu tiếp theo. Người có đồng xu trên đầu thì mở cửa hàng (xem phần **Cửa hàng và thợ rèn**).
 Muốn sửa lời thoại, tên hoặc ngoại hình dân làng: sửa `NPC_DATA` trong `scripts/level.gd` (theo thứ tự chữ `v` trên bản đồ,
 đọc từ trên xuống, trái sang phải). Ký tự quảng trường: `=` sân đá, `+` đá hoa văn, `F` đài phun nước, `J` sạp hàng,
 `e` ghế, `L` cột đèn, `g` chậu hoa, `v` dân làng.
@@ -179,7 +220,7 @@ Bản đồ có 3 dải nối liền nhau (đi qua mép khu nào là hiện tên
 
 - **Dải trên**: Làng Ven Hồ (làng chài, hồ lớn, cầu tàu, thuyền, vịt, vườn cà rốt, vườn táo) và
   Rừng Thông (suối, cầu gỗ, nai, thỏ, quả mọng, thảo dược, hang sói).
-- **Dải giữa**: Làng Khởi Nguyên (nơi bắt đầu), Rừng Hoang, đấu trường trùm, Hầm Ngục Cổ.
+- **Dải giữa**: Làng Khởi Nguyên (nơi bắt đầu), Rừng Hoang, đấu trường trùm (cửa hang xuống Hầm Ngục Cổ).
 - **Dải dưới**: Xóm Ruộng (ruộng lúa, cối xay gió, nhà kho, bí ngô, cà rốt, vườn táo) và
   Đầm Lầy Nấm (ao, cầu gỗ, nấm khổng lồ, ếch, đom đóm, slime, heo rừng).
 
@@ -220,7 +261,7 @@ Quanh **quảng trường Làng Khởi Nguyên** (chỗ bắt đầu game) có 4
 | Bàn chế tạo | Đuốc (vòng sáng to hơn trong hầm ngục) | 1 gỗ + 1 dây thừng |
 | Bàn chế tạo | Bộ lửa trại (đặt bếp lửa ở đâu cũng được) | 3 gỗ + 1 dây thừng |
 | Bàn chế tạo | Ba lô lớn hơn (+4 ô túi, làm 2 lần) | 3 da thú + 2 dây thừng |
-| Bàn chế tạo | Áo giáp da (máu tối đa +25) | 4 da thú + 1 dây thừng |
+| Bàn chế tạo | Áo giáp da (trang bị: phòng thủ +3, máu +10) | 4 da thú + 1 dây thừng |
 | Bàn chế tạo | Bùa răng sói (tấn công +4) | 4 xương + 1 da thú + 1 dây thừng |
 
 Rìu, liềm, đuốc chỉ làm 1 cái (có rồi thì bảng ghi "Đã có rồi").
@@ -235,23 +276,58 @@ luống rau có hàng rào, lửa trại, thùng gỗ và một cái hồ có th
 Muốn sửa rừng: sửa phần `MAP` trong `scripts/level.gd` (ký tự `T` cây, `-` đường đất, `%` bãi đá, `H` nhà gỗ,
 `V` thác nước, `k` `l` thùng, `z` gốc cây chặt gỗ, `j` lửa trại, `p` luống rau). Đường đất và bãi đá tự nối mép với ô bên cạnh.
 
-## Hầm Ngục Cổ
+## Hầm Ngục Cổ (5 tầng)
 
-**Lối vào**: cửa hang ở **vách bắc Đấu Trường Đá Cổ**, ngay sau lưng Boss. Cửa hang bị phong ấn tím cho tới khi hạ Boss.
-Hạ Boss xong, đi vào miệng hang là màn hình tối dần rồi bạn xuống hầm ngục. Ngay chỗ xuống có **cầu thang sáng** trên vách:
-đi vào đó là ra lại cửa hang. Ký tự bản đồ: `G` cửa hang, `{` cầu thang ra.
+**Lối vào**: cửa hang ở **vách bắc Đấu Trường Đá Cổ**, ngay sau lưng Boss Gorrak. Cửa hang bị phong ấn tím cho tới khi hạ Boss.
+Hầm ngục là **bản đồ riêng**: không nằm trên bản đồ thế giới, chỉ đi vào cửa hang (màn hình tối dần) mới xuống Tầng 1.
+Trong hầm: **hố đen có bậc thang dưới sàn** là lối xuống tầng dưới, **cầu thang sáng trên tường** là lối lên
+(ở Tầng 1 thì là lối ra lại cửa hang). Camera và bản đồ nhỏ chỉ thấy tầng đang đứng.
 
-Hầm ngục tối: vào trong thì màn hình tối lại, chỉ có nến, đuốc trên tường, bệ thờ và cổng xoáy
-phát sáng (dùng đèn 2D của Godot: `PointLight2D` và `CanvasModulate`). Người chơi có một vòng sáng nhỏ quanh người.
-Hai bệ thờ có cột sáng tím, trên bệ có pha lê sức mạnh hoặc bình máu. Cổng xoáy ở phòng cuối là đích đến.
-Muốn chỉnh độ tối: sửa `DUNGEON_DARK` trong `scripts/level.gd`. Ký tự bản đồ hầm ngục ghi ở đầu file đó.
+| Tầng | Tên | Cơ chế riêng | Quái |
+|---|---|---|---|
+| 1 | Hầm Mộ Cổ | **Bẫy gai** `9`: gai nhú lên là sắp đâm, đợi thụt xuống rồi đi qua | slime, dơi, cung thủ xương |
+| 2 | Hang Nấm Độc | **Đầm độc** `]`: đi chậm, mất máu liên tục. Hang uốn lượn, nấm khổng lồ, có suối độc phải lội qua | slime, dơi, cung thủ (màu xanh) |
+| 3 | Mê Cung Bóng Tối | Mê cung rất tối (vòng sáng nhỏ, nên mang **Đuốc**). Thắp đủ **3 bia cổ ngữ** `?` ở 3 góc thì lối xuống ở giữa mới mở | quái tinh anh |
+| 4 | Lò Rèn Dung Nham | **Sông dung nham** `|` chặn đường, chỉ qua bằng cầu đá. **Lỗ phun lửa** `/` đỏ lên rồi phun | sói, heo rừng, cung thủ (màu đỏ) |
+| 5 | Điện Thờ Bóng Đêm | Phòng Boss: **Malakar - Vua Xương Bất Tử**. Tiền sảnh có 2 bệ thờ bình máu | Boss |
+
+Mỗi tầng một màu sàn, độ tối và kiểu bản đồ khác nhau. Quái mạnh dần theo tầng (máu, sát thương, giáp, tốc độ, kinh nghiệm).
+Lướt (F) qua bẫy gai, lỗ lửa, đầm độc thì không bị trúng.
+
+**Rương báu** `'`: mỗi tầng có 2 đến 3 rương, bị **khoá** tới khi bạn hạ hết quái của tầng đó (bản đồ nhỏ ghi "Còn N quái").
+Dọn sạch tầng thì rương mở khoá, đi tới sát rương là rương tự mở, đồ văng ra đất. Hạ Malakar còn rơi thêm một **Rương kim cương**.
+
+| Rương | Trong rương có |
+|---|---|
+| Thường | 0 đến 1 trang bị (bậc bằng hoặc thấp hơn tầng), 2 loại nguyên liệu, ít vàng |
+| Bạc | 1 trang bị (bậc bằng tầng), 3 loại nguyên liệu, vàng, 1 bình máu |
+| Vàng | 1 đến 2 trang bị (có thể cao hơn tầng 1 bậc), 3 loại nguyên liệu, nhiều vàng, bình máu và bình máu lớn |
+| Kim cương | 2 đến 3 trang bị (cao hơn tầng 1 bậc), 4 loại nguyên liệu, rất nhiều vàng, 2 bình máu lớn, pha lê sức mạnh |
+
+Tầng càng sâu càng hay gặp rương xịn: tầng 1 phần lớn là rương thường, tầng 5 chủ yếu rương vàng và kim cương.
+Nguyên liệu trong rương: da thú, xương, dây thừng, gỗ, thảo dược, nước, lúa mì, nấm, trái cây, thịt (để chế tạo).
+Tỉ lệ từng loại rương mỗi tầng: `chest_odds` trong `scripts/dungeon.gd`. Đồ trong từng loại rương: `scripts/chest.gd`.
+
+**Boss Malakar** (`}`) có 3 giai đoạn:
+- **Cầu Hồn Xoắn Ốc**: đứng yên bắn cầu tím xoay vòng. Đứng xa và né khe hở.
+- **Dịch Chuyển**: biến mất, vòng tím hiện dưới chân bạn rồi hắn hiện ra và nổ. Thấy vòng tím là chạy ra.
+- Còn 60% máu: thêm **Mưa Hồn** (nhiều vòng đỏ dưới đất, một lúc sau nổ) và **Triệu Hồi** cung thủ xương.
+- Còn 25% máu: cuồng nộ, ra chiêu nhanh hơn, xoắn ốc 2 cánh.
+Hạ Malakar thì **Cổng Xoáy** sau lưng hắn mở ra, bước vào là thắng.
+
+**Tự sửa hầm ngục**: mở `scripts/dungeon.gd`. Mỗi tầng có bản đồ chữ riêng (`map`), tên, lời nhắc, màu (`tint`),
+độ tối (`dark`), vòng sáng quanh người (`light`), độ mạnh của quái (`power`), tỉ lệ rương (`chest_odds`). Chú thích ký tự ở đầu file
+(dấu nháy đơn `'` là rương báu).
+Sát thương bẫy: `SPIKE_DAMAGE`, `FIRE_DAMAGE`, `POISON_DAMAGE`, độ chậm trong đầm độc `POISON_SLOW`.
+Chiêu và chỉ số Boss: `scripts/enemies/lich.gd` và `scenes/enemies/lich.tscn`. Bẫy: `scripts/dungeon_trap.gd`.
 
 ## Mục tiêu bản demo
 
 1. **Làng Khởi Nguyên**: bắt đầu ở quảng trường giữa làng. Nói chuyện với dân làng, đọc biển báo, ra **bãi tập** đánh bù nhìn để quen vũ khí. Bù nhìn có khiên rất cứng, thử phá giáp bằng Thương.
 2. **Rừng Hoang** (phía đông làng): đánh slime, dơi, cung thủ xương. Nhặt ngọc xanh để lấy kinh nghiệm và lên cấp mở kỹ năng (Q ở cấp 5), bình máu, vàng, pha lê tím (+Tấn công).
 3. Đi tiếp về phía đông vào **Đấu Trường Đá Cổ** và hạ Boss **Gorrak**. Boss có 5 giáp, biết nhảy đập (né vòng đỏ!), bắn cầu bóng tối, và nổi điên khi còn nửa máu.
-4. Hạ Boss thì phong ấn cửa hang (vách bắc đấu trường) vỡ ra. Đi vào hang xuống **Hầm Ngục Cổ** (tối, quái mạnh hơn), đi qua Sảnh Nến và Điện Thờ, rồi bước vào **Cổng Xoáy** ở phòng cuối để hoàn thành.
+4. Hạ Boss thì phong ấn cửa hang (vách bắc đấu trường) vỡ ra. Đi vào hang xuống **Hầm Ngục Cổ**: vượt qua 5 tầng (bẫy gai, đầm độc, mê cung tối, dung nham), dọn sạch quái để mở rương lấy trang bị, hạ **Malakar** ở tầng 5 rồi bước vào **Cổng Xoáy** để hoàn thành.
+   Về làng bán bớt đồ, mua thuốc và nhờ Bác Sắt sửa trang bị trước khi xuống tầng sâu hơn.
 
 ## Cảm giác chiến đấu (chỉnh được)
 
@@ -275,17 +351,23 @@ scripts/
   character_parts.gd   Danh sách màu da, tóc, áo, mũ và cách ghép các lớp hình
   weapons.gd           Thông số 4 loại vũ khí và bộ kỹ năng mặc định của từng loại
   items.gd             Vật phẩm cất trong túi đồ
+  equipment.gd         Trang bị mũ, giáp, quần, giày: chỉ số, bậc, độ hiếm, độ bền, giá sửa
+  chest.gd             Rương báu trong hầm ngục: 4 loại rương và đồ bên trong
+  shops.gd             Cửa hàng của dân làng: bán gì, giá mua, giá bán lại
   recipes.gd           Công thức chế tạo của 4 trạm (nồi thuốc, bếp lửa, lò nấu ăn, bàn chế tạo)
   harvestable.gd       Cây thu hoạch được (tự lớn lại sau khi hái), xô nước cạnh giếng
   critter.gd           Thú hiền: thỏ, nai, chim, bướm, ếch, vịt
   skills.gd            Danh sách tất cả kỹ năng (Q W E R)
-  npc.gd               Dân làng: đi dạo, quay sang nói chuyện khi người chơi tới gần
+  npc.gd               Dân làng: đi dạo, quay sang nói chuyện khi người chơi tới gần, người bán hàng mở cửa hàng
   main.gd              Tạm dừng, thua, thắng, chơi lại
-  level.gd             Bản đồ (vẽ bằng chữ), sinh quái, cổng, khu vực, tìm đường cho chuột phải
-  player.gd            Nhân vật: điều khiển chuột, đánh, kỹ năng Q W E R, túi đồ, lên cấp
-  hud.gd               Thanh máu, năng lượng, kỹ năng, thông báo, túi đồ, bảng chế tạo, bảng kỹ năng (K)
+  level.gd             Bản đồ (vẽ bằng chữ), sinh quái, cổng, khu vực, tìm đường cho chuột phải, ghép các tầng hầm ngục
+  dungeon.gd           Hầm Ngục Cổ: bản đồ, màu, độ tối, độ mạnh quái của 5 tầng
+  dungeon_trap.gd      Bẫy gai, lỗ phun lửa trong hầm ngục
+  player.gd            Nhân vật: điều khiển chuột, đánh, kỹ năng Q W E R, túi đồ, trang bị, độ bền, lên cấp
+  hud.gd               Thanh máu, năng lượng, kỹ năng, thông báo, túi đồ, bảng trang bị, bảng chế tạo, cửa hàng, bảng kỹ năng (K)
   minimap.gd           Bản đồ nhỏ hình tròn góc trên bên trái, bản đồ lớn (M), bấm lên bản đồ để đi tới đó
-  enemies/             enemy.gd (lớp chung, có giáp, đồ rơi), slime, bat, archer, wolf (sói), boar (heo rừng), boss, dummy
+  enemies/             enemy.gd (lớp chung, có giáp, đồ rơi), slime, bat, archer, wolf (sói), boar (heo rừng), boss (Gorrak),
+                       lich (Malakar, Boss hầm ngục), dummy
   projectile.gd        Đạn (cầu lửa, mũi tên, cầu bóng tối)
   pickup.gd            Vật phẩm rơi
   effects/             Hiệu ứng chém, vòng nổ, tia sét, dấu chỗ bấm chuột, mưa tên / thiên thạch, khung tròn bản đồ nhỏ
@@ -293,10 +375,12 @@ assets/
   town/                Hình từ Kenney Tiny Town (làng, cỏ, nhà, hàng rào...)
   tiles/, decor/       Hình từ Kenney Roguelike RPG (nước, đá, tường...)
   plaza/               Quảng trường: sân đá, đài phun nước, ghế, cột đèn, sạp hàng, chậu hoa (Claude vẽ theo màu Tiny Town)
-  dungeon/             Hầm ngục: sàn, tường, nến, đuốc, bình gốm, bệ thờ, cột sáng, cổng xoáy (Claude vẽ)
+  dungeon/             Hầm ngục: sàn, tường, nến, đuốc, bình gốm, bệ thờ, cột sáng, cổng xoáy, bẫy gai, lỗ phun lửa,
+                       cột lửa, dung nham, đầm độc, bia cổ ngữ, lối xuống (Claude vẽ), 4 loại rương (Kenney Tiny Dungeon, đổi màu)
+  gear/                Trang bị mũ, giáp, quần, giày 5 bậc và hình ô trống (Claude vẽ)
   eco/                 Cây thu hoạch, cây liễu, nấm khổng lồ, cối xay gió, nhà kho, thuyền, cầu tàu... (Claude vẽ)
   critters/            Thú hiền (Claude vẽ)
-  craft/               Nồi luyện thuốc, bàn chế tạo, bếp lửa, lò nấu ăn, gốc cây có gỗ, xô nước (Claude vẽ)
+  craft/               Nồi luyện thuốc, bàn chế tạo, bếp lửa, lò nấu ăn, gốc cây có gỗ, xô nước (Claude vẽ), cái đe (Kenney Tiny Dungeon)
   cave/                Cửa hang, phong ấn, cầu thang ra hang (Claude vẽ)
   forest/              Rừng Hoang: cây, nền rừng tối, đường đất, bãi đá, thác nước (Claude vẽ) và thùng, gốc cây, lửa trại (Kenney)
   kenney/              Nguyên tấm sprite sheet Roguelike RPG để dùng thêm sau
@@ -316,6 +400,7 @@ assets/
   Thêm màu mới thì thêm dòng vào `SKIN_TONES`, `HAIR_COLORS`, `OUTFIT_COLORS`.
   Quái (`slime`, `bat`, `archer`) là 2 khung 16x16 nằm ngang, Boss là 2 khung 32x32.
 - **Sửa bản đồ**: mở `scripts/level.gd`, sửa phần `MAP`. Mỗi ký tự là một ô, chú thích ký tự nằm ngay đầu file.
+  Bản đồ 5 tầng hầm ngục nằm trong `scripts/dungeon.gd`.
 - **Chỉnh chỉ số quái**: trong Godot, mở `scenes/enemies/slime.tscn` (hoặc quái khác), chọn node gốc, chỉnh máu, tốc độ, sát thương ở bảng **Inspector** bên phải.
 - **Chỉnh nhân vật**: tốc độ, lướt nằm ở Inspector của `scenes/player.tscn`. Máu, tấn công khởi đầu và mức tăng khi lên cấp nằm trong `scripts/player.gd`.
 - **Đổi phím**: sửa `KEY_BINDINGS` trong `scripts/game.gd`.

@@ -13,7 +13,8 @@ extends RefCounted
 ##   gives:   vật phẩm làm ra (tên trong scripts/items.gd), count: làm ra bao nhiêu cái
 ##   unique:  true = chỉ cần có 1 cái (công cụ), có rồi thì không làm thêm
 ## Đồ nâng cấp nhân vật (không vào túi) dùng "upgrade" thay cho "gives":
-##   upgrade: "bag" (túi thêm ô), "armor" (thêm máu tối đa), "charm" (thêm tấn công)
+##   upgrade: "bag" (túi thêm ô), "charm" (thêm tấn công)
+## Trang bị (mũ, giáp, quần, giày trong scripts/equipment.gd) dùng "gives" như vật phẩm thường.
 ##   max: làm được tối đa mấy lần. name / icon / desc: chữ và hình hiện trong bảng chế tạo.
 
 const STATIONS := {
@@ -52,12 +53,7 @@ const LIST := [
 		"desc": "Túi đồ thêm 4 ô (làm được 2 lần, tối đa 20 ô).",
 		"needs": { "hide": 3, "rope": 2 },
 	},
-	{
-		"station": "bench", "upgrade": "armor", "amount": 25, "max": 1,
-		"name": "Áo giáp da", "icon": preload("res://assets/items/leather_armor.png"),
-		"desc": "Mặc vào: máu tối đa +25.",
-		"needs": { "hide": 4, "rope": 1 },
-	},
+	{ "station": "bench", "gives": "armor_1", "count": 1, "needs": { "hide": 4, "rope": 1 } },
 	{
 		"station": "bench", "upgrade": "charm", "amount": 4, "max": 1,
 		"name": "Bùa răng sói", "icon": preload("res://assets/items/bone_charm.png"),

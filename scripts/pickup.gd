@@ -3,7 +3,7 @@ extends Node2D
 ## Vật phẩm rơi trên đất. Người chơi lại gần sẽ tự hút vào và nhặt.
 
 enum Kind { XP_GEM, GOLD, POTION_HP, POTION_MP, POWER_CRYSTAL, ELEMENT_CORE, ITEM }
-## ITEM: vật phẩm cất vào túi (da thú, thịt, xương...), tên vật phẩm nằm trong item_id.
+## ITEM: vật phẩm cất vào túi (da thú, thịt, xương..., trang bị), tên vật phẩm nằm trong item_id.
 
 const TEXTURES := {
 	Kind.XP_GEM: preload("res://assets/items/xp_gem.png"),
@@ -19,7 +19,8 @@ const COLLECT_RANGE := 8.0
 
 var kind: Kind = Kind.XP_GEM
 var value := 1
-var item_id := ""          # chỉ dùng khi kind = ITEM (tên trong scripts/items.gd)
+var item_id := ""          # chỉ dùng khi kind = ITEM (tên trong scripts/items.gd hoặc scripts/equipment.gd)
+var rarity := ""           # độ hiếm của trang bị (scripts/equipment.gd), "" = Thường
 var pop_velocity := Vector2.ZERO
 var _time := 0.0
 var _delay := 0.3  # chờ một chút sau khi rơi rồi mới hút
@@ -79,6 +80,15 @@ func _collect(player: Player) -> void:
 		Kind.ELEMENT_CORE:
 			player.unlock_thunder()
 		Kind.ITEM:
+			if Equipment.is_gear(item_id):
+				# Trang bị: chỗ đó đang trống thì tự mặc luôn
+				var r: String = rarity if rarity != "" else Equipment.DEFAULT_RARITY
+				if not player.pick_up_gear(Equipment.make(item_id, r)):
+					Game.popup_text(global_position + Vector2(0, -12), "Túi đầy!", Color(1.0, 0.6, 0.5), 9)
+					_delay = 2.0
+					return
+				queue_free()
+				return
 			if not player.add_item(item_id, value):
 				# Túi đầy: để nguyên dưới đất, chờ một lúc rồi thử lại
 				Game.popup_text(global_position + Vector2(0, -12), "Túi đầy!", Color(1.0, 0.6, 0.5), 9)
@@ -101,11 +111,13 @@ static func spawn(parent: Node, item_kind: Kind, pos: Vector2, amount: int = 1) 
 
 
 ## Rơi một vật phẩm cất vào túi (da thú, thịt...) tại vị trí pos.
-static func spawn_item(parent: Node, id: String, pos: Vector2, amount: int = 1) -> void:
+## Trang bị thì có thể ghi thêm độ hiếm (item_rarity).
+static func spawn_item(parent: Node, id: String, pos: Vector2, amount: int = 1, item_rarity: String = "") -> void:
 	var scene: PackedScene = load("res://scenes/pickup.tscn")
 	var p := scene.instantiate() as Pickup
 	p.kind = Kind.ITEM
 	p.item_id = id
+	p.rarity = item_rarity
 	p.value = amount
 	p.position = pos
 	p.pop_velocity = Vector2.RIGHT.rotated(randf() * TAU) * randf_range(30.0, 70.0)

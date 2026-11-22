@@ -106,6 +106,21 @@ func make_elite() -> void:
 	base_modulate = Color(1.0, 0.7, 1.0)
 
 
+## Quái trong hầm ngục: mạnh lên theo tầng (power, màu, tinh anh lấy từ scripts/dungeon.gd).
+## Gọi trước khi thêm vào scene.
+func apply_floor(power: Dictionary, tint: Color, elite: bool) -> void:
+	max_hp = int(max_hp * float(power.get("hp", 1.0)))
+	contact_damage = roundi(contact_damage * float(power.get("damage", 1.0)))
+	if "arrow_damage" in self:
+		set("arrow_damage", roundi(float(get("arrow_damage")) * float(power.get("damage", 1.0))))
+	xp_reward = int(xp_reward * float(power.get("xp", 1.0)))
+	gold_reward *= int(power.get("gold", 1))
+	armor += int(power.get("armor", 0))
+	speed *= float(power.get("speed", 1.0))
+	base_modulate = tint
+	is_elite = elite
+
+
 func _physics_process(delta: float) -> void:
 	if is_dead:
 		return

@@ -8,6 +8,7 @@ extends RefCounted
 ## Công cụ có "tool": để trong túi là có tác dụng (Rìu chặt gỗ, Liềm hái thêm, Đuốc soi sáng hầm ngục).
 ## "place": bấm vào trong túi để đặt xuống đất (Bộ lửa trại).
 ## Đồ không có "heal" / "regen" là nguyên liệu để chế tạo (công thức ở scripts/recipes.gd).
+## Trang bị (mũ, giáp, quần, giày) nằm riêng trong scripts/equipment.gd.
 
 const DATA := {
 	"potion_hp": {
@@ -198,5 +199,8 @@ const DATA := {
 }
 
 
+## Thông tin vật phẩm (trang bị mũ, giáp, quần, giày lấy từ scripts/equipment.gd).
 static func info(id: String) -> Dictionary:
-	return DATA.get(id, {})
+	if DATA.has(id):
+		return DATA[id]
+	return Equipment.item_info(id)

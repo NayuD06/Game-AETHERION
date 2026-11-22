@@ -3,8 +3,11 @@ extends Node2D
 ## Khi người chơi đi tới gần, dân làng quay sang và nói một câu (hiện bong bóng chữ trên đầu).
 ## Mỗi lần tới gần sẽ nói câu tiếp theo trong danh sách.
 ## Tên, lời thoại và ngoại hình của từng người nằm trong NPC_DATA ở scripts/level.gd.
+## Người bán hàng ("shop" trong NPC_DATA) có đồng xu vàng trên đầu: đi tới gần là mở bảng cửa hàng
+## (mua / bán đồ, thợ rèn còn sửa trang bị). Cửa hàng bán gì: xem scripts/shops.gd.
 
 const SHADOW_TEXTURE := preload("res://assets/sprites/shadow.png")
+const COIN_TEXTURE := preload("res://assets/items/coin.png")
 const TALK_DISTANCE := 28.0     # đứng gần bao nhiêu pixel thì nói chuyện
 const WALK_SPEED := 18.0
 const BUBBLE_TIME := 5.0        # bong bóng chữ hiện bao lâu (giây)
@@ -14,6 +17,8 @@ var lines: Array = []           # các câu nói
 var look: Dictionary = {}       # ngoại hình (giống màn hình tạo nhân vật)
 var wander_radius := 0.0        # 0 = đứng yên, lớn hơn 0 = đi dạo trong bán kính này (pixel)
 var level_ref: Node             # màn chơi (dùng để biết chỗ nào đi được)
+var shop := ""                  # cửa hàng của người này (scripts/shops.gd), "" = không bán gì
+var coin: Sprite2D              # đồng xu trên đầu người bán hàng
 
 var sprite: Sprite2D
 var name_label: Label
@@ -35,6 +40,7 @@ func setup(data: Dictionary) -> void:
 	lines = data.get("lines", lines)
 	look = data.get("look", look)
 	wander_radius = float(data.get("wander", 0.0))
+	shop = data.get("shop", "")
 
 
 func _ready() -> void:
@@ -50,6 +56,12 @@ func _ready() -> void:
 	CharacterParts.apply_to_sprite(sprite, look)
 	name_label = _make_name_label()
 	bubble = _make_bubble()
+	if shop != "":
+		coin = Sprite2D.new()
+		coin.texture = COIN_TEXTURE
+		coin.position = Vector2(0, -42)
+		coin.z_index = 50
+		add_child(coin)
 	_update_frame(Vector2.ZERO, 0.0)
 
 
@@ -59,7 +71,11 @@ func _process(delta: float) -> void:
 	var near := player != null and global_position.distance_to(player.global_position) < TALK_DISTANCE
 	if near and not player_near:
 		_say_next()
+	if shop != "" and near != player_near:
+		Game.shop_changed.emit(shop if near else "")   # HUD mở / đóng bảng cửa hàng
 	player_near = near
+	if coin:
+		coin.position.y = -42.0 + sin(Time.get_ticks_msec() / 300.0) * 1.5
 
 	var move := Vector2.ZERO
 	if near:

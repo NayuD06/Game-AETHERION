@@ -26,6 +26,12 @@ var anim_time := 0.0
 
 
 func _ready() -> void:
+	# Chế độ quay video (scripts/demo.gd): cảnh nào không quay màn hình này thì vào thẳng màn chơi
+	var demo := Demo.requested()
+	if demo != "" and demo != "tao_nhan_vat":
+		Demo.prepare(demo)
+		get_tree().change_scene_to_file.call_deferred("res://scenes/main.tscn")
+		return
 	Game.set_attack_cursor(false)
 	look = Game.appearance.duplicate()
 	rows = [
@@ -45,6 +51,8 @@ func _ready() -> void:
 	_build_options()
 	_build_buttons()
 	_refresh()
+	if demo != "":
+		add_child(Demo.new())
 
 
 func _weapon_options() -> Array:

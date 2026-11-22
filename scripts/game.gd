@@ -12,6 +12,7 @@ signal boss_armor_changed(armor: int)
 signal boss_defeated
 signal game_won
 signal station_changed(station: String)            # Đứng gần trạm chế tạo ("pot", "bench"), "" = đi xa
+signal shop_changed(shop: String)                  # Đứng gần người bán hàng (tên trong scripts/shops.gd), "" = đi xa
 
 # Phím bàn phím cho từng hành động. Bạn có thể sửa ở đây,
 # hoặc tự tạo action cùng tên trong Project > Project Settings > Input Map

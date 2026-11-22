@@ -142,8 +142,11 @@ var skill_slots: Array[String] = ["", "", "", ""]
 var skill_cd: Array[float] = [0.0, 0.0, 0.0, 0.0]   # thời gian hồi chiêu còn lại của từng ô
 var skill_busy := 0.0                # > 0: đang tung kỹ năng nhiều đòn, chưa tung chiêu khác được
 var lock_msg_cd := 0.0               # chống hiện chữ "chưa mở khóa" liên tục
+var ground_slow := 1.0               # mặt đất làm chậm (đầm độc trong hầm ngục: level.gd đặt)
 var mouse_on_ui := false             # con trỏ đang ở trên bản đồ nhỏ / bảng giao diện: không đi theo chuột, không chọn quái dưới đó
 var weapon_tween: Tween              # chuyển động của vũ khí đang vung
+var demo_mode := false               # đang quay video tự chơi (scripts/demo.gd): bỏ qua chuột, bàn phím thật
+var demo_aim := Vector2.ZERO         # điểm ngắm thay cho con trỏ chuột lúc quay video
 signal skills_changed
 
 # --- Túi đồ (phím B) ---
@@ -152,8 +155,15 @@ var bag_slots := BAG_SLOTS_START     # số ô túi hiện có
 var item_cd := 0.0
 signal bag_changed
 
+# --- Trang bị (scripts/equipment.gd) ---
+## Mỗi ô: món đang mặc { "id", "rarity", "dur" } hoặc {} = chưa mặc gì.
+var gear := { "helmet": {}, "armor": {}, "pants": {}, "boots": {} }
+var defense := 0                     # phòng thủ: giảm sát thương nhận vào
+var gear_bonus := { "defense": 0, "hp": 0, "attack": 0, "speed": 0 }   # chỉ số trang bị đang cộng vào nhân vật
+signal gear_changed
+
 # --- Chế tạo (scripts/recipes.gd) ---
-var upgrades := {}                   # đồ nâng cấp đã làm: { "bag": 1, "armor": 1, ... }
+var upgrades := {}                   # đồ nâng cấp đã làm: { "bag": 1, "charm": 1, ... }
 var regen_left := 0.0                # còn bao nhiêu giây hồi máu từ từ (súp nấm, canh xương)
 var regen_rate := 0                  # máu hồi mỗi giây
 var regen_tick := 0.0
@@ -214,7 +224,7 @@ func _ready() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if is_dead or cutscene_time > 0.0:
+	if is_dead or cutscene_time > 0.0 or demo_mode:
 		return
 	if event.is_action_pressed("move_click"):
 		aiming_skill = -1        # chuột phải: hủy ngắm kỹ năng (giống LMHT)
@@ -225,7 +235,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event.is_action_pressed("attack_mouse"):
 		if attack_move_armed:
 			attack_move_armed = false
-			_attack_move(get_global_mouse_position())
+			_attack_move(_mouse_pos())
 		else:
 			mouse_attack_pressed = true
 	elif event.is_action_pressed("attack_move"):
@@ -267,11 +277,11 @@ func _physics_process(delta: float) -> void:
 		_clear_commands()
 	else:
 		# Giữ chuột phải trên mặt đất: liên tục đi theo con trỏ
-		if Input.is_action_pressed("move_click") and attack_target == null and not mouse_on_ui:
+		if Input.is_action_pressed("move_click") and attack_target == null and not mouse_on_ui and not demo_mode:
 			right_hold_timer -= delta
 			if right_hold_timer <= 0.0:
 				right_hold_timer = 0.12
-				_move_to(get_global_mouse_position())
+				_move_to(_mouse_pos())
 		move_dir = _follow_commands(delta)
 	if move_dir != Vector2.ZERO and face_lock <= 0.0:
 		facing = move_dir.normalized()
@@ -280,7 +290,7 @@ func _physics_process(delta: float) -> void:
 		velocity = dash_dir * dash_speed_now
 	else:
 		var slow := 0.35 if swing_time > 0.0 else (0.45 if charging else 1.0)
-		var speed := move_speed * slow
+		var speed := move_speed * slow * ground_slow * (1.0 + float(gear_bonus["speed"]) / 100.0)
 		var target := move_dir.limit_length(1.0) * speed
 		var rate := acceleration if move_dir != Vector2.ZERO else friction
 		velocity = velocity.move_toward(target, rate * delta) + knockback
@@ -298,7 +308,7 @@ func _physics_process(delta: float) -> void:
 		if mouse_attack:
 			# Chuột trái lên quái: đánh thẳng vào quái đó
 			var aim_enemy: Enemy = hover_enemy if hover_enemy != null and is_instance_valid(hover_enemy) else null
-			_aim_at(aim_enemy.global_position if aim_enemy != null else get_global_mouse_position())
+			_aim_at(aim_enemy.global_position if aim_enemy != null else _mouse_pos())
 		if attack_cd > 0.0:
 			attack_buffered = attack_cd < 0.18
 		else:
@@ -316,7 +326,7 @@ func _physics_process(delta: float) -> void:
 
 func _process(delta: float) -> void:
 	# Rê chuột lên quái: quái có viền đỏ, hiện thanh máu, con trỏ đổi thành hình kiếm (giống LMHT)
-	var hovered: Enemy = null if (is_dead or mouse_on_ui) else _enemy_at(get_global_mouse_position())
+	var hovered: Enemy = null if (is_dead or mouse_on_ui or demo_mode) else _enemy_at(_mouse_pos())
 	if hovered != hover_enemy:
 		if hover_enemy != null and is_instance_valid(hover_enemy):
 			hover_enemy.set_highlight(false)
@@ -375,7 +385,7 @@ func _draw_indicators() -> void:
 		return
 	var color := Color(0.5, 0.8, 1.0)
 	var dir := _mouse_dir()
-	var to_mouse := get_global_mouse_position() - global_position
+	var to_mouse := _mouse_pos() - global_position
 	if s.has("range"):
 		# Chiêu chọn chỗ: vòng tầm tối đa + vòng nổ ở chỗ con trỏ
 		var max_range := float(s["range"])
@@ -440,7 +450,7 @@ func _try_dash(input: Vector2) -> void:
 	if dash_cd > 0.0 or dash_timer > 0.0:
 		return
 	# Đang bấm phím hướng thì lướt theo phím, không thì lướt về phía con trỏ chuột
-	var to_mouse := get_global_mouse_position() - global_position
+	var to_mouse := _mouse_pos() - global_position
 	if input != Vector2.ZERO:
 		dash_dir = input.normalized()
 	elif to_mouse.length() > 4.0:
@@ -460,7 +470,7 @@ func _try_dash(input: Vector2) -> void:
 
 ## Chuột phải: bấm lên quái thì chỉ định tấn công, bấm lên đất thì đi tới đó.
 func _command_at_mouse() -> void:
-	var mouse := get_global_mouse_position()
+	var mouse := _mouse_pos()
 	var enemy := _enemy_at(mouse)
 	if enemy != null:
 		attack_target = enemy
@@ -853,7 +863,7 @@ func _skill_swordstorm(dir: Vector2, damage: int, s: Dictionary) -> void:
 
 ## Double Shot: bắn nhanh 2 mũi tên. Rê chuột lên quái để nhắm thẳng vào con đó.
 func _skill_double_shot(dir: Vector2, damage: int, s: Dictionary) -> void:
-	var target := _enemy_at(get_global_mouse_position())
+	var target := _enemy_at(_mouse_pos())
 	var arrows := int(s["arrows"])
 	var gap := 0.12
 	_busy(gap * arrows)
@@ -1105,14 +1115,26 @@ func _weapon_tween() -> Tween:
 	return weapon_tween
 
 
+## Vị trí con trỏ chuột trong thế giới (lúc quay video thì là điểm ngắm demo_aim).
+func _mouse_pos() -> Vector2:
+	return demo_aim if demo_mode else get_global_mouse_position()
+
+
+## Chỉ dùng khi quay video (scripts/demo.gd): tung kỹ năng ở ô index về phía điểm aim.
+func demo_cast(index: int, aim: Vector2) -> void:
+	demo_aim = aim
+	skill_cd[index] = 0.0
+	_cast_skill(index)
+
+
 func _mouse_dir() -> Vector2:
-	var d := get_global_mouse_position() - global_position
+	var d := _mouse_pos() - global_position
 	return d.normalized() if d.length() > 2.0 else facing
 
 
 ## Điểm con trỏ chuột, nhưng không xa người chơi quá max_dist.
 func _target_point(max_dist: float) -> Vector2:
-	return global_position + (get_global_mouse_position() - global_position).limit_length(max_dist)
+	return global_position + (_mouse_pos() - global_position).limit_length(max_dist)
 
 
 ## Con quái còn sống đầu tiên chạm vào vòng tròn (pos, radius).
@@ -1293,7 +1315,17 @@ func _blink(target: Vector2) -> void:
 # ---------------------------------------------------------------- Túi đồ
 
 ## Cất vật phẩm vào túi. Trả về false nếu túi đầy.
+## Trang bị không xếp chồng: mỗi món một ô riêng (vì mỗi món có độ bền riêng).
 func add_item(id: String, count: int = 1) -> bool:
+	if Equipment.is_gear(id):
+		if bag.size() + count > bag_slots:
+			return false
+		for i in count:
+			var item := Equipment.make(id)
+			item["count"] = 1
+			bag.append(item)
+		bag_changed.emit()
+		return true
 	for slot in bag:
 		if slot["id"] == id:
 			slot["count"] += count
@@ -1315,16 +1347,209 @@ func count_item(id: String) -> int:
 
 ## Bỏ bớt vật phẩm khỏi túi (dùng khi chế tạo). Hết thì ô đó trống ra.
 func remove_item(id: String, count: int = 1) -> void:
-	for i in bag.size():
+	var left := count
+	var i := 0
+	while i < bag.size() and left > 0:
 		if bag[i]["id"] == id:
-			bag[i]["count"] -= count
+			var take := mini(left, int(bag[i]["count"]))
+			bag[i]["count"] -= take
+			left -= take
 			if bag[i]["count"] <= 0:
 				bag.remove_at(i)
-			bag_changed.emit()
-			return
+				continue
+		i += 1
+	bag_changed.emit()
 
 
-## Đồ nâng cấp làm ở bàn chế tạo: túi thêm ô, áo giáp thêm máu, bùa thêm tấn công.
+## Bỏ bớt count cái ở ô thứ index trong túi (dùng khi bán đồ).
+func remove_bag_slot(index: int, count: int = 1) -> void:
+	if index < 0 or index >= bag.size():
+		return
+	bag[index]["count"] -= count
+	if bag[index]["count"] <= 0:
+		bag.remove_at(index)
+	bag_changed.emit()
+
+
+# ---------------------------------------------------------------- Trang bị
+
+## Cất một món trang bị { "id", "rarity", "dur" } vào túi. Trả về false nếu túi đầy.
+func store_gear(item: Dictionary) -> bool:
+	if bag.size() >= bag_slots:
+		return false
+	var entry := _gear_only(item)
+	entry["count"] = 1
+	bag.append(entry)
+	bag_changed.emit()
+	return true
+
+
+## Nhặt được trang bị: chỗ đó đang trống thì mặc luôn, không thì cất vào túi.
+func pick_up_gear(item: Dictionary) -> bool:
+	var slot := Equipment.slot_of(item["id"])
+	if slot == "":
+		return false
+	var item_name: String = Equipment.DATA[item["id"]]["name"]
+	var color: Color = Equipment.rarity_info(item.get("rarity", Equipment.DEFAULT_RARITY))["color"]
+	if gear[slot].is_empty() and not is_dead:
+		gear[slot] = _gear_only(item)
+		_apply_gear()
+		gear_changed.emit()
+		Game.popup_text(global_position + Vector2(0, -16), "Đã mặc %s" % item_name, color, 9)
+		return true
+	if not store_gear(item):
+		return false
+	Game.popup_text(global_position + Vector2(0, -16), "+ %s" % item_name, color, 9)
+	return true
+
+
+## Mặc món trang bị ở ô thứ index trong túi. Món đang mặc chỗ đó (nếu có) quay về đúng ô vừa trống.
+func equip_bag_slot(index: int) -> bool:
+	if is_dead or index < 0 or index >= bag.size():
+		return false
+	var item: Dictionary = bag[index]
+	var slot := Equipment.slot_of(item["id"])
+	if slot == "":
+		return false
+	var old: Dictionary = gear[slot]
+	bag.remove_at(index)
+	gear[slot] = _gear_only(item)
+	if not old.is_empty():
+		var back := _gear_only(old)
+		back["count"] = 1
+		bag.insert(index, back)
+	_apply_gear()
+	var item_name: String = Equipment.DATA[item["id"]]["name"]
+	var text := "Đã mặc %s" % item_name
+	if Equipment.is_broken(item):
+		text += " (đã hỏng!)"
+	Game.popup_text(global_position + Vector2(0, -16), text,
+		Equipment.rarity_info(item.get("rarity", Equipment.DEFAULT_RARITY))["color"], 9)
+	bag_changed.emit()
+	gear_changed.emit()
+	return true
+
+
+## Tháo món đang mặc ở chỗ slot ("helmet", "armor", "pants", "boots") cất vào túi.
+func unequip(slot: String) -> bool:
+	var old: Dictionary = gear.get(slot, {})
+	if old.is_empty() or is_dead:
+		return false
+	if not store_gear(old):
+		Game.popup_text(global_position + Vector2(0, -16), "Túi đầy!", Color(1.0, 0.6, 0.5), 9)
+		return false
+	gear[slot] = {}
+	_apply_gear()
+	gear_changed.emit()
+	Game.popup_text(global_position + Vector2(0, -16), "Đã tháo %s" % Equipment.DATA[old["id"]]["name"],
+		Color(0.85, 0.85, 0.85), 9)
+	return true
+
+
+func _gear_only(item: Dictionary) -> Dictionary:
+	var rarity: String = item.get("rarity", Equipment.DEFAULT_RARITY)
+	return {
+		"id": item["id"],
+		"rarity": rarity,
+		"dur": int(item.get("dur", Equipment.max_durability(item["id"], rarity))),
+	}
+
+
+## Tính lại chỉ số từ trang bị đang mặc (món hỏng không tính), cộng / trừ phần chênh lệch vào nhân vật.
+func _apply_gear() -> void:
+	var total := Equipment.total_stats(gear)
+	var hp_diff := int(total["hp"]) - int(gear_bonus["hp"])
+	max_hp += hp_diff
+	if hp_diff > 0:
+		hp += hp_diff
+	hp = mini(hp, max_hp)
+	if not is_dead:
+		hp = maxi(hp, 1)
+	attack += int(total["attack"]) - int(gear_bonus["attack"])
+	defense = int(total["defense"])
+	gear_bonus = total
+
+
+## Bị đánh trúng: mọi món đang mặc mòn đi. Hết độ bền thì hỏng (không còn cộng chỉ số).
+func _wear_gear() -> void:
+	var worn := false
+	var broke := false
+	for slot in gear:
+		var item: Dictionary = gear[slot]
+		if item.is_empty() or Equipment.is_broken(item):
+			continue
+		var dur_max := Equipment.max_durability(item["id"], item["rarity"])
+		var before := int(item["dur"])
+		item["dur"] = maxi(before - Equipment.WEAR_PER_HIT, 0)
+		worn = true
+		var item_name: String = Equipment.DATA[item["id"]]["name"]
+		var low := float(dur_max) * Equipment.LOW_DURABILITY
+		if int(item["dur"]) == 0:
+			broke = true
+			Game.popup_text(global_position + Vector2(0, -26), "%s hỏng!" % item_name, Color(1.0, 0.45, 0.35), 9)
+			Game.message.emit("%s đã HỎNG, không còn tác dụng! Mang tới Thợ rèn ở quảng trường làng để sửa." % item_name)
+		elif float(before) > low and float(item["dur"]) <= low:
+			Game.message.emit("%s sắp hỏng (còn %d/%d độ bền). Ghé Thợ rèn để sửa nhé." % [item_name, item["dur"], dur_max])
+	if broke:
+		_apply_gear()
+	if worn:
+		gear_changed.emit()
+
+
+## Mọi món trang bị (đang mặc và trong túi).
+func all_gear_items() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for slot in Equipment.SLOTS:
+		if not gear[slot].is_empty():
+			out.append(gear[slot])
+	for entry in bag:
+		if Equipment.is_gear(entry["id"]):
+			out.append(entry)
+	return out
+
+
+## Vàng cần để sửa đầy mọi món (đang mặc và trong túi).
+func repair_all_cost() -> int:
+	var cost := 0
+	for item in all_gear_items():
+		cost += Equipment.repair_cost(item)
+	return cost
+
+
+## Sửa đầy độ bền một món (đang mặc hoặc trong túi). Trả về chữ báo lỗi, "" = sửa xong.
+func repair_item(item: Dictionary) -> String:
+	var cost := Equipment.repair_cost(item)
+	if cost <= 0:
+		return "Món này còn tốt"
+	if gold < cost:
+		return "Không đủ vàng (cần %d)" % cost
+	gold -= cost
+	var was_broken := Equipment.is_broken(item)
+	item["dur"] = Equipment.max_durability(item["id"], item.get("rarity", Equipment.DEFAULT_RARITY))
+	if was_broken:
+		_apply_gear()   # món hỏng sửa xong thì có tác dụng trở lại
+	gear_changed.emit()
+	bag_changed.emit()
+	return ""
+
+
+## Sửa đầy độ bền mọi món. Trả về chữ báo lỗi, "" = sửa xong.
+func repair_all() -> String:
+	var cost := repair_all_cost()
+	if cost <= 0:
+		return "Đồ của bạn còn tốt, chưa cần sửa"
+	if gold < cost:
+		return "Không đủ vàng (cần %d)" % cost
+	gold -= cost
+	for item in all_gear_items():
+		item["dur"] = Equipment.max_durability(item["id"], item.get("rarity", Equipment.DEFAULT_RARITY))
+	_apply_gear()
+	gear_changed.emit()
+	bag_changed.emit()
+	return ""
+
+
+## Đồ nâng cấp làm ở bàn chế tạo: túi thêm ô, bùa thêm tấn công.
 func apply_upgrade(kind: String, amount: int) -> void:
 	upgrades[kind] = int(upgrades.get(kind, 0)) + 1
 	match kind:
@@ -1332,10 +1557,6 @@ func apply_upgrade(kind: String, amount: int) -> void:
 			bag_slots = mini(bag_slots + amount, BAG_SLOTS_MAX)
 			Game.popup_text(global_position + Vector2(0, -20), "Túi đồ: %d ô" % bag_slots, Color(1.0, 0.85, 0.5), 10)
 			bag_changed.emit()
-		"armor":
-			max_hp += amount
-			hp += amount
-			Game.popup_text(global_position + Vector2(0, -20), "Máu tối đa +%d" % amount, Color(0.5, 1.0, 0.5), 10)
 		"charm":
 			add_attack(amount)
 
@@ -1418,7 +1639,11 @@ func use_item(id: String) -> bool:
 
 ## Dùng vật phẩm ở ô thứ index trong túi.
 func use_bag_slot(index: int) -> bool:
-	if is_dead or item_cd > 0.0 or index < 0 or index >= bag.size():
+	if is_dead or index < 0 or index >= bag.size():
+		return false
+	if Equipment.is_gear(bag[index]["id"]):
+		return equip_bag_slot(index)   # trang bị: bấm vào là mặc
+	if item_cd > 0.0:
 		return false
 	var id: String = bag[index]["id"]
 	var data := Items.info(id)
@@ -1597,7 +1822,7 @@ func _handle_bow(delta: float, mouse_pressed: bool) -> void:
 	if not charging:
 		return
 	if bow_aim_mouse:
-		_aim_at(get_global_mouse_position())  # ngắm theo con trỏ khi gồng
+		_aim_at(_mouse_pos())  # ngắm theo con trỏ khi gồng
 	var max_t: float = w["charge_time"]
 	charge_time = minf(charge_time + delta, max_t)
 	# Cầm cung hướng về phía trước, rung nhẹ khi gồng đầy
@@ -1733,15 +1958,31 @@ func roll_damage(base: int) -> int:
 func take_damage(amount: int, push_dir: Vector2 = Vector2.ZERO) -> bool:
 	if is_dead or invuln > 0.0 or dash_timer > 0.0:
 		return false
-	hp = maxi(hp - amount, 0)
+	var dealt := Equipment.reduce_damage(amount, defense)   # trang bị có phòng thủ thì bớt đau
+	hp = maxi(hp - dealt, 0)
 	invuln = 0.8
 	if push_dir != Vector2.ZERO:
 		knockback = push_dir.normalized() * 170.0
-	Game.popup_text(global_position, "-%d" % amount, Color(1.0, 0.3, 0.3))
+	Game.popup_text(global_position, "-%d" % dealt, Color(1.0, 0.3, 0.3))
 	Game.shake(3.0)
+	_wear_gear()
+	if demo_mode:
+		hp = maxi(hp, ceili(max_hp * 0.35))   # quay video: không chết giữa chừng
 	if hp <= 0:
 		_die()
 	return true
+
+
+## Trúng độc (đứng trong đầm độc): mất ít máu, không bị đẩy lùi, không rung màn hình.
+func take_poison(amount: int) -> void:
+	if is_dead or dash_timer > 0.0:
+		return
+	hp = maxi(hp - amount, 0)
+	Game.popup_text(global_position + Vector2(0, -8), "-%d" % amount, Color(0.55, 1.0, 0.4), 8)
+	if demo_mode:
+		hp = maxi(hp, ceili(max_hp * 0.35))
+	if hp <= 0:
+		_die()
 
 
 func heal(amount: int) -> void:

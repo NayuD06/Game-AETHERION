@@ -28,7 +28,7 @@ Game trộn thêm vài thứ:
 
 - **Điều khiển kiểu MOBA** (Liên Minh Huyền Thoại, Dota): chuột phải để đi, chuột phải vào quái để tự đánh, Q W E R để tung chiêu.
 - **Sinh tồn nhẹ nhàng**: hái quả, săn thú, lấy nước, rồi đem về các trạm để nấu ăn, luyện thuốc, làm công cụ.
-- **Khám phá**: 3 ngôi làng, 3 khu rừng, một đấu trường đá cổ và một hầm ngục tối.
+- **Khám phá**: 3 ngôi làng, 3 khu rừng, một đấu trường đá cổ và Hầm Ngục Cổ 5 tầng.
 
 ---
 
@@ -91,6 +91,7 @@ Mở hết 4 kỹ năng (cấp 20) thì bấm **K** để đổi thứ tự kỹ
 Giống Liên Minh Huyền Thoại: góc trên bên trái có **bản đồ nhỏ hình tròn**, bạn luôn ở giữa vòng tròn.
 Bấm chuột phải vào chỗ nào trên bản đồ là nhân vật tự tìm đường đi tới đó, có đường xanh chỉ lối. Bấm **M** để mở bản đồ lớn có tên các khu.
 Chấm trắng là bạn, chấm đỏ là quái, chấm đỏ to là Boss, ô cam là trạm chế tạo, chấm tím là cửa hang.
+Bản đồ chỉ hiện khu bạn đang đứng: ở ngoài thì không thấy hầm ngục, xuống hầm ngục thì chỉ thấy tầng đang đứng (ghi "Tầng N").
 
 ![Bản đồ nhỏ ở góc màn hình](images/ban_do_nho.png)
 
@@ -132,8 +133,10 @@ Mỗi cấp được thêm 8 máu tối đa và 1 tấn công. Ô kỹ năng ch�
 | **Sói** | Rừng Thông | Chạy rất nhanh, hay đi theo bầy, tới gần thì vồ. Rơi da, thịt, xương. |
 | **Heo rừng** | Rừng Thông, Đầm Lầy Nấm | Cào chân lấy đà rồi húc thẳng rất mạnh: né sang bên! Rơi da, thịt, xương. |
 | **Boss Gorrak** (Thạch Vương Cổ Đại) | Đấu Trường Đá Cổ | 5 giáp. Nhảy đập (né vòng đỏ!), bắn cầu bóng tối tỏa tròn, dưới nửa máu thì gọi thêm slime. |
+| **Boss Malakar** (Vua Xương Bất Tử) | Hầm Ngục Cổ, tầng 5 | Bắn cầu hồn xoắn ốc, dịch chuyển tới chỗ bạn rồi nổ (thấy vòng tím là chạy!), mưa hồn (vòng đỏ dưới đất), gọi cung thủ xương. Còn 1/4 máu thì cuồng nộ. |
 
-Quái thường (trừ Boss) hạ xong sẽ quay lại sau 2 phút, nên cứ đánh tiếp để luyện cấp. Quái trong hầm ngục cho nhiều kinh nghiệm hơn.
+Quái thường (trừ Boss) hạ xong sẽ quay lại sau 2 phút, nên cứ đánh tiếp để luyện cấp. Quái trong hầm ngục mạnh hơn
+và cho nhiều kinh nghiệm hơn, tầng càng sâu càng mạnh.
 
 ### Mục tiêu bản chơi thử
 
@@ -141,7 +144,8 @@ Quái thường (trừ Boss) hạ xong sẽ quay lại sau 2 phút, nên cứ đ
 2. **Hái lượm và chế tạo**: hái quả, thảo dược, săn sói và heo rừng, về quảng trường nấu ăn, luyện thuốc, làm rìu, ba lô, áo giáp.
 3. **Rừng Hoang** (phía đông làng): đánh slime, dơi, cung thủ xương để lên cấp và mở kỹ năng Q, W, E.
 4. **Đấu Trường Đá Cổ**: hạ Boss **Gorrak**. Phong ấn ở cửa hang sau lưng Boss sẽ vỡ ra.
-5. **Hầm Ngục Cổ**: đi vào hang, vượt qua hầm ngục tối và bước vào **Cổng Xoáy** ở phòng cuối để chiến thắng.
+5. **Hầm Ngục Cổ**: đi vào hang, vượt qua 5 tầng hầm ngục, dọn sạch quái mỗi tầng để mở **rương báu** lấy trang bị,
+   hạ Boss **Malakar** ở tầng 5 rồi bước vào **Cổng Xoáy** để chiến thắng. Giữa chừng về làng bán đồ, mua thuốc, sửa trang bị.
 
 ---
 
@@ -175,13 +179,38 @@ bị **phong ấn tím** chặn lại. Hạ Boss xong phong ấn vỡ ra, đi v�
 
 ![Cửa hang: trái là lúc còn phong ấn, giữa là sau khi hạ Boss, phải là cầu thang ra trong hầm ngục](images/dau_truong_hang.png)
 
-### Hầm Ngục Cổ
+### Hầm Ngục Cổ (5 tầng)
 
-Hầm ngục tối om, chỉ có nến, đuốc trên tường, bệ thờ phát sáng và một vòng sáng nhỏ quanh người bạn
-(có **Đuốc** trong túi thì vòng sáng to hơn). Quái ở đây mạnh hơn. Cổng Xoáy tím ở phòng cuối là đích đến.
-Muốn quay ra thì đi vào **cầu thang sáng** ngay chỗ bạn vừa xuống.
+Hầm ngục là một **bản đồ riêng**, chỉ đi vào cửa hang mới xuống được. Bên trong tối om, chỉ có nến, đuốc, bệ thờ phát sáng
+và một vòng sáng nhỏ quanh người bạn (có **Đuốc** trong túi thì vòng sáng to hơn).
+**Hố đen có bậc thang dưới sàn** là lối xuống tầng dưới, **cầu thang sáng trên tường** là lối lên.
+Mỗi tầng có bản đồ, màu sắc và cơ chế riêng, càng xuống sâu quái càng mạnh:
 
-![Hầm Ngục Cổ](images/ham_nguc.png)
+| Tầng | Tên | Cần chú ý |
+|---|---|---|
+| 1 | Hầm Mộ Cổ | **Bẫy gai**: gai nhú lên là sắp đâm, đợi gai thụt xuống rồi đi qua. |
+| 2 | Hang Nấm Độc | **Đầm độc** màu xanh: đi chậm và mất máu liên tục. Có một dòng suối độc phải lội qua. |
+| 3 | Mê Cung Bóng Tối | Mê cung rất tối. Tìm và thắp sáng **3 bia cổ ngữ** ở 3 góc thì lối xuống ở giữa mới mở. |
+| 4 | Lò Rèn Dung Nham | **Sông dung nham** chặn đường, đi qua cầu đá. **Lỗ phun lửa** đỏ lên là sắp phun, tránh xa! |
+| 5 | Điện Thờ Bóng Đêm | Phòng Boss **Malakar**. Uống bình máu ở 2 bệ thờ trước khi vào. Hạ hắn để mở Cổng Xoáy. |
+
+Mẹo: lướt (**F**) qua bẫy gai, lỗ lửa, đầm độc thì không bị trúng.
+
+**Rương báu**: mỗi tầng có vài rương, bị **khoá** cho tới khi bạn hạ hết quái của tầng (bản đồ nhỏ ghi "Còn N quái").
+Có 4 loại: **thường, bạc, vàng, kim cương**. Tầng càng sâu càng hay gặp rương xịn, rương xịn ra trang bị bậc cao hơn,
+nhiều vàng, bình máu và **nguyên liệu chế tạo** (da thú, xương, dây thừng, gỗ, thảo dược...). Hạ Malakar rơi thêm một Rương kim cương.
+
+![Boss Malakar và các loại bẫy](images/ham_nguc_moi.png)
+
+![Tầng 1 - Hầm Mộ Cổ](images/tang_1.png)
+
+![Tầng 2 - Hang Nấm Độc](images/tang_2.png)
+
+![Tầng 3 - Mê Cung Bóng Tối](images/tang_3.png)
+
+![Tầng 4 - Lò Rèn Dung Nham](images/tang_4.png)
+
+![Tầng 5 - Điện Thờ Bóng Đêm](images/tang_5.png)
 
 ---
 
@@ -193,8 +222,30 @@ Muốn quay ra thì đi vào **cầu thang sáng** ngay chỗ bạn vừa xuốn
 Có quả mọng, thảo dược, nấm, lúa mì, cà rốt, bí ngô, táo. **Nước** lấy ở xô cạnh giếng (làng nào cũng có giếng).
 **Gỗ** chặt ở các gốc cây trong rừng (cần có Rìu). Sói và heo rừng cho **da thú, thịt, xương**.
 
-**Túi đồ** (phím B): 12 ô, làm ba lô để lên 16 rồi 20 ô. Bấm vào món ăn để ăn, bấm vào thuốc để uống.
+**Túi đồ** (phím B): 12 ô, làm ba lô để lên 16 rồi 20 ô. Bấm vào món ăn để ăn, bấm vào thuốc để uống, bấm vào trang bị để mặc.
 **Công cụ** (rìu, liềm, đuốc) chỉ cần nằm trong túi là có tác dụng.
+
+### Trang bị và độ bền
+
+![Trang bị và rương](images/trang_bi.png)
+
+Mở túi (B) là thấy bảng **Trang bị** bên cạnh: **Mũ, Giáp, Quần, Giày**. Trang bị tăng **Phòng thủ** (bị đánh đỡ đau hơn),
+**Máu**, có món tăng **Tấn công** hoặc **Tốc độ chạy**. Có 5 bậc: Da, Sắt, Thép xanh, Dung Nham, Bóng Đêm.
+Hiện mọi món đều độ hiếm **Thường** (độ hiếm cao hơn sẽ thêm sau).
+
+Mỗi lần bị đánh trúng, đồ đang mặc **mòn** đi một chút. Hết độ bền thì đồ **hỏng**, không còn tác dụng cho tới khi
+mang về cho **Bác Sắt thợ rèn** sửa (tốn vàng).
+
+### Cửa hàng
+
+Người có **đồng xu vàng trên đầu** là người bán hàng, đi tới gần là mở cửa hàng: **Mua** đồ, **Bán** đồ trong túi lấy vàng.
+
+| Người bán | Ở đâu | Bán gì |
+|---|---|---|
+| Bà Lan | Sạp trái cây ở quảng trường | Trái cây, rau, nấm, thảo dược, lúa mì, nước |
+| Chú Tư | Sạp bánh ở quảng trường | Bánh mì, bánh táo, thịt nướng, các loại súp |
+| Bác Sắt thợ rèn | Phía đông quảng trường (cạnh cái đe) | Trang bị bậc Da và Sắt, rìu, liềm, đuốc. **Sửa trang bị** |
+| Bà thầy thuốc | Đầm Lầy Nấm | Bình máu, thuốc sức mạnh, thuốc nhanh nhẹn |
 
 ### 4 trạm chế tạo ở quảng trường
 
@@ -205,7 +256,7 @@ Bốn góc quảng trường Làng Khởi Nguyên là 4 trạm. Đi tới gần 
 |---|---|---|
 | **Nồi luyện thuốc** | Góc trên trái | Bình máu, Bình máu lớn, Thuốc sức mạnh, Thuốc nhanh nhẹn |
 | **Lò nấu ăn** (lò gạch) | Góc trên phải | Bánh mì, Bánh táo, Súp nấm, Súp bí ngô, Canh xương |
-| **Bàn chế tạo** | Góc dưới trái | Dây thừng, Rìu, Liềm, Đuốc, Bộ lửa trại, Ba lô lớn hơn, Áo giáp da, Bùa răng sói |
+| **Bàn chế tạo** | Góc dưới trái | Dây thừng, Rìu, Liềm, Đuốc, Bộ lửa trại, Ba lô lớn hơn, Áo giáp da (trang bị), Bùa răng sói |
 | **Bếp lửa** | Góc dưới phải | Thịt nướng, Xiên nấm nướng, Bí ngô nướng, Xiên thịt rau |
 
 Lửa trại trong rừng cũng nướng đồ được như bếp lửa. Có **Bộ lửa trại** thì bấm vào nó trong túi để tự đặt một bếp lửa ở đâu cũng được.
@@ -233,7 +284,7 @@ Lửa trại trong rừng cũng nướng đồ được như bếp lửa. Có **
 | Bàn chế tạo | Đuốc | 1 gỗ + 1 dây thừng | Vòng sáng to hơn trong hầm ngục |
 | Bàn chế tạo | Bộ lửa trại | 3 gỗ + 1 dây thừng | Đặt bếp lửa ở đâu cũng được |
 | Bàn chế tạo | Ba lô lớn hơn | 3 da thú + 2 dây thừng | Túi thêm 4 ô (làm được 2 lần) |
-| Bàn chế tạo | Áo giáp da | 4 da thú + 1 dây thừng | Máu tối đa +25 |
+| Bàn chế tạo | Áo giáp da | 4 da thú + 1 dây thừng | Trang bị: phòng thủ +3, máu +10 |
 | Bàn chế tạo | Bùa răng sói | 4 xương + 1 da thú + 1 dây thừng | Tấn công +4 |
 
 Mẹo: làm **Rìu** trước (chỉ cần xương và dây thừng), có rìu mới chặt được gỗ để làm liềm, đuốc và bộ lửa trại.
@@ -254,7 +305,7 @@ Mẹo: làm **Rìu** trước (chỉ cần xương và dây thừng), có rìu m
 
 - Thức tỉnh **nguyên tố** Lửa và Sấm, gắn kỹ năng nguyên tố vào ô Q W E R.
 - Bộ kỹ năng riêng cho **Sách Phép**.
-- Mua bán ở các sạp hàng trong làng.
+- Thêm **độ hiếm** cho trang bị (Tốt, Hiếm, Sử Thi, Huyền Thoại).
 - Lưu túi đồ và trang bị giữa các lần chơi.
 
 ---

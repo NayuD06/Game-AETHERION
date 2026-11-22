@@ -1,0 +1,33 @@
+[gd_scene load_steps=4 format=3]
+
+[ext_resource type="Script" path="res://scripts/enemies/lich.gd" id="1_script"]
+[ext_resource type="Texture2D" path="res://assets/sprites/lich.png" id="2_tex"]
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_body"]
+radius = 9.0
+
+[node name="Lich" type="CharacterBody2D"]
+collision_layer = 4
+collision_mask = 5
+motion_mode = 1
+script = ExtResource("1_script")
+display_name = "Malakar - Vua Xương Bất Tử"
+max_hp = 1300
+speed = 40.0
+contact_damage = 14
+xp_reward = 400
+gold_reward = 80
+detect_range = 140.0
+hit_radius = 15.0
+overhead_bar = false
+knockback_resist = 0.1
+armor = 4
+death_color = Color(0.7, 0.45, 1, 1)
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+texture = ExtResource("2_tex")
+hframes = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+position = Vector2(0, 6)
+shape = SubResource("CircleShape2D_body")

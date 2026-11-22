@@ -3,18 +3,18 @@ extends Control
 ## Bản đồ nhỏ hình tròn ở góc trên bên trái màn hình, luôn lấy nhân vật làm tâm.
 ## - Bấm chuột phải (hoặc chuột trái) lên bản đồ: nhân vật tự tìm đường đi tới chỗ đó (giống LMHT).
 ##   Giữ chuột rồi kéo trên bản đồ để đổi chỗ đến.
-## - Phím M: mở / đóng bản đồ lớn ở giữa màn hình (cả thế giới, có tên các khu).
+## - Phím M: mở / đóng bản đồ lớn ở giữa màn hình (có tên các khu).
 ## Chấm trắng: bạn. Chấm đỏ: quái. Chấm cam: trạm chế tạo / lửa trại. Khung trắng: phần đang thấy trên màn hình.
-## Hầm Ngục Cổ chỉ hiện lên bản đồ sau khi bạn vào đó lần đầu.
+## Bản đồ chỉ hiện khu bạn đang đứng: ở ngoài thì là thế giới bên ngoài (không có hầm ngục),
+## xuống hầm ngục thì chỉ hiện tầng đang đứng (hố đen có viền trắng: lối xuống, ô vàng: cầu thang lên).
 
 const SCREEN := Vector2(640, 360)
 const SMALL_SCALE := 1.5      # mỗi ô bản đồ (16x16) = bao nhiêu pixel trên bản đồ nhỏ (to hơn = nhìn gần hơn)
 const SMALL_SIZE := 100.0     # đường kính bản đồ nhỏ hình tròn (pixel)
 const SMALL_POS := Vector2(4, 4)   # góc trên bên trái
-const BIG_SCALE := 3.0        # mỗi ô = bao nhiêu pixel trên bản đồ lớn (phím M)
+const BIG_SCALE := 3.0        # mỗi ô = bao nhiêu pixel trên bản đồ lớn (phím M); tầng hầm ngục nhỏ thì tự phóng to hơn
 const CIRCLE_MASK := preload("res://scripts/effects/circle_mask.gdshader")
 const DRAG_REPEAT := 0.15     # giữ chuột và kéo: bao lâu đổi chỗ đến một lần
-const BOSS_SCRIPT := preload("res://scripts/enemies/boss.gd")
 
 ## Màu từng loại ô trên bản đồ (ký tự giống MAP trong scripts/level.gd)
 const COLOR_GRASS := Color8(96, 160, 72)
@@ -34,21 +34,23 @@ const COLOR_WALL := Color8(84, 84, 96)
 const COLOR_ARENA := Color8(168, 168, 162)
 const COLOR_DUNGEON := Color8(88, 82, 104)
 const COLOR_DUNGEON_WALL := Color8(36, 32, 46)
-const COLOR_HIDDEN := Color8(18, 16, 26)
 const COLOR_VOID := Color8(24, 22, 32)          # khối đá đặc (không đi tới được)
 const COLOR_MUSHROOM := Color8(200, 92, 92)
+const COLOR_POISON := Color8(96, 176, 70)       # đầm độc
+const COLOR_LAVA := Color8(244, 126, 40)        # dung nham
+const COLOR_DUNGEON_PROP := Color8(64, 60, 78)  # khối đá, bia, bình gốm trong hầm ngục
 
 var player: Player
 var level: Level
 var map_texture: ImageTexture
 var big := false
-var shown_dungeon := false    # hầm ngục đã được vẽ lên bản đồ chưa
+var region := -1                        # khu đang vẽ: 0 = thế giới bên ngoài, 1..5 = tầng hầm ngục
+var region_rect := Rect2i()             # khung của khu đó (theo ô)
+var big_scale := BIG_SCALE
 var dragging := false
 var drag_timer := 0.0
 var hint: Label
-var arena_center := Vector2(-1, -1)     # giữa đấu trường / hầm ngục (theo ô), để ghi tên trên bản đồ lớn
-var dungeon_center := Vector2(-1, -1)
-var map_cols := 0                       # số cột đang vẽ (hầm ngục chưa vào thì cắt bớt phần bên phải)
+var arena_center := Vector2(-1, -1)     # giữa đấu trường (theo ô), để ghi tên trên bản đồ lớn
 
 
 func _ready() -> void:
@@ -75,11 +77,15 @@ func _process(delta: float) -> void:
 		return
 	if level != player.level_ref:
 		level = player.level_ref
+		region = -1
+		visible = true
+	# Sang khu khác (vào / ra hầm ngục, đổi tầng): vẽ lại bản đồ của khu mới
+	var fl := level.floor_of(player.global_position)
+	if fl != -1 and fl != region:
+		region = fl
+		region_rect = level.region_rect(region)
 		_build_texture()
 		_layout()
-		visible = true
-	if level.entered_area2 and not shown_dungeon:
-		_build_texture()
 	hint.visible = visible
 	# Giữ chuột và kéo trên bản đồ: liên tục đổi chỗ đến
 	if dragging:
@@ -114,12 +120,15 @@ func toggle_big() -> void:
 
 
 func _map_scale() -> float:
-	return BIG_SCALE if big else SMALL_SCALE
+	return big_scale if big else SMALL_SCALE
 
 
 func _layout() -> void:
 	if big:
-		size = Vector2(map_cols, level.map_size.y) * BIG_SCALE
+		# phóng to cho vừa màn hình (thế giới bên ngoài: BIG_SCALE, tầng hầm ngục nhỏ hơn nên to hơn)
+		var fit := minf(560.0 / region_rect.size.x, 290.0 / region_rect.size.y)
+		big_scale = clampf(floorf(fit * 2.0) / 2.0, 1.0, maxf(BIG_SCALE, 6.0))
+		size = Vector2(region_rect.size) * big_scale
 		position = ((SCREEN - size) / 2.0).floor()
 		hint.text = "Bấm chuột phải lên bản đồ để đi tới đó.   M: đóng bản đồ lớn"
 		hint.position = Vector2(position.x, position.y + size.y + 2)
@@ -136,10 +145,11 @@ func _layout() -> void:
 	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST if big else CanvasItem.TEXTURE_FILTER_LINEAR
 
 
-## Vị trí (trong khung) của góc trên bên trái bản đồ. Bản đồ nhỏ: nhân vật luôn ở giữa vòng tròn.
+## Vị trí (trong khung) của ô (0, 0) của màn chơi. Bản đồ lớn: góc trên bên trái khung là góc của khu đang đứng.
+## Bản đồ nhỏ: nhân vật luôn ở giữa vòng tròn.
 func _origin() -> Vector2:
 	if big:
-		return Vector2.ZERO
+		return -Vector2(region_rect.position) * big_scale
 	return size / 2.0 - level.to_local(player.global_position) / Level.TILE * SMALL_SCALE
 
 
@@ -170,45 +180,40 @@ func _gui_input(event: InputEvent) -> void:
 
 # ---------------------------------------------------------------- Vẽ bản đồ
 
-## Mỗi ô bản đồ thành 1 pixel màu.
+## Mỗi ô của khu đang đứng thành 1 pixel màu.
 func _build_texture() -> void:
-	shown_dungeon = level.entered_area2
-	var image := Image.create_empty(level.map_size.x, level.map_size.y, false, Image.FORMAT_RGBA8)
+	var r := region_rect
+	var image := Image.create_empty(r.size.x, r.size.y, false, Image.FORMAT_RGBA8)
 	var arena_box := Rect2()
-	var dungeon_box := Rect2()
-	var last_col := 0
-	for y in level.map_size.y:
-		for x in level.map_size.x:
-			var color := _tile_color(x, y)
-			image.set_pixel(x, y, color)
-			if color != COLOR_VOID and color != COLOR_HIDDEN:
-				last_col = maxi(last_col, x)
-			var c := level.cell(x, y)
-			if c == ":":
+	for y in range(r.position.y, r.end.y):
+		for x in range(r.position.x, r.end.x):
+			image.set_pixel(x - r.position.x, y - r.position.y, _tile_color(x, y))
+			if level.cell(x, y) == ":":
 				arena_box = Rect2(x, y, 1, 1) if arena_box.size == Vector2.ZERO else arena_box.expand(Vector2(x + 1, y + 1))
-			elif c == ";":
-				dungeon_box = Rect2(x, y, 1, 1) if dungeon_box.size == Vector2.ZERO else dungeon_box.expand(Vector2(x + 1, y + 1))
-	# Chỉ vẽ tới cột cuối cùng còn thứ để xem (bỏ phần đá đặc / hầm ngục chưa vào ở bên phải)
-	map_cols = mini(last_col + 2, level.map_size.x)
-	map_texture = ImageTexture.create_from_image(image.get_region(Rect2i(0, 0, map_cols, level.map_size.y)))
-	if big or visible:
-		_layout()
+	map_texture = ImageTexture.create_from_image(image)
 	arena_center = arena_box.get_center() if arena_box.size != Vector2.ZERO else Vector2(-1, -1)
-	dungeon_center = dungeon_box.get_center() if dungeon_box.size != Vector2.ZERO else Vector2(-1, -1)
 
 
 func _tile_color(x: int, y: int) -> Color:
 	var c := level.cell(x, y)
-	var in_dungeon := level.dungeon_column != -1 and x > level.dungeon_column
+	var in_dungeon := region > 0
 	var in_arena := level.arena_column != -1 and x >= level.arena_column and not in_dungeon
-	if in_dungeon and not shown_dungeon:
-		return COLOR_HIDDEN
 	if Level.WALL_CHARS.contains(c) or c == "G":
 		if _solid_rock(x, y):
 			return COLOR_VOID
 		return COLOR_DUNGEON_WALL if in_dungeon else COLOR_WALL
 	if in_dungeon:
-		return COLOR_DUNGEON
+		var tint: Color = Dungeon.FLOORS[region - 1]["tint"]
+		match c:
+			"]":
+				return COLOR_POISON
+			"|":
+				return COLOR_LAVA
+			"*":
+				return COLOR_MUSHROOM
+			"K", "?", "u", "I":
+				return COLOR_DUNGEON_PROP
+		return COLOR_DUNGEON * tint
 	if level.plaza_cells.has(Vector2i(x, y)):
 		return COLOR_WATER if c == "F" else COLOR_PLAZA
 	match c:
@@ -256,20 +261,51 @@ func _draw() -> void:
 	var mid := size / 2.0
 	if not big:
 		draw_circle(mid, size.x / 2.0, COLOR_VOID)   # nền ngoài mép bản đồ
-	draw_texture_rect(map_texture, Rect2(_origin(), Vector2(map_cols, level.map_size.y) * s), false)
+	draw_texture_rect(map_texture, Rect2(_from_level(Vector2(region_rect.position) * Level.TILE),
+		Vector2(region_rect.size) * s), false)
 	# Trạm chế tạo, lửa trại
 	for st in level.stations:
 		var p := _from_level(Vector2(st["pos"]))
-		if _hidden(p) or _off(p):
+		if not _in_region(Vector2(st["pos"])) or _off(p):
 			continue
 		draw_rect(Rect2(p - Vector2(1.5, 1.5), Vector2(3, 3)), Color(1.0, 0.6, 0.2))
-	# Cửa hang (tím khi còn phong ấn) và cổng xoáy
-	if level.cave_entrance != Vector2.INF:
+	# Cửa hang (tím khi còn phong ấn)
+	if region == 0 and level.cave_entrance != Vector2.INF:
 		var cave := _from_level(level.cave_entrance)
 		draw_circle(cave, 2.5, Color(0.1, 0.05, 0.1))
 		draw_circle(cave, 1.6, Color(0.7, 0.35, 1.0) if not level.gate_open else Color(0.25, 0.2, 0.25))
-	if shown_dungeon and level.altar_position != Vector2.INF:
-		draw_circle(_from_level(level.altar_position), 2.5, Color(0.8, 0.45, 1.0))
+	# Hầm ngục: cầu thang, bia cổ ngữ, cổng xoáy
+	if region > 0:
+		var r := 2.0 if not big else 3.5
+		for st in level.stairs:
+			if st["floor"] != region:
+				continue
+			var p := _from_level(st["pos"])
+			if st["kind"] == "down":
+				draw_circle(p, r + 1.2, Color(1, 1, 1) if not st["sealed"] else Color(0.75, 0.4, 1.0))
+				draw_circle(p, r, Color(0.05, 0.03, 0.08))
+			else:
+				draw_rect(Rect2(p - Vector2(r, r), Vector2(r, r) * 2.0), Color(1.0, 0.92, 0.6))
+		for rune in level.runes:
+			if rune["floor"] == region:
+				draw_circle(_from_level(rune["pos"]), r * 0.8, Color(0.5, 1.0, 0.95) if rune["lit"] else Color(0.45, 0.47, 0.55))
+		# Rương báu: màu theo loại rương (tối = còn khoá, mờ hẳn = đã mở)
+		for chest in level.chests:
+			if not is_instance_valid(chest) or chest.floor_index != region:
+				continue
+			var cp := _from_level(chest.position)
+			if _off(cp):
+				continue
+			var col: Color = Chest.TIERS[chest.tier]["color"]
+			if chest.opened:
+				col = col.darkened(0.65)
+			elif chest.locked:
+				col = col.darkened(0.3)
+			draw_rect(Rect2(cp - Vector2(r, r * 0.8), Vector2(r * 2.0, r * 1.6)), Color(0.05, 0.03, 0.05))
+			draw_rect(Rect2(cp - Vector2(r - 0.7, r * 0.8 - 0.7), Vector2(r * 2.0 - 1.4, r * 1.6 - 1.4)), col)
+		if level.altar_position != Vector2.INF and _in_region(level.altar_position):
+			draw_circle(_from_level(level.altar_position), r + 1.0,
+				Color(0.8, 0.45, 1.0) if level.portal_open else Color(0.4, 0.3, 0.45))
 	# Quái
 	var dot := 1.3 if not big else 2.2
 	for node in get_tree().get_nodes_in_group("enemies"):
@@ -277,9 +313,9 @@ func _draw() -> void:
 		if enemy == null or not is_instance_valid(enemy) or enemy.is_dead:
 			continue
 		var p := map_at(enemy.global_position)
-		if _hidden(p) or _off(p):
+		if _off(p) or not _in_region(level.to_local(enemy.global_position)):
 			continue
-		if enemy.get_script() == BOSS_SCRIPT:
+		if enemy.is_in_group("boss"):
 			draw_circle(p, dot * 2.4, Color(0.1, 0.0, 0.0))
 			draw_circle(p, dot * 1.8, Color(1.0, 0.15, 0.1))
 		else:
@@ -305,6 +341,8 @@ func _draw() -> void:
 	draw_line(me, me + player.facing.normalized() * (r + 2.5), Color(0.3, 0.75, 1.0), 1.0)
 	if big:
 		_draw_area_names()
+	elif region > 0:
+		_draw_floor_label()
 	# Viền khung: vòng tròn (bản đồ nhỏ) hoặc khung chữ nhật (bản đồ lớn)
 	if big:
 		draw_rect(Rect2(Vector2.ZERO, size), Color(0.05, 0.04, 0.1), false, 2.0)
@@ -314,11 +352,9 @@ func _draw() -> void:
 		draw_arc(mid, size.x / 2.0 - 2.5, 0.0, TAU, 72, Color(0.85, 0.75, 0.5), 1.5, true)
 
 
-## Điểm p nằm trong hầm ngục mà người chơi chưa vào lần nào thì không vẽ.
-func _hidden(p: Vector2) -> bool:
-	if shown_dungeon or level.dungeon_column == -1:
-		return false
-	return (p.x - _origin().x) / _map_scale() > level.dungeon_column + 1
+## Điểm (toạ độ trong màn chơi) có nằm trong khu đang vẽ không.
+func _in_region(local: Vector2) -> bool:
+	return region_rect.has_point(Vector2i(floori(local.x / Level.TILE), floori(local.y / Level.TILE)))
 
 
 ## Điểm p nằm ngoài vòng tròn bản đồ nhỏ (khỏi vẽ cho nhẹ máy).
@@ -330,18 +366,38 @@ func _off(p: Vector2) -> bool:
 func _draw_area_names() -> void:
 	var font := get_theme_default_font()
 	var names := []
-	for area in Level.AREAS:
-		var rect: Rect2i = area["rect"]
-		names.append([area["name"], Vector2(rect.position) + Vector2(rect.size) / 2.0])
-	if arena_center.x >= 0.0:
-		names.append(["Đấu Trường", arena_center])
-	if shown_dungeon and dungeon_center.x >= 0.0:
-		names.append(["Hầm Ngục Cổ", dungeon_center])
+	if region == 0:
+		for area in Level.AREAS:
+			var rect: Rect2i = area["rect"]
+			names.append([area["name"], Vector2(rect.position) + Vector2(rect.size) / 2.0])
+		if arena_center.x >= 0.0:
+			names.append(["Đấu Trường", arena_center])
+	else:
+		# tầng hầm ngục: ghi tên tầng ở mép trên
+		names.append([Dungeon.floor_name(region), Vector2(region_rect.get_center().x, region_rect.position.y + 1.5)])
 	for item in names:
 		var text: String = item[0]
-		var pos: Vector2 = item[1] * BIG_SCALE
+		var pos: Vector2 = _origin() + item[1] * big_scale
 		var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
 		var at := pos - Vector2(w / 2.0, -4)
 		at.x = clampf(at.x, 3.0, size.x - w - 3.0)   # không cho chữ tràn ra ngoài khung
 		draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, 4, Color(0, 0, 0, 0.85))
 		draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(1.0, 0.95, 0.8))
+
+
+## Bản đồ nhỏ trong hầm ngục: ghi "Tầng N" ở mép trên vòng tròn.
+func _draw_floor_label() -> void:
+	var font := get_theme_default_font()
+	var text := "Tầng %d" % region
+	var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8).x
+	var at := Vector2((size.x - w) / 2.0, 15.0)
+	draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, 3, Color(0, 0, 0, 0.9))
+	draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(1.0, 0.85, 0.55))
+	# Còn bao nhiêu quái (hạ hết thì rương trên tầng mở khoá)
+	var cleared: bool = level.floor_cleared.has(region)
+	var sub: String = "Đã dọn sạch" if cleared else "Còn %d quái" % level.floor_enemies_left(region)
+	var sw := font.get_string_size(sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 7).x
+	var sub_at := Vector2((size.x - sw) / 2.0, size.y - 8.0)
+	draw_string_outline(font, sub_at, sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 7, 3, Color(0, 0, 0, 0.9))
+	draw_string(font, sub_at, sub, HORIZONTAL_ALIGNMENT_LEFT, -1, 7,
+		Color(0.55, 1.0, 0.55) if cleared else Color(1.0, 0.7, 0.6))

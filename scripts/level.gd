@@ -8,8 +8,7 @@ extends Node2D
 ##   T  cây rừng (chặn đường, nền rừng tối)   #  tường đá (chặn đường)
 ##   ~  nước (chặn đường)
 ##   G  cửa hang vào Hầm Ngục Cổ (đặt trên vách đá, miệng hang quay xuống dưới).
-##      Bị phong ấn tới khi hạ Boss, sau đó đi vào là sang hầm ngục.
-##   {  lối ra trong hầm ngục (cầu thang có ánh sáng, đặt trên tường): đi vào là ra lại cửa hang
+##      Bị phong ấn tới khi hạ Boss, sau đó đi vào là xuống Tầng 1 của hầm ngục.
 ##   o  bụi cây (chặn đường)      r  tảng đá (chặn đường)
 ##   .  cỏ      ,  cỏ có hoa      :  sàn đá đấu trường     ;  sàn hầm ngục (phiến đá)
 ##   _  đường lát đá    f  hàng rào    w  giếng    q  biển báo (đọc khi đi tới gần)
@@ -19,16 +18,13 @@ extends Node2D
 ##   k  thùng gỗ    l  thùng tròn    z  gốc cây (có Rìu thì chặt được gỗ)    j  lửa trại (nướng đồ ăn được)
 ##   (các ô trên đều chặn đường)
 ##   H  nhà gỗ trong rừng (rộng 3, cao 3)    V  thác nước (rộng 3, cao 3, đặt ngay trên hồ '~')
-##   Hầm ngục (bên phải cổng G, tối, có ánh sáng):
-##   Y  đuốc treo tường (đặt lên ô tường)   Z  cờ treo tường (đặt lên ô tường)
-##   i  nến dưới đất (đi qua được)   I  chân nến cao   u  bình gốm   K  khối đá   S  xương (trang trí)
-##   E  bệ thờ có cột sáng + pha lê sức mạnh   Q  bệ thờ có cột sáng + bình máu
-##   O  cổng xoáy (đích đến của bản demo)
+##   Hầm ngục 5 tầng: bản đồ riêng của từng tầng nằm trong scripts/dungeon.gd (có chú thích ký tự riêng).
 ##   Quảng trường giữa làng (nơi người chơi xuất hiện):
 ##   =  sân lát đá    +  đá hoa văn màu vàng (lát quanh đài phun nước)
 ##   F  đài phun nước (rộng 3, cao 2: F x x / x x x)    J  sạp hàng (rộng 3: J x x)
 ##   e  ghế dài (rộng 2: e x)    L  cột đèn    g  chậu hoa
-##   v  dân làng: đi tới gần để nghe nói chuyện (tên, lời thoại, ngoại hình ở NPC_DATA)
+##   v  dân làng: đi tới gần để nghe nói chuyện (tên, lời thoại, ngoại hình ở NPC_DATA).
+##      Người có đồng xu trên đầu là người bán hàng: tới gần là mở cửa hàng mua / bán đồ.
 ##   Đồ vật đặt trên sân đá (F J e L g v P q k l) tự có nền đá bên dưới.
 ##   Cây thu hoạch (đi tới gần cây chín là hái, đồ vào túi, một lúc sau cây chín lại):
 ##   1  bụi quả mọng    2  thảo dược    3  nấm rừng    7  cây táo
@@ -48,9 +44,10 @@ extends Node2D
 ##   A  bệ thờ cổ (cũng dùng làm đích đến được, giống cổng xoáy O)
 ##
 ## Bản đồ có 3 dải: dải trên (Làng Ven Hồ + Rừng Thông), dải giữa (Làng Khởi Nguyên + Rừng Hoang
-## + đấu trường + hầm ngục) và dải dưới (Xóm Ruộng + Đầm Lầy Nấm). Tên, kiểu cảnh và thú của từng khu
-## nằm trong AREAS bên dưới. Hầm ngục nằm riêng ở phía đông (bắt đầu từ ô ';' đầu tiên), chỉ vào được
-## qua cửa hang G. Quái trong hầm ngục tự động mạnh hơn (elite).
+## + đấu trường) và dải dưới (Xóm Ruộng + Đầm Lầy Nấm). Tên, kiểu cảnh và thú của từng khu
+## nằm trong AREAS bên dưới. Hầm Ngục Cổ (5 tầng, scripts/dungeon.gd) là bản đồ riêng, khi chạy game
+## được ghép vào xa về phía đông, ngăn cách bằng đá đặc: chỉ vào được qua cửa hang G và cầu thang,
+## camera và bản đồ nhỏ chỉ thấy khu đang đứng (thế giới bên ngoài hoặc tầng hầm ngục hiện tại).
 
 const TILE := 16
 
@@ -104,7 +101,7 @@ const SIGN_TEXTS := [
 	"Làng Ven Hồ. Vườn cà rốt và vườn táo ở phía nam làng: đi tới cây chín là hái được.",
 	"Giếng làng: đi tới xô nước cạnh giếng để lấy Bình nước (dùng nấu thuốc, nấu ăn).",
 	"Phía đông là Rừng Hoang. Quái vật đang tràn tới, hãy cẩn thận!",
-	"Quảng trường Làng Khởi Nguyên. Quanh đây có bàn chế tạo, bếp lửa, nồi luyện thuốc và lò nấu ăn: đi tới gần là chế đồ. Bắc: Làng Ven Hồ. Nam: Xóm Ruộng. Đông: Rừng Hoang.",
+	"Quảng trường Làng Khởi Nguyên. Quanh đây có bàn chế tạo, bếp lửa, nồi luyện thuốc và lò nấu ăn: đi tới gần là chế đồ. Người có đồng xu trên đầu bán đồ, Bác Sắt thợ rèn sửa trang bị. Bắc: Làng Ven Hồ. Nam: Xóm Ruộng. Đông: Rừng Hoang.",
 	"Bãi tập: tập đánh thường lên bù nhìn. Lên cấp 5 mở kỹ năng Q, rồi W, E, R ở cấp 10, 15, 20. Bù nhìn có khiên rất cứng, Thương phá giáp dễ nhất.",
 	"Xóm Ruộng: ruộng lúa, vườn cà rốt, bí ngô và vườn táo. Hái xong một lúc cây sẽ chín lại.",
 	"Phía đông là Đầm Lầy Nấm. Nhiều nấm và thảo dược, nhưng có slime và heo rừng.",
@@ -114,6 +111,8 @@ const SIGN_TEXTS := [
 ## Dân làng 'v', theo thứ tự xuất hiện trên bản đồ (đọc từ trên xuống, trái sang phải).
 ## look: chỉ số ngoại hình giống màn hình tạo nhân vật (xem scripts/character_parts.gd).
 ## wander: bán kính đi dạo (pixel), 0 = đứng yên.
+## shop: người bán hàng, đi tới gần là mở cửa hàng (tên cửa hàng trong scripts/shops.gd).
+## prop: đồ đặt bên trái người đó ("anvil" = cái đe của thợ rèn).
 const NPC_DATA := [
 	{
 		"name": "Thợ săn Lâm",
@@ -157,21 +156,35 @@ const NPC_DATA := [
 	{
 		"name": "Bà Lan bán trái cây",
 		"lines": [
-			"Trái cây tươi đây! Tiếc là quầy chưa mở bán, bạn quay lại sau nha.",
-			"Muốn có trái cây thì lên Làng Ven Hồ hay xuống Xóm Ruộng mà hái, nhiều lắm.",
+			"Trái cây tươi đây! Mua gì cứ chọn, đồ trong túi muốn bán bà cũng mua hết.",
+			"Muốn có trái cây miễn phí thì lên Làng Ven Hồ hay xuống Xóm Ruộng mà hái, nhiều lắm.",
 		],
 		"look": { "skin": 1, "hair": 1, "hair_color": 4, "outfit": 2, "outfit_color": 1, "hat": 0 },
 		"wander": 0.0,
+		"shop": "fruit",
 	},
 	{
 		"name": "Chú Tư thợ bánh",
 		"lines": [
-			"Bánh mì mới ra lò đây! Thơm không?",
+			"Bánh mì mới ra lò đây! Thơm không? Mua về ăn dọc đường nha.",
 			"Hai bó lúa mì với một bình nước, cho vào lò gạch là có bánh mì. Dễ ợt!",
 			"Nghe nói cuối rừng có đấu trường đá cổ. Con quái to canh giữ cái hang bị phong ấn ở đó.",
 		],
 		"look": { "skin": 2, "hair": 0, "hair_color": 1, "outfit": 0, "outfit_color": 6, "hat": 4 },
 		"wander": 0.0,
+		"shop": "bakery",
+	},
+	{
+		"name": "Bác Sắt thợ rèn",
+		"lines": [
+			"Lò rèn đây! Mũ, giáp, quần, giày bằng da với sắt, mua đi cho chắc thân.",
+			"Đồ mặc lâu bị đánh nhiều sẽ mòn, hết độ bền là hỏng. Mang lại đây bác sửa cho, lấy chút vàng thôi.",
+			"Đồ xịn hơn thì phải xuống Hầm Ngục Cổ. Tầng càng sâu, rương càng quý!",
+		],
+		"look": { "skin": 3, "hair": 4, "hair_color": 0, "outfit": 1, "outfit_color": 0, "hat": 0 },
+		"wander": 0.0,
+		"shop": "smith",
+		"prop": "anvil",
 	},
 	{
 		"name": "Bác Ba nông dân",
@@ -221,9 +234,11 @@ const NPC_DATA := [
 			"Xương sói nấu với thảo dược thành thuốc sức mạnh đó. Quả mọng thì làm thuốc nhanh nhẹn, chạy vèo vèo.",
 			"Nấm nhỏ trong đầm ăn được, còn mấy cây nấm khổng lồ thì đừng đụng nha.",
 			"Slime ưa chỗ ẩm. Đi trên cầu gỗ cho đỡ lầy.",
+			"Không rảnh nấu thì mua thuốc của bà cũng được. Có bình máu, thuốc sức mạnh, thuốc nhanh nhẹn.",
 		],
 		"look": { "skin": 4, "hair": 1, "hair_color": 4, "outfit": 2, "outfit_color": 3, "hat": 2 },
 		"wander": 0.0,
+		"shop": "potion",
 	},
 	{
 		"name": "Bà Hai nông dân",
@@ -255,102 +270,102 @@ const NPC_DATA := [
 ]
 
 const MAP := """
-TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT~~TTTTTTTTTTTTTTTTTTTTTTTT################################################################
-Tt.n.t..................,,.t..TTTTTTTTTTTTTTTTTTTTTTTTTTT~~~TTTTTTTTTTTTTTTTTTTTTTT################################################################
-T..........~~~~~~~~~~~...n....TTTTTTTTTTTTTTTTTTTTTTTTTTTT~~TTTTTTTTTTTTTTTTTTTTTTT################################################################
-T....1....~~~~~~~~~~~~~......tTTTTTTTTTTTTTTTTTTTTTTTTTTTT~~~TTTTTTTTTTTTTTTTTTTTTT################################################################
-T........~~~~~~~~~~~~~~~..2...TTTTTTTTTT..T1...TTTTTTTTTTTT~~~TTTTTTTT,...TTTTTTTTT################################################################
-T......^~~~~~~~~~~~~~~~~~...,.TTTTTTTTTT.........TTTTTTTTTTT~~TTTTTT.......HxxTTTTT################################################################
-T..,...^~~~~~~~~~~~~~~~~~^....TTTTTTTT.......X...,TTTTTTTTTT~~TTTT3...j....xxxTTTTT################################################################
-T.....2.~~~~~~[[[~~~~~~~~^....TTTTTTTT...........,3TTTTTTTTT~~TTT,.....,...xxx..TTT################################################################
-T.1.....~~~~~~~[~~~$~~~~~.....TTTTTTT..................TTTTT~~.......----......TTTT################################################################
-T......^~~~~$~~[~~~~~~~~~.....TTTTTTTT,,.....---......3...T~~~X-------.v.....,zTTTT################################################################
-T.,1....~~~~~~~[~~~~~~~~~..1..TTTTTTTT.....---.-X----------[[--.1...lk..--....TTTTT################################################################
-T........~~~~~~[~~~~~~~~......TTTTTTTTTT.---....1TTT......~~~1...TT...,..-...TTTTTT################################################################
-Tt........^..kv_.l....^.....t.TTTTTTTTTT.-....T.TTTTTTTTT~~~T..TTTT.,.T.,-2TTTTTTTT################################################################
-T..Hxx........._.k......Hxx...TTTTTTTTT..-..TTTTTTTTTTTTT~~...,.......T..-.TTTTTTTT################################################################
-T..xxx........._........xxx...TTTTT..,...-.TTTTTTTTTTTTT~~~..,.....s3.T..-.TTTTTTTT################################################################
-T..xxx.......t._..w...t.xxx...TT.........-.TTTTTTTTTTTT~~~.2........,TTT.-.TTTTTTTT################################################################
-T..._........n._..,.,..,._.,..TT....q....-..TTTTTTTTTTT~~.....2.N..,TTTT.-.TTTTTTTT################################################################
-T..._.........._...v....._..q..........s.-2TTTTTTTTTTT~~~T..1..,...TTTTT.-2.TTTTTTT################################################################
-T.____________________________.-----------,TTTTTTTTTTT~~TTTTTTTTTTTTTTTT.--.TTTTTTT################################################################
-T.......,.._..._....._...,......,...,--,...TTTTTTTTTTT~~~~~~~~~~~~TTTTTTT%-%%%TTTTT################################################################
-Tt.,.....Rxxx.._...Wxxx.......TT......---.1TTTTTTTTTTT~~~~~~~~~~~~~TTTT%%%--%%%TTTT################################################################
-T.....t.,xxxx,._...xxxx.......TTT.,.....-.TTTTTTTTTTTTTTTT~~~~~~~~~^TT%%r%%%%X%%TTT################################################################
-T........xxxx.._...xxxx.....t.TTTTT.T..2-.TTTTTTTTTTTTTTTT~~~~~~~~~TT%%%%%X%%%r%%TT################################################################
-T.............._..............TTTTTTTT..-.2..TTTTTTTT.,TT^~~~~~~~~~^..%%%%%%X%%%%%T################################################################
-T.fff-fff......_...7..7..7....TTTTTTTT,.--...3.TTTT........~~~~~~[----%r%%%%%%%%%TT################################################################
-T.f55555f......_t.....,.......TTTTTTTT...-......................--..1.%%%%%X%%%%%TT################################################################
-T.f55555f.v...._..............TTTTTTTT...--..--------------------.1..TT%%%%%r%%%TTT################################################################
-T.f55555f....t._..,7..7..7....TTTTTTT..,..-N....3......N........TTTTTTTTT%T%%%TTTTT################################################################
-T.f55555f......_.............tTTTTTTTTT...-,..TTTTT.T......TTTTTTTTTTTTTTTTTTTTTTTT################################################################
-T.fffffff......_q.............TTTTTTTTT...-.1.TTTTTTTTT.TTTTTTTTTTTTTTTTTTTTTTTTTTT################################################################
-T,..........,.._..............TTTTTTTTTTT.-.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT################################################################
-TTTTTTTTTTTTTT._.TTTTTTTTTTTTTTTTTTTTTTTT.-.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT################################################################
-TTTTTTTTTTTTTT._.TTTTTTTTTTTTTTTTTTTTTTTT.-.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT################################################################
-Tt.....t.....t._.t....t......tTTTTTTTTTTT...TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT################################################################
-T.............._..............TTTTTTT.T.T...TTTTTTTTTTTTTTT%TTTTTTTTTTTTT..Hxx.TTTT##########################################Y##Z##Y###############
-T.Rxxx...Uxxx.._..Wxxx..y.y.y.TTTT..........TTTTTTTTTTTT%%%%%%TTTTTTTTTT.k.xxx...TT#######################################ii;;;;;;;;;ui############
-T.xxxx...xxxx.._..xxxx.ffffff.TTTT..Hxx.kk..TTTTTTTTTT%%%r%%%%%TTTTTTTT....xxb.l.TT#######################################;;;;;;;b;;;;;############
-T.xxxx...xxxx.._..xxxx........TTTn..xxx.l.m.TTTTTTTTTT%%%%%%%%%TTTTTTTTT....-..z.TT#########G#############################;;;I;;;;;I;;;############
-T..._......_..._...._.........TT....xxxs.....TTTTTTTTTT%zs%r%%%.TTTTTTTTT...-...TTT#::::::::::::::::######################;;;;;;E;;;;;;############
-T.__________________________..TT..z..---..r.TTTTTTTTTT.%%%%%%....TTTTTTTT...-TTTTTT#::::::::::::::::######################;;;;;;;;;;;;;############
-T.n,..........._..............TTTT.....-....TTTTTTTTT....%TTT.....TTTTTTT...-TTTTTT#::::::::::::::::#########Y##{##Y######;;a;;;;;;;a;;############
-Tt.....t......._.......t....t.TTTTT....-..TTT.TT.TTTT..b.TTTTT.....T........-TTTTTT#:::#::::::::#:::######iu;;;;;;;;;Ki;;;;;;;;;;;;;;m;############
-Tk...q...LkJxxg+gJxxlL........TTTTTTTT.-.................TTTTTT.......kkl...-..TTTT#::::::::::::::::######;;;;;;;;;;;;;;;;u;;;;;;;;;;;i############
-T........===v==+==v===.....t.,TTTTTTTTT-......Hxx.......TTTTTTTTo...j.......-r...TT#::::::::::::::::######;;;;;;;;;;b;;#########;;#################
-Tt..,w...=C=+++++++=0=..t.....TTTTTTT,.--..j..xxx.l....TTTTT......z.......s.-...TTT#::::::::::::::::######I;;s;;;;;;;;;#########;;#################
-T........===+++++++===.................o--...hxxx.k.T.........------..a....--...TTT#::::::::::::::::######;;;;S;;;;;;;I#########;;#################
-T.....v..g==++Fxx++==g......q............-..s..-.......--------.b..---------.......:::::::::::::::::######;;;;;;;;;;;;;#####Z#Y#;;###Y##Z###Y######
-T________+++++xxx+++++________.----------......-...-----.......TTTTT.......----s---:::::::::B:::::::######;;;;;;;;;;;;;###iiuK;;;;;;;;;;;;;;;;Kii##
-T........g==+++++++==g.....v........T...------------.......TTTTTTTTTTT....TT.......:::::::::::::::::######;;;;;;;;s;;;;###i;;;;;;;;;;;;;;;;;;;;;I##
-T........=v=+++++v+===.............n.........,.......r.T.TTTTTTTTTTTTT....TTTTTTT..:::::::::::::::::######;;h;;;;;;;;;;###;;;;;;;;;;;;b;;;;;;;;;;##
-T.fff-ff.==@x==P==8===........TTTTTTT.T..T.....,.s.....T.TTTHxxTTTTTTT.....VxxTTTTT#::::::::::::::::######;;;;;;;;;;;;;;;;;;;;;S;;;;;;;;;s;;;;;;;##
-T.fppppf.====q=+======.t...,..TTTTTTTT......o......,..TTTTTTxxxTTTTTT......xxxTTTTT#::::::::::::::::######I;;;;;;;;;;;;;;;;;;;;;s;;;;;;;;;;;a;;;;##
-T.fppppf.L====g+g====L....t...TTTTTTT..............TTTTTTTT.xxx.lT.........xxxTTTTT#::::::::::::::::######;;;;;b;;;S;;;###;;;;;;;;;;;;;;;;;;;;;;;##
-Ttfppppf,....n._..............TTTTTTT....TT.T.T....TTTTTT.k..-..k....r.~~~~~~~~TTTT#::::::::::::::::######K;;;;;;;;;;;;###I;;;;;;;;;;;;;;;;;;;;O;##
-T.fff-ff......._...........,t.TTTTTT.-...TTTTTT..%%TTTTTT....-.....b...~~~~~~~~TTTT#:::#::::::::#:::######ii;;;;;;;;;iu###u;;;;;;;;E;;;;Q;;;;;;;;##
-T.............._q.,...........TTTTfff-fffTTTTT%%%%%%%%T....---...h.....~~~~~~~~TTTT#::::::::::::::::######################;;;;;;;;;;;;;;;;;;;;;;;##
-T.Mxx....ffffff_ffffff..Rxxx..TTTTfp-p-pfTTTT%%%r%%z%%%.--o-..a....T..n~~~~~~~~TTTT#::::::::::::::::######################;;;b;;;;;;;;;;;;;;;;;;;##
-T.xxx.t..f....,......f.,xxxx..TTTTfp-s-pfTTTT%%%%%%%%%%..........nTTTTTTTTTTTTTTTTT#::::::::::::::::######################;;;;;;;;;;;;;;;;;Sa;;;;##
-T.xxx...tf...........ft.xxxx..TTTTfp-p-pfTTTTT%%%%s%r%%...T......TTTTTTTTTTTTTTTTTT#######################################;;;;;;;s;;;;S;;;;;;;;;;##
-T.._.....f..d.....d..f...._...TTTTfffffffTTTTTT%%%%%%%%TTTTTTT...TTTTTTTTTTTTTTTTTT#######################################I;;;;;;;;;h;;;;;;;;;;;i##
-Tt._.....f.....D.....f...._.t.TTTTTTTTTTTTTTTTTTTT%%%TTTTTTTTT...TTTTTTTTTTTTTTTTTT#######################################iiK;;;;;;;;;;;;;;;;;uui##
-T..______f...........f_______.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT...TTTTTTTTTTTTTTTTTT################################################################
-T........fffffffffffff......_.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT...TTTTTTTTTTTTTTTTTT################################################################
-TTTTTTTTTTTTTTTTTTTTTTTTTTT._.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT.-.TTTTTTTTTTTTTTTTTT################################################################
-TTTTTTTTTTTTTTTTTTTTTTTTTTT._.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT.-.TTTTTTTTTTTTTTTTTT################################################################
-Tt.........................._.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT.-.TTTTTTTTTTTTTTTTTT################################################################
-T.ffffffffffff.......&xxx..q_.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT.-.TTTTTTTTTTTTTTTTTT################################################################
-T.f4444444444f..!xx..xxxx..._.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT.-.TTTTTTTT..Hxx.TTTT################################################################
-T.f4444444444f..xxx..xxxx..._tTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT.-.TTTTTTTT..xxx..TTT################################################################
-T.f4444444444f..xxx...__...._.TTTTTTTTTTTTTTTTTTTTTT.TTTT3.T.T.-.TTTTTTT...xxx...TT################################################################
-T.f4444)44444f.2.,...._______.TTTTTTTTTTTTTTTT...TTT..T.......--.*TTTTTT.......k..T################################################################
-T.f4444444444f.(...(........_.TTTTTTTTTTTTTTT^^3..1.,.*3..3..b-....TT.T..j....3l.TT################################################################
-T.f4444444444f......(....(.._.TTTTTTTTTTT~~~~~~~.............-....3....---v-....TTT################################################################
-T.f4444444444f............(._tTTTTTTTTTTT~~~~~~~.............-^^^..s...-......TTTTT################################################################
-T.ffffff-fffff.......,......_.TTTTTTTT.T.~~~~~~~.....3...~~~~~~~~~.....-,..T.TTTTTT################################################################
-T.,........................._.TTTTTTT2.T^~~~~~~~^..,....^~~~~~~~~~....--T1TTTTTTTTT################################################################
-T.........v....t.....,..w..._.TTTTTT.*.....3^....--------[[[[[[[[[-----..TTTTTTTTTT################################################################
-Tt..............v..........._qTT...q.........s.---,..3..^~~~~~~~~~--..N...T..TTTTTT################################################################
-T.,...,............,...,...._,......,......-----........^~~~~~~~~~^-..........TTTTT################################################################
-T______________________________-------------2,.---...s...^^..^..^^.---.....b..TTTTT################################################################
-T...._........_..._.....v.......3.............32.-...................-........TTTTT################################################################
-T...._........_..,_...........TT...2....2....*...---2..N....3........--......T..TTT################################################################
-T.fff-ffff.fff-fff_.7..7..7...TTTTTT.T...s........^-^^.....s.......^~~[[~~3.....TTT################################################################
-T.f555555f.f66666f_...........TTTTTTTT,...,....^~~~[~~~~..3........^~~~[[[-.....TTT################################################################
-T2f555555f.f66666f_..........tTTTTTTT..^.^......~~~[~~~~............[[[[[[-......TT################################################################
-T.f555)55f.f66666f_...........TTTTTTTT~~~~~.....~~~[~~~~..*.3......^~~~~~~......TTT################################################################
-Ttf555555f.f66666f_.7..7..7...TTTTTTTT~~~~~.....~~~[~~~~.........^..~~~~~~.....1TTT################################################################
-T.ffffffff.fffffff_...........TTTTTTTT~~~~~^.....^.-^^^......~~~~~~^,.TTTTTTTTTTTTT################################################################
-T................._...........TTTTTTTT~~~~~T....,..-.......3^~~~~~~..TTTTTTTTTTTTTT################################################################
-T................._.....,.,...TTTTTTTTTTT.^....T.b.-------...~~~~~~T.TTTTTTTTTTTTTT################################################################
-T.Rxxx.,,.Mxx...,._..7..7..7..TTTTTTTTTTTT.TTT.T..T.T.TT.T...~~~~~~TTTTTTTTTTTTTTTT################################################################
-T.xxxx....xxx.t.,._...........TTTTTTTTTTTTTTTTTTT.TTT2.T..TTTTTTTTTTTTTTTTTTTTTTTTT################################################################
-T.xxxx....xxx....._...........TTTTTTTTTTTTTTTTTTTTTTTTTTT..TTTTTTTTTTTTTTTTTTTTTTTT################################################################
-T..._......_......_...t......tTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT################################################################
-T..._______________...........TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT################################################################
-TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT################################################################
+TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT~~TTTTTTTTTTTTTTTTTTTTTTTT#####################
+Tt.n.t..................,,.t..TTTTTTTTTTTTTTTTTTTTTTTTTTT~~~TTTTTTTTTTTTTTTTTTTTTTT#####################
+T..........~~~~~~~~~~~...n....TTTTTTTTTTTTTTTTTTTTTTTTTTTT~~TTTTTTTTTTTTTTTTTTTTTTT#####################
+T....1....~~~~~~~~~~~~~......tTTTTTTTTTTTTTTTTTTTTTTTTTTTT~~~TTTTTTTTTTTTTTTTTTTTTT#####################
+T........~~~~~~~~~~~~~~~..2...TTTTTTTTTT..T1...TTTTTTTTTTTT~~~TTTTTTTT,...TTTTTTTTT#####################
+T......^~~~~~~~~~~~~~~~~~...,.TTTTTTTTTT.........TTTTTTTTTTT~~TTTTTT.......HxxTTTTT#####################
+T..,...^~~~~~~~~~~~~~~~~~^....TTTTTTTT.......X...,TTTTTTTTTT~~TTTT3...j....xxxTTTTT#####################
+T.....2.~~~~~~[[[~~~~~~~~^....TTTTTTTT...........,3TTTTTTTTT~~TTT,.....,...xxx..TTT#####################
+T.1.....~~~~~~~[~~~$~~~~~.....TTTTTTT..................TTTTT~~.......----......TTTT#####################
+T......^~~~~$~~[~~~~~~~~~.....TTTTTTTT,,.....---......3...T~~~X-------.v.....,zTTTT#####################
+T.,1....~~~~~~~[~~~~~~~~~..1..TTTTTTTT.....---.-X----------[[--.1...lk..--....TTTTT#####################
+T........~~~~~~[~~~~~~~~......TTTTTTTTTT.---....1TTT......~~~1...TT...,..-...TTTTTT#####################
+Tt........^..kv_.l....^.....t.TTTTTTTTTT.-....T.TTTTTTTTT~~~T..TTTT.,.T.,-2TTTTTTTT#####################
+T..Hxx........._.k......Hxx...TTTTTTTTT..-..TTTTTTTTTTTTT~~...,.......T..-.TTTTTTTT#####################
+T..xxx........._........xxx...TTTTT..,...-.TTTTTTTTTTTTT~~~..,.....s3.T..-.TTTTTTTT#####################
+T..xxx.......t._..w...t.xxx...TT.........-.TTTTTTTTTTTT~~~.2........,TTT.-.TTTTTTTT#####################
+T..._........n._..,.,..,._.,..TT....q....-..TTTTTTTTTTT~~.....2.N..,TTTT.-.TTTTTTTT#####################
+T..._.........._...v....._..q..........s.-2TTTTTTTTTTT~~~T..1..,...TTTTT.-2.TTTTTTT#####################
+T.____________________________.-----------,TTTTTTTTTTT~~TTTTTTTTTTTTTTTT.--.TTTTTTT#####################
+T.......,.._..._....._...,......,...,--,...TTTTTTTTTTT~~~~~~~~~~~~TTTTTTT%-%%%TTTTT#####################
+Tt.,.....Rxxx.._...Wxxx.......TT......---.1TTTTTTTTTTT~~~~~~~~~~~~~TTTT%%%--%%%TTTT#####################
+T.....t.,xxxx,._...xxxx.......TTT.,.....-.TTTTTTTTTTTTTTTT~~~~~~~~~^TT%%r%%%%X%%TTT#####################
+T........xxxx.._...xxxx.....t.TTTTT.T..2-.TTTTTTTTTTTTTTTT~~~~~~~~~TT%%%%%X%%%r%%TT#####################
+T.............._..............TTTTTTTT..-.2..TTTTTTTT.,TT^~~~~~~~~~^..%%%%%%X%%%%%T#####################
+T.fff-fff......_...7..7..7....TTTTTTTT,.--...3.TTTT........~~~~~~[----%r%%%%%%%%%TT#####################
+T.f55555f......_t.....,.......TTTTTTTT...-......................--..1.%%%%%X%%%%%TT#####################
+T.f55555f.v...._..............TTTTTTTT...--..--------------------.1..TT%%%%%r%%%TTT#####################
+T.f55555f....t._..,7..7..7....TTTTTTT..,..-N....3......N........TTTTTTTTT%T%%%TTTTT#####################
+T.f55555f......_.............tTTTTTTTTT...-,..TTTTT.T......TTTTTTTTTTTTTTTTTTTTTTTT#####################
+T.fffffff......_q.............TTTTTTTTT...-.1.TTTTTTTTT.TTTTTTTTTTTTTTTTTTTTTTTTTTT#####################
+T,..........,.._..............TTTTTTTTTTT.-.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT#####################
+TTTTTTTTTTTTTT._.TTTTTTTTTTTTTTTTTTTTTTTT.-.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT#####################
+TTTTTTTTTTTTTT._.TTTTTTTTTTTTTTTTTTTTTTTT.-.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT#####################
+Tt.....t.....t._.t....t......tTTTTTTTTTTT...TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT#####################
+T.............._..............TTTTTTT.T.T...TTTTTTTTTTTTTTT%TTTTTTTTTTTTT..Hxx.TTTT#####################
+T.Rxxx...Uxxx.._..Wxxx..y.y.y.TTTT..........TTTTTTTTTTTT%%%%%%TTTTTTTTTT.k.xxx...TT#####################
+T.xxxx...xxxx.._..xxxx.ffffff.TTTT..Hxx.kk..TTTTTTTTTT%%%r%%%%%TTTTTTTT....xxb.l.TT#####################
+T.xxxx...xxxx.._..xxxx........TTTn..xxx.l.m.TTTTTTTTTT%%%%%%%%%TTTTTTTTT....-..z.TT#########G###########
+T..._......_..._...._.........TT....xxxs.....TTTTTTTTTT%zs%r%%%.TTTTTTTTT...-...TTT#::::::::::::::::####
+T.__________________________..TT..z..---..r.TTTTTTTTTT.%%%%%%....TTTTTTTT...-TTTTTT#::::::::::::::::####
+T.n,..........._..............TTTT.....-....TTTTTTTTT....%TTT.....TTTTTTT...-TTTTTT#::::::::::::::::####
+Tt.....t......._.......t....t.TTTTT....-..TTT.TT.TTTT..b.TTTTT.....T........-TTTTTT#:::#::::::::#:::####
+Tk...q...LkJxxg+gJxxlL........TTTTTTTT.-.................TTTTTT.......kkl...-..TTTT#::::::::::::::::####
+T........===v==+==v===...v.t.,TTTTTTTTT-......Hxx.......TTTTTTTTo...j.......-r...TT#::::::::::::::::####
+Tt..,w...=C=+++++++=0=..t.....TTTTTTT,.--..j..xxx.l....TTTTT......z.......s.-...TTT#::::::::::::::::####
+T........===+++++++===.................o--...hxxx.k.T.........------..a....--...TTT#::::::::::::::::####
+T.....v..g==++Fxx++==g......q............-..s..-.......--------.b..---------.......:::::::::::::::::####
+T________+++++xxx+++++________.----------......-...-----.......TTTTT.......----s---:::::::::B:::::::####
+T........g==+++++++==g.....v........T...------------.......TTTTTTTTTTT....TT.......:::::::::::::::::####
+T........=v=+++++v+===.............n.........,.......r.T.TTTTTTTTTTTTT....TTTTTTT..:::::::::::::::::####
+T.fff-ff.==@x==P==8===........TTTTTTT.T..T.....,.s.....T.TTTHxxTTTTTTT.....VxxTTTTT#::::::::::::::::####
+T.fppppf.====q=+======.t...,..TTTTTTTT......o......,..TTTTTTxxxTTTTTT......xxxTTTTT#::::::::::::::::####
+T.fppppf.L====g+g====L....t...TTTTTTT..............TTTTTTTT.xxx.lT.........xxxTTTTT#::::::::::::::::####
+Ttfppppf,....n._..............TTTTTTT....TT.T.T....TTTTTT.k..-..k....r.~~~~~~~~TTTT#::::::::::::::::####
+T.fff-ff......._...........,t.TTTTTT.-...TTTTTT..%%TTTTTT....-.....b...~~~~~~~~TTTT#:::#::::::::#:::####
+T.............._q.,...........TTTTfff-fffTTTTT%%%%%%%%T....---...h.....~~~~~~~~TTTT#::::::::::::::::####
+T.Mxx....ffffff_ffffff..Rxxx..TTTTfp-p-pfTTTT%%%r%%z%%%.--o-..a....T..n~~~~~~~~TTTT#::::::::::::::::####
+T.xxx.t..f....,......f.,xxxx..TTTTfp-s-pfTTTT%%%%%%%%%%..........nTTTTTTTTTTTTTTTTT#::::::::::::::::####
+T.xxx...tf...........ft.xxxx..TTTTfp-p-pfTTTTT%%%%s%r%%...T......TTTTTTTTTTTTTTTTTT#####################
+T.._.....f..d.....d..f...._...TTTTfffffffTTTTTT%%%%%%%%TTTTTTT...TTTTTTTTTTTTTTTTTT#####################
+Tt._.....f.....D.....f...._.t.TTTTTTTTTTTTTTTTTTTT%%%TTTTTTTTT...TTTTTTTTTTTTTTTTTT#####################
+T..______f...........f_______.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT...TTTTTTTTTTTTTTTTTT#####################
+T........fffffffffffff......_.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT...TTTTTTTTTTTTTTTTTT#####################
+TTTTTTTTTTTTTTTTTTTTTTTTTTT._.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT.-.TTTTTTTTTTTTTTTTTT#####################
+TTTTTTTTTTTTTTTTTTTTTTTTTTT._.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT.-.TTTTTTTTTTTTTTTTTT#####################
+Tt.........................._.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT.-.TTTTTTTTTTTTTTTTTT#####################
+T.ffffffffffff.......&xxx..q_.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT.-.TTTTTTTTTTTTTTTTTT#####################
+T.f4444444444f..!xx..xxxx..._.TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT.-.TTTTTTTT..Hxx.TTTT#####################
+T.f4444444444f..xxx..xxxx..._tTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT.-.TTTTTTTT..xxx..TTT#####################
+T.f4444444444f..xxx...__...._.TTTTTTTTTTTTTTTTTTTTTT.TTTT3.T.T.-.TTTTTTT...xxx...TT#####################
+T.f4444)44444f.2.,...._______.TTTTTTTTTTTTTTTT...TTT..T.......--.*TTTTTT.......k..T#####################
+T.f4444444444f.(...(........_.TTTTTTTTTTTTTTT^^3..1.,.*3..3..b-....TT.T..j....3l.TT#####################
+T.f4444444444f......(....(.._.TTTTTTTTTTT~~~~~~~.............-....3....---v-....TTT#####################
+T.f4444444444f............(._tTTTTTTTTTTT~~~~~~~.............-^^^..s...-......TTTTT#####################
+T.ffffff-fffff.......,......_.TTTTTTTT.T.~~~~~~~.....3...~~~~~~~~~.....-,..T.TTTTTT#####################
+T.,........................._.TTTTTTT2.T^~~~~~~~^..,....^~~~~~~~~~....--T1TTTTTTTTT#####################
+T.........v....t.....,..w..._.TTTTTT.*.....3^....--------[[[[[[[[[-----..TTTTTTTTTT#####################
+Tt..............v..........._qTT...q.........s.---,..3..^~~~~~~~~~--..N...T..TTTTTT#####################
+T.,...,............,...,...._,......,......-----........^~~~~~~~~~^-..........TTTTT#####################
+T______________________________-------------2,.---...s...^^..^..^^.---.....b..TTTTT#####################
+T...._........_..._.....v.......3.............32.-...................-........TTTTT#####################
+T...._........_..,_...........TT...2....2....*...---2..N....3........--......T..TTT#####################
+T.fff-ffff.fff-fff_.7..7..7...TTTTTT.T...s........^-^^.....s.......^~~[[~~3.....TTT#####################
+T.f555555f.f66666f_...........TTTTTTTT,...,....^~~~[~~~~..3........^~~~[[[-.....TTT#####################
+T2f555555f.f66666f_..........tTTTTTTT..^.^......~~~[~~~~............[[[[[[-......TT#####################
+T.f555)55f.f66666f_...........TTTTTTTT~~~~~.....~~~[~~~~..*.3......^~~~~~~......TTT#####################
+Ttf555555f.f66666f_.7..7..7...TTTTTTTT~~~~~.....~~~[~~~~.........^..~~~~~~.....1TTT#####################
+T.ffffffff.fffffff_...........TTTTTTTT~~~~~^.....^.-^^^......~~~~~~^,.TTTTTTTTTTTTT#####################
+T................._...........TTTTTTTT~~~~~T....,..-.......3^~~~~~~..TTTTTTTTTTTTTT#####################
+T................._.....,.,...TTTTTTTTTTT.^....T.b.-------...~~~~~~T.TTTTTTTTTTTTTT#####################
+T.Rxxx.,,.Mxx...,._..7..7..7..TTTTTTTTTTTT.TTT.T..T.T.TT.T...~~~~~~TTTTTTTTTTTTTTTT#####################
+T.xxxx....xxx.t.,._...........TTTTTTTTTTTTTTTTTTT.TTT2.T..TTTTTTTTTTTTTTTTTTTTTTTTT#####################
+T.xxxx....xxx....._...........TTTTTTTTTTTTTTTTTTTTTTTTTTT..TTTTTTTTTTTTTTTTTTTTTTTT#####################
+T..._......_......_...t......tTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT#####################
+T..._______________...........TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT#####################
+TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT#####################
 """
 
 const PLAYER_SCENE := preload("res://scenes/player.tscn")
@@ -361,6 +376,7 @@ const ENEMY_SCENES := {
 	"b": preload("res://scenes/enemies/bat.tscn"),
 	"a": preload("res://scenes/enemies/archer.tscn"),
 	"B": preload("res://scenes/enemies/boss.tscn"),
+	"}": preload("res://scenes/enemies/lich.tscn"),   # Boss hầm ngục (tầng 5)
 	"X": preload("res://scenes/enemies/wolf.tscn"),
 	"N": preload("res://scenes/enemies/boar.tscn"),
 }
@@ -463,9 +479,12 @@ const DUNGEON_TEX := {
 	"light_beam": preload("res://assets/dungeon/light_beam.png"),
 	"portal_ring": preload("res://assets/dungeon/portal_ring.png"),
 	"portal_swirl": preload("res://assets/dungeon/portal_swirl.png"),
+	"stairs_down": preload("res://assets/dungeon/stairs_down.png"),
+	"rune": preload("res://assets/dungeon/rune.png"),
 }
+const TRAP_SCRIPT := preload("res://scripts/dungeon_trap.gd")
+const RUNE_LIGHT := Color(0.5, 1.0, 0.95)
 const WALL_CHARS := "#YZ"                          # các ô tường (đuốc, cờ cũng nằm trên tường)
-const DUNGEON_DARK := Color(0.22, 0.2, 0.32)       # độ tối trong hầm ngục (1 = sáng như ngoài trời)
 const CANDLE_LIGHT := Color(1.0, 0.75, 0.45)
 const MAGIC_LIGHT := Color(0.75, 0.45, 1.0)
 const VILLAGE_TREES := [
@@ -534,6 +553,7 @@ const HARVEST := {
 }
 ## Chế tạo: nồi luyện thuốc, bàn chế tạo, xô nước cạnh giếng
 const CRAFT_TEX := {
+	"anvil": preload("res://assets/craft/anvil.png"),
 	"cauldron": preload("res://assets/craft/cauldron.png"),
 	"workbench": preload("res://assets/craft/workbench.png"),
 	"fire_pit": preload("res://assets/craft/fire_pit.png"),
@@ -556,7 +576,7 @@ const ENEMY_RESPAWN := 120.0   # quái thường hồi sinh sau bao nhiêu giây
 const WATER_CHARS := "~[$"    # các ô có nước bên dưới (cầu gỗ và thuyền nằm trên nước)
 const CROP_CHARS := "456"     # cây trồng trên ruộng (có đất cày)
 
-const SOLID := "T#~orxRUWMfwqytHVklzjYZIuKFeLJg17*!&$)(C@08"
+const SOLID := "T#~orxRUWMfwqytHVklzjYZIuKFeLJg17*!&$)(C@08|?"   # | dung nham, ? bia cổ ngữ (hầm ngục)
 const HOUSE_WIDTH := { "R": 4, "U": 4, "W": 4, "M": 3 }
 
 var rows: PackedStringArray
@@ -595,7 +615,24 @@ var visited_areas := {}
 var windmill_blades: Array[Sprite2D] = []
 var stations: Array[Dictionary] = []     # { "pos": Vector2, "kind": "pot" / "bench" / "fire" / "stove" }
 var current_station := ""
-var dungeon_column := -1                 # hầm ngục ở bên phải cột này
+var dungeon_column := -1                 # hầm ngục (các tầng) ở bên phải cột này
+var overworld_size := Vector2i.ZERO      # kích thước thế giới bên ngoài (ô)
+var floor_rects: Array[Rect2i] = []      # vị trí từng tầng hầm ngục trong màn chơi (ô)
+var current_floor := 0                   # 0 = thế giới bên ngoài, 1..5 = tầng hầm ngục
+var visited_floors := {}
+var stairs: Array[Dictionary] = []       # { "pos", "kind": "exit"/"up"/"down", "floor", "sealed", "seal" }
+var runes: Array[Dictionary] = []        # bia cổ ngữ { "sprite", "pos", "floor", "lit" }
+var poison_textures: Array[Texture2D] = []
+var lava_textures: Array[Texture2D] = []
+var lava_material: CanvasItemMaterial    # dung nham tự phát sáng trong bóng tối
+var lava_layer: Node2D
+var poison_timer := 0.0
+var seal_msg_cd := 0.0
+var portal_open := true                  # cổng xoáy cuối hầm ngục: chỉ mở khi hạ Boss hầm ngục
+var portal_ring: Sprite2D
+var chests: Array = []                   # rương báu trong hầm ngục (scripts/chest.gd)
+var floor_alive := {}                    # tầng -> số quái ban đầu còn sống (hạ hết thì rương mở khoá)
+var floor_cleared := {}                  # tầng -> true khi đã dọn sạch quái
 var cave_entrance := Vector2.INF         # ô miệng hang (ngoài trời)
 var cave_exit := Vector2.INF             # ô lối ra (trong hầm)
 var cave_busy := false                   # đang chuyển cảnh qua hang
@@ -657,6 +694,10 @@ func _parse_map() -> void:
 	var width := 0
 	for r in rows:
 		width = maxi(width, r.length())
+	overworld_size = Vector2i(width, rows.size())
+	_add_dungeon_floors()
+	for r in rows:
+		width = maxi(width, r.length())
 	map_size = Vector2i(width, rows.size())
 	for y in rows.size():
 		var gx := rows[y].find("G")
@@ -667,9 +708,73 @@ func _parse_map() -> void:
 		var ax := rows[y].find(":")
 		if ax != -1:
 			arena_column = ax if arena_column == -1 else mini(arena_column, ax)
-		var dx := rows[y].find(";")
-		if dx != -1:
-			dungeon_column = dx - 2 if dungeon_column == -1 else mini(dungeon_column, dx - 2)
+	if not floor_rects.is_empty():
+		dungeon_column = overworld_size.x + int(Dungeon.GAP * 0.5)
+
+
+## Ghép các tầng hầm ngục (scripts/dungeon.gd) vào bên phải bản đồ thế giới, ngăn cách bằng đá đặc.
+## Người chơi không đi bộ sang được, chỉ qua cửa hang và cầu thang.
+func _add_dungeon_floors() -> void:
+	var start_x := overworld_size.x + Dungeon.GAP
+	var x := start_x
+	var y := 4
+	var row_h := 0
+	for i in Dungeon.FLOORS.size():
+		var lines: PackedStringArray = (Dungeon.FLOORS[i]["map"] as String).strip_edges().split("\n")
+		var w := 0
+		for j in lines.size():
+			lines[j] = lines[j].strip_edges()
+			w = maxi(w, lines[j].length())
+		if i > 0 and i % Dungeon.PER_ROW == 0:
+			x = start_x
+			y += row_h + Dungeon.GAP
+			row_h = 0
+		floor_rects.append(Rect2i(x, y, w, lines.size()))
+		while rows.size() < y + lines.size() + 2:
+			rows.append("")
+		for j in lines.size():
+			var row: String = rows[y + j].rpad(x, "#")
+			var rest := row.substr(x + w) if row.length() > x + w else ""
+			rows[y + j] = row.substr(0, x) + lines[j].rpad(w, "#") + rest
+		x += w + Dungeon.GAP
+		row_h = maxi(row_h, lines.size())
+
+
+## Ô (x, y) thuộc khu nào: 0 = thế giới bên ngoài, 1..5 = tầng hầm ngục, -1 = đá đặc giữa các tầng.
+func floor_at(x: int, y: int) -> int:
+	if x < overworld_size.x and y < overworld_size.y:
+		return 0
+	for i in floor_rects.size():
+		if floor_rects[i].has_point(Vector2i(x, y)):
+			return i + 1
+	return -1
+
+
+func floor_of(world_pos: Vector2) -> int:
+	var c := _to_cell(to_local(world_pos))
+	return floor_at(c.x, c.y)
+
+
+## Khung (theo ô) của khu: 0 = thế giới bên ngoài, 1..5 = tầng hầm ngục.
+func region_rect(index: int) -> Rect2i:
+	if index <= 0 or index > floor_rects.size():
+		return Rect2i(Vector2i.ZERO, overworld_size)
+	return floor_rects[index - 1]
+
+
+## Khung (pixel, toạ độ thế giới) của khu, dùng làm giới hạn camera.
+func region_pixels(index: int) -> Rect2:
+	var r := region_rect(index)
+	return Rect2(to_global(Vector2(r.position) * TILE), Vector2(r.size) * TILE)
+
+
+## Ô đá đặc nằm sâu trong lòng đất (8 ô xung quanh đều là tường): không cần vẽ.
+func _deep_rock(x: int, y: int) -> bool:
+	for dy in range(-1, 2):
+		for dx in range(-1, 2):
+			if not WALL_CHARS.contains(cell(x + dx, y + dy)):
+				return false
+	return cell(x, y) == "#"
 
 
 func cell(x: int, y: int) -> String:
@@ -783,6 +888,9 @@ func _load_forest_tiles() -> void:
 		plaza_tiles.append(load("res://assets/plaza/plaza_%d.png" % mask))
 	for side in ["n", "e", "s", "w", "ne", "nw", "se", "sw"]:
 		shade_tiles[side] = load("res://assets/forest/shade_%s.png" % side)
+	for mask in 16:
+		poison_textures.append(load("res://assets/dungeon/poison_%d.png" % mask))
+		lava_textures.append(load("res://assets/dungeon/lava_%d.png" % mask))
 
 
 func _build_ground() -> void:
@@ -794,11 +902,34 @@ func _build_ground() -> void:
 	detail.name = "GroundDetail"
 	detail.z_index = -9
 	add_child(detail)
+	# Hầm ngục: nền đen phía sau mỗi tầng (chỗ đá đặc không vẽ), dung nham tự phát sáng
+	for r in floor_rects:
+		var back := ColorRect.new()
+		back.color = Color.BLACK
+		back.position = Vector2(r.position) * TILE
+		back.size = Vector2(r.size) * TILE
+		back.z_index = -11
+		back.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(back)
+	lava_material = CanvasItemMaterial.new()
+	lava_material.light_mode = CanvasItemMaterial.LIGHT_MODE_UNSHADED
+	lava_layer = Node2D.new()
+	lava_layer.name = "Lava"
+	lava_layer.z_index = -9
+	add_child(lava_layer)
+	var pulse := lava_layer.create_tween().set_loops()
+	pulse.tween_property(lava_layer, "modulate", Color(0.82, 0.78, 0.74), 1.3).set_trans(Tween.TRANS_SINE)
+	pulse.tween_property(lava_layer, "modulate", Color.WHITE, 1.3).set_trans(Tween.TRANS_SINE)
 	for y in map_size.y:
 		for x in map_size.x:
 			var c := cell(x, y)
+			var fl := floor_at(x, y)
+			if fl == -1 or (fl > 0 and _deep_rock(x, y)):
+				continue   # đá đặc giữa / trong lòng các tầng: để nền đen
 			var area := _area_at(x, y)
 			tile_tint = BIOME_TINT.get(area.get("biome", ""), Color.WHITE)
+			if fl > 0:
+				tile_tint = Dungeon.FLOORS[fl - 1]["tint"]
 			_add_tile_sprite(ground, _floor_texture(x, y), x, y)
 			if plaza_cells.has(Vector2i(x, y)):
 				_add_tile_sprite(detail, _plaza_texture(x, y), x, y)
@@ -824,6 +955,14 @@ func _build_ground() -> void:
 			if c != "T" and (arena_column == -1 or x < arena_column):
 				_add_forest_shade(detail, x, y)
 			if dungeon_column != -1 and x > dungeon_column:
+				if c == "]":
+					_add_tile_sprite(detail, poison_textures[_terrain_mask(x, y, "]")], x, y)
+				elif c == "|":
+					var lava := _add_tile_sprite(lava_layer, lava_textures[_terrain_mask(x, y, "|")], x, y)
+					lava.material = lava_material
+					lava.modulate = Color.WHITE
+				elif c == ">":
+					_add_tile_sprite(detail, DUNGEON_TEX["stairs_down"], x, y)
 				if c == "Z":
 					var flag := _add_tile_sprite(detail, DUNGEON_TEX["banner"], x, y)
 					flag.position += Vector2(2, 1)
@@ -1217,11 +1356,30 @@ func _spawn_everything() -> void:
 					village_anims.append({"sprite": stove, "fps": 5.0, "phase": 0.0})
 					_add_shadow(FOREST_TEX["small_shadow"], stove.position + Vector2(1, -2))
 					stations.append({"pos": stove.position + Vector2(0, -6), "kind": "stove"})
-				"{":
-					var stairs := _add_prop(CAVE_TEX["exit"], x, y)
-					stairs.position.y += 1.0
+				"{", "<":
+					var steps := _add_prop(CAVE_TEX["exit"], x, y)
+					steps.position.y += 1.0
 					_add_light(pos + Vector2(0, -4), 70.0, Color(1.0, 0.95, 0.8), 1.0, false)
-					cave_exit = pos
+					stairs.append({"pos": pos, "kind": "exit" if c == "{" else "up", "floor": floor_at(x, y)})
+					if c == "{":
+						cave_exit = pos
+				">":
+					_add_light(pos, 46.0, Color(0.7, 0.75, 1.0), 0.6, false)
+					stairs.append({"pos": pos, "kind": "down", "floor": floor_at(x, y), "sealed": false})
+				"9":
+					_add_trap("spike", pos, x, y)
+				"/":
+					_add_trap("vent", pos, x, y)
+				"?":
+					var stone := _add_prop(DUNGEON_TEX["rune"], x, y, 1, 1, 2)
+					_add_shadow(FOREST_TEX["small_shadow"], stone.position + Vector2(1, -2))
+					runes.append({"sprite": stone, "pos": pos, "floor": floor_at(x, y), "lit": false})
+				"|":
+					if posmod(x * 3 + y * 5, 7) == 0:
+						_add_light(pos, 44.0, Color(1.0, 0.5, 0.2), 0.8, true)
+				"]":
+					if posmod(x * 5 + y * 3, 9) == 0:
+						_add_light(pos, 34.0, Color(0.5, 1.0, 0.35), 0.5, true)
 				"H":
 					_add_prop(FOREST_TEX["cabin_grey" if cabin_count % 2 == 0 else "cabin_red"], x, y, 3, 3)
 					cabin_count += 1
@@ -1274,11 +1432,14 @@ func _spawn_everything() -> void:
 					_add_small_prop(planters[rng.randi() % planters.size()], x, y)
 				"v":
 					var npc = NPC_SCRIPT.new()
-					npc.setup(NPC_DATA[npc_count] if npc_count < NPC_DATA.size() else {})
+					var npc_data: Dictionary = NPC_DATA[npc_count] if npc_count < NPC_DATA.size() else {}
+					npc.setup(npc_data)
 					npc_count += 1
 					npc.position = pos
 					npc.level_ref = self
 					entities.add_child(npc)
+					if npc_data.get("prop", "") == "anvil":
+						_add_small_prop(CRAFT_TEX["anvil"], x - 1, y)   # cái đe cạnh thợ rèn
 				"w":
 					_add_prop(TEX["well"], x, y)
 					var bucket = HARVEST_SCRIPT.new()
@@ -1328,6 +1489,8 @@ func _spawn_everything() -> void:
 					_add_pedestal(x, y, Pickup.Kind.POWER_CRYSTAL if c == "E" else Pickup.Kind.POTION_HP)
 				"O":
 					_add_portal(x, y)
+				"'":
+					_add_chest(x, y)
 				"P":
 					player = PLAYER_SCENE.instantiate() as Player
 					player.position = pos
@@ -1343,12 +1506,17 @@ func _spawn_everything() -> void:
 			if ENEMY_SCENES.has(c):
 				var enemy := (ENEMY_SCENES[c] as PackedScene).instantiate() as Enemy
 				enemy.position = pos
-				if dungeon_column != -1 and x > dungeon_column and c != "B":
-					enemy.make_elite()
+				var fl := floor_at(x, y)
+				if fl > 0 and c != "}":
+					_apply_floor_power(enemy, fl)   # quái hầm ngục mạnh dần theo tầng
+				if c == "}":
+					portal_open = false               # cổng xoáy chỉ mở khi hạ Boss hầm ngục
+				if fl > 0:
+					_track_floor_enemy(enemy, fl)     # hạ hết quái của tầng thì rương mở khoá
 				if c == "D":
 					enemy.armor = 6
 					enemy.display_name = "Bù nhìn giáp"
-				if c != "B" and c != "D":
+				if c != "B" and c != "D" and c != "}":
 					enemy.died.connect(_on_enemy_died.bind(c, pos))
 				entities.add_child(enemy)
 			elif ITEM_KINDS.has(c):
@@ -1360,8 +1528,11 @@ func _spawn_everything() -> void:
 
 	_spawn_critters()
 	_add_fireflies()
+	_seal_rune_stairs()
+	if not portal_open and portal_ring:
+		portal_ring.modulate = Color(0.5, 0.45, 0.55, 0.6)   # cổng xoáy còn tắt
 	if player:
-		player.set_camera_limits(Rect2(Vector2.ZERO, Vector2(map_size) * TILE))
+		player.set_camera_limits(region_pixels(0))
 		# Đèn nhỏ quanh người chơi, chỉ bật trong hầm ngục
 		player_light = PointLight2D.new()
 		player_light.texture = light_texture
@@ -1389,10 +1560,58 @@ func _respawn_enemy(c: String, pos: Vector2) -> void:
 		return
 	var enemy := (ENEMY_SCENES[c] as PackedScene).instantiate() as Enemy
 	enemy.position = pos
-	if dungeon_column != -1 and floori(pos.x / TILE) > dungeon_column:
-		enemy.make_elite()   # quái trong hầm ngục mạnh hơn
+	var fl := floor_at(floori(pos.x / TILE), floori(pos.y / TILE))
+	if fl > 0:
+		_apply_floor_power(enemy, fl)   # quái trong hầm ngục mạnh dần theo tầng
 	enemy.died.connect(_on_enemy_died.bind(c, pos))
 	entities.add_child(enemy)
+
+
+## Rương báu ' trong hầm ngục: loại rương (thường, bạc, vàng, kim cương) chọn ngẫu nhiên theo
+## "chest_odds" của tầng. Rương khoá tới khi hạ hết quái của tầng đó.
+func _add_chest(x: int, y: int) -> void:
+	var fl := floor_at(x, y)
+	if fl <= 0:
+		return
+	var chest := Chest.new()
+	chest.setup(Chest.roll_tier(Dungeon.FLOORS[fl - 1].get("chest_odds", {})), fl, true, self)
+	chest.position = Vector2(x + 0.5, y + 0.5) * TILE + Vector2(0, 5)
+	entities.add_child(chest)
+	chests.append(chest)
+
+
+## Đếm quái ban đầu của tầng fl (quái hồi sinh và lính Boss gọi ra không tính).
+func _track_floor_enemy(enemy: Enemy, fl: int) -> void:
+	floor_alive[fl] = int(floor_alive.get(fl, 0)) + 1
+	enemy.died.connect(_on_floor_enemy_died.bind(fl))
+
+
+func _on_floor_enemy_died(_enemy: Enemy, fl: int) -> void:
+	floor_alive[fl] = maxi(int(floor_alive.get(fl, 0)) - 1, 0)
+	if floor_alive[fl] > 0 or floor_cleared.has(fl):
+		return
+	floor_cleared[fl] = true
+	var opened := 0
+	for chest in chests:
+		if is_instance_valid(chest) and chest.floor_index == fl and chest.locked:
+			chest.unlock()
+			opened += 1
+	Game.shake(3.0)
+	if opened > 0:
+		Game.message.emit("Đã dọn sạch Tầng %d! %d rương báu trên tầng đã mở khoá, đi tới rương để mở." % [fl, opened])
+	else:
+		Game.message.emit("Đã dọn sạch Tầng %d!" % fl)
+
+
+## Số quái ban đầu của tầng fl còn sống (rương mở khoá khi về 0).
+func floor_enemies_left(fl: int) -> int:
+	return int(floor_alive.get(fl, 0))
+
+
+## Quái ở tầng fl của hầm ngục: máu, sát thương, giáp... nhân theo "power" của tầng (scripts/dungeon.gd).
+func _apply_floor_power(enemy: Enemy, fl: int) -> void:
+	var data: Dictionary = Dungeon.FLOORS[fl - 1]
+	enemy.apply_floor(data["power"], data["enemy_tint"], data["elite"])
 
 
 ## Thả thú hiền vào từng khu theo số lượng trong AREAS.
@@ -1551,8 +1770,135 @@ func _add_portal(x: int, y: int) -> void:
 	add_child(ring)
 	move_child(ring, entities.get_index())  # nằm dưới nhân vật
 	portal_swirls.append(swirl)
+	portal_ring = ring
 	altar_position = center
 	_add_light(center, 100.0, MAGIC_LIGHT, 1.2, false)
+
+
+## Bẫy gai '9' / lỗ phun lửa '/' (scripts/dungeon_trap.gd). Tầng càng sâu bẫy càng đau.
+func _add_trap(kind: String, pos: Vector2, x: int, y: int) -> void:
+	var fl := maxi(floor_at(x, y), 1)
+	var trap := TRAP_SCRIPT.new() as DungeonTrap
+	var damage := (Dungeon.SPIKE_DAMAGE if kind == "spike" else Dungeon.FIRE_DAMAGE) + fl * 2
+	trap.setup(kind, damage, (x + y) * 0.3)   # các bẫy cạnh nhau lệch giờ một chút: thành "sóng"
+	trap.position = pos
+	if kind == "vent":
+		trap.light = _add_light(pos + Vector2(0, -10), 64.0, Color(1.0, 0.55, 0.2), 0.0, false)
+	add_child(trap)
+
+
+## Tầng có bia cổ ngữ: lối xuống bị phong ấn tới khi thắp sáng hết bia.
+func _seal_rune_stairs() -> void:
+	for st in stairs:
+		if st["kind"] != "down" or _rune_total(st["floor"]) == 0:
+			continue
+		st["sealed"] = true
+		var seal := Sprite2D.new()
+		seal.texture = CAVE_TEX["seal"]
+		seal.hframes = 2
+		seal.position = st["pos"] + Vector2(0, -3)
+		entities.add_child(seal)
+		village_anims.append({"sprite": seal, "fps": 3.0, "phase": 0.0})
+		st["seal"] = seal
+
+
+func _rune_total(fl: int) -> int:
+	var n := 0
+	for r in runes:
+		if r["floor"] == fl:
+			n += 1
+	return n
+
+
+## Đi tới gần bia cổ ngữ là thắp sáng nó. Sáng hết bia trong tầng thì mở lối xuống.
+func _update_runes() -> void:
+	for r in runes:
+		if r["lit"] or r["floor"] != current_floor:
+			continue
+		if player.global_position.distance_to(r["pos"]) > 22.0:
+			continue
+		r["lit"] = true
+		(r["sprite"] as Sprite2D).frame = 1
+		_add_light(r["pos"] + Vector2(0, -8), 80.0, RUNE_LIGHT, 1.0, false)
+		Game.burst(r["pos"] + Vector2(0, -8), RUNE_LIGHT, 14, 60.0, 30.0, 0.6, 1.5)
+		var lit := 0
+		for other in runes:
+			if other["floor"] == current_floor and other["lit"]:
+				lit += 1
+		var total := _rune_total(current_floor)
+		if lit < total:
+			Game.message.emit("Bia cổ ngữ sáng lên! (%d/%d)" % [lit, total])
+			continue
+		Game.message.emit("Cả %d bia cổ ngữ đã sáng! Phong ấn lối xuống ở giữa mê cung đã vỡ." % total)
+		Game.shake(4.0)
+		for st in stairs:
+			if st["floor"] == current_floor and st["kind"] == "down" and st["sealed"]:
+				st["sealed"] = false
+				var seal: Sprite2D = st["seal"]
+				var tw := seal.create_tween()
+				tw.tween_property(seal, "modulate:a", 0.0, 1.0)
+				tw.tween_callback(seal.hide)
+
+
+## Đứng trong đầm độc: đi chậm, cứ 0.6 giây mất một ít máu (lướt F qua thì không sao).
+func _update_poison(delta: float) -> void:
+	var c := _to_cell(to_local(player.global_position))
+	if cell(c.x, c.y) != "]":
+		player.ground_slow = 1.0
+		poison_timer = 0.25
+		return
+	player.ground_slow = Dungeon.POISON_SLOW
+	poison_timer -= delta
+	if poison_timer <= 0.0:
+		poison_timer = 0.6
+		player.take_poison(Dungeon.POISON_DAMAGE + current_floor)
+
+
+## Đổi sang khu khác (thế giới bên ngoài / tầng hầm ngục): đổi độ tối, đèn, lời nhắc lần đầu tới.
+func _enter_floor(fl: int) -> void:
+	current_floor = fl
+	if (fl > 0) != in_dungeon:
+		_set_in_dungeon(fl > 0)
+	var tw := create_tween()
+	tw.tween_property(darkness, "color", Color.WHITE if fl == 0 else Dungeon.FLOORS[fl - 1]["dark"], 0.8)
+	if fl == 0 or visited_floors.has(fl):
+		return
+	visited_floors[fl] = true
+	entered_area2 = true
+	if fl == 1:
+		Game.message.emit("Hầm Ngục Cổ có 5 tầng, càng xuống sâu quái càng mạnh, tầng 5 có Boss! Hố đen dưới sàn: xuống tầng dưới. Cầu thang sáng trên tường: đi lên.")
+	Game.message.emit(Dungeon.FLOORS[fl - 1]["message"])
+
+
+## Chỗ đứng an toàn quanh điểm p (cách 2 ô, ưu tiên phía dưới), dùng khi đi cầu thang lên.
+func _arrival_near(p: Vector2) -> Vector2:
+	var c := _to_cell(p)
+	for o in [Vector2i(0, 2), Vector2i(1, 2), Vector2i(-1, 2), Vector2i(0, -2), Vector2i(2, 0), Vector2i(-2, 0),
+			Vector2i(2, 2), Vector2i(-2, 2), Vector2i(2, -2), Vector2i(-2, -2), Vector2i(0, 3), Vector2i(3, 0)]:
+		var n: Vector2i = c + o
+		var ch := cell(n.x, n.y)
+		if not SOLID.contains(ch) and not "9/]><{".contains(ch) and not _blocked(n):
+			return Vector2(n.x + 0.5, n.y + 0.5) * TILE
+	return p + Vector2(0, 2 * TILE)
+
+
+## Vị trí cầu thang loại kind ở tầng fl (Vector2.INF nếu không có).
+func _stairs_pos(fl: int, kind: String) -> Vector2:
+	for st in stairs:
+		if st["floor"] == fl and st["kind"] == kind:
+			return st["pos"]
+	return Vector2.INF
+
+
+func _open_portal() -> void:
+	if portal_open:
+		return
+	portal_open = true
+	Game.message.emit("Malakar đã gục ngã! Cổng Xoáy ở cuối điện thờ đã mở, bước vào để chiến thắng!")
+	Game.shake(5.0)
+	if portal_ring:
+		var tw := portal_ring.create_tween()
+		tw.tween_property(portal_ring, "modulate", Color.WHITE, 1.2)
 
 
 ## Vào / ra hầm ngục: làm tối màn hình và bật đèn (chuyển dần trong 0.8 giây).
@@ -1561,7 +1907,8 @@ func _update_player_light() -> void:
 	if player_light == null or player == null:
 		return
 	var has_torch := player.count_item("torch") > 0
-	player_light.texture_scale = (170.0 if has_torch else 100.0) * 2.0 / light_texture.width
+	var radius: float = Dungeon.FLOORS[current_floor - 1]["light"] if current_floor > 0 else 100.0
+	player_light.texture_scale = radius * (1.7 if has_torch else 1.0) * 2.0 / light_texture.width
 	player_light.energy = 0.95 if has_torch else 0.7
 
 
@@ -1570,8 +1917,8 @@ func _set_in_dungeon(value: bool) -> void:
 	dungeon_lights.visible = value
 	if player_light:
 		player_light.enabled = value
-	var tw := create_tween()
-	tw.tween_property(darkness, "color", DUNGEON_DARK if value else Color.WHITE, 0.8)
+	if not value and player:
+		player.ground_slow = 1.0
 
 
 func _animate(delta: float) -> void:
@@ -1618,35 +1965,56 @@ func _process(delta: float) -> void:
 			Game.message.emit(sign_data["text"])
 		sign_data["near"] = near
 	_update_area(floori(tile_x), floori(player.global_position.y / TILE))
-	if not entered_arena and arena_column != -1 and tile_x > arena_column + 1 and tile_x < dungeon_column:
+	if not entered_arena and arena_column != -1 and tile_x > arena_column + 1 and tile_x < overworld_size.x:
 		entered_arena = true
 		Game.area_entered.emit("Đấu Trường Đá Cổ")
-	var now_in_dungeon := dungeon_column != -1 and tile_x > dungeon_column + 1
-	if now_in_dungeon != in_dungeon:
-		_set_in_dungeon(now_in_dungeon)
+	var fl := floor_of(player.global_position)
+	if fl != -1 and fl != current_floor:
+		_enter_floor(fl)
+	seal_msg_cd = maxf(seal_msg_cd - delta, 0.0)
 	if in_dungeon:
 		_update_player_light()
-	if not entered_area2 and now_in_dungeon:
-		entered_area2 = true
-		Game.area_entered.emit("Hầm Ngục Cổ")
-		Game.message.emit("Hầm ngục tối và lạnh, quái nơi đây mạnh hơn. Hãy tìm Cổng Xoáy ở cuối hầm! (Cầu thang sáng phía sau là lối ra)")
-	if not won and altar_position != Vector2.INF and player.global_position.distance_to(altar_position) < 14.0:
+		_update_poison(delta)
+		_update_runes()
+	if not won and portal_open and altar_position != Vector2.INF and player.global_position.distance_to(altar_position) < 14.0:
 		won = true
 		Game.game_won.emit()
 
 
-## Đi vào miệng hang (sau khi hạ Boss) thì sang hầm ngục; đi vào cầu thang trong hầm thì ra lại cửa hang.
+## Đi vào miệng hang (sau khi hạ Boss) thì xuống Tầng 1. Trong hầm ngục:
+## cầu thang sáng trên tường '{' (Tầng 1) ra lại cửa hang, '<' lên tầng trên, hố '>' xuống tầng dưới.
 func _update_cave() -> void:
 	if cave_busy:
 		return
-	if gate_open and cave_entrance != Vector2.INF and player.global_position.distance_to(cave_entrance) < 9.0:
-		_go_through_cave(cave_exit + Vector2(0, 2 * TILE), "Hầm Ngục Cổ")
-	elif cave_exit != Vector2.INF and player.global_position.distance_to(cave_exit) < 9.0:
-		_go_through_cave(cave_entrance + Vector2(0, 2 * TILE), "Đấu Trường Đá Cổ")
+	var me := player.global_position
+	if gate_open and current_floor == 0 and cave_entrance != Vector2.INF and me.distance_to(cave_entrance) < 9.0:
+		_go_through_cave(cave_exit + Vector2(0, 2 * TILE), Dungeon.floor_name(1), 1)
+		return
+	for st in stairs:
+		if st["floor"] != current_floor or me.distance_to(st["pos"]) >= 9.0:
+			continue
+		var fl: int = st["floor"]
+		match st["kind"]:
+			"exit":
+				_go_through_cave(cave_entrance + Vector2(0, 2 * TILE), "Đấu Trường Đá Cổ", 0)
+			"up":
+				var down := _stairs_pos(fl - 1, "down")
+				if down != Vector2.INF:
+					_go_through_cave(_arrival_near(down), Dungeon.floor_name(fl - 1), fl - 1)
+			"down":
+				if st["sealed"]:
+					if seal_msg_cd <= 0.0:
+						seal_msg_cd = 3.0
+						Game.message.emit("Lối xuống bị phong ấn. Hãy thắp sáng hết bia cổ ngữ trong mê cung!")
+					return
+				var up := _stairs_pos(fl + 1, "up")
+				if up != Vector2.INF:
+					_go_through_cave(up + Vector2(0, 2 * TILE), Dungeon.floor_name(fl + 1), fl + 1)
+		return
 
 
-## Màn hình tối dần, đưa người chơi sang chỗ mới rồi sáng lại.
-func _go_through_cave(dest: Vector2, area_name: String) -> void:
+## Màn hình tối dần, đưa người chơi sang chỗ mới (khu dest_floor) rồi sáng lại.
+func _go_through_cave(dest: Vector2, area_name: String, dest_floor: int) -> void:
 	if dest.x == INF:
 		return
 	cave_busy = true
@@ -1654,6 +2022,7 @@ func _go_through_cave(dest: Vector2, area_name: String) -> void:
 	var tw := create_tween()
 	tw.tween_property(fade_rect, "color:a", 1.0, 0.35)
 	tw.tween_callback(func():
+		player.set_camera_limits(region_pixels(dest_floor))
 		player.teleport_to(to_global(dest))
 		Game.area_entered.emit(area_name))
 	tw.tween_interval(0.15)
@@ -1728,10 +2097,13 @@ func _update_area(tx: int, ty: int) -> void:
 
 
 func _on_boss_defeated() -> void:
+	if current_floor > 0:
+		_open_portal()   # Boss hầm ngục (Malakar) chết
+		return
 	if gate_open:
 		return
 	gate_open = true
-	Game.message.emit("Phong ấn cửa hang đã vỡ! Đi vào hang ở vách bắc đấu trường để xuống Hầm Ngục Cổ")
+	Game.message.emit("Phong ấn cửa hang đã vỡ! Đi vào hang ở vách bắc đấu trường để xuống Hầm Ngục Cổ (5 tầng)")
 	Game.shake(4.0)
 	for col in gate_body.get_children():
 		if col is CollisionShape2D:

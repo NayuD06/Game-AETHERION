@@ -28,10 +28,22 @@ var message_timer := 0.0
 
 var skill_slots := {}  # tên -> { "cover": ColorRect, "lock": Label, "style": StyleBoxFlat, ... }
 var bag_panel: Panel
-var bag_buttons: Array = []  # mỗi ô: [Button, Label số lượng]
+var bag_buttons: Array = []  # mỗi ô: [Button, Label số lượng, Label dấu "+" (đồ tốt hơn đang mặc)]
 var bag_gold: Label
 var bag_hint: Label
 var shown_bag_slots := -1
+var equip_panel: Panel       # bảng Trang bị (mũ, giáp, quần, giày) bên trái túi đồ
+var equip_slots := {}        # "helmet" -> { "button", "style", "bar", "fill" }
+var equip_stats: Label
+var shop_panel: Panel        # bảng cửa hàng khi đứng gần người bán (scripts/shops.gd)
+var shop_id := ""
+var shop_tab := "buy"        # "buy" mua, "sell" bán, "repair" sửa đồ
+var shop_page := 0
+var shop_shown_gold := -1
+var shop_refresh_queued := false
+const SHOP_W := 206.0
+const SHOP_ROW_W := 190.0
+const SHOP_PAGE := 7         # số dòng mỗi trang
 var craft_panel: Panel
 var craft_rows: Array = []   # mỗi dòng: { "recipe": Dictionary, "button": Button, "needs": [[id, cần, Label], ...] }
 var craft_station := ""
@@ -71,10 +83,12 @@ func _ready() -> void:
 	pause_overlay = _build_overlay("TẠM DỪNG", _controls_text() + "\n\nNhấn Esc để chơi tiếp")
 	death_overlay = _build_overlay("BẠN ĐÃ GỤC NGÃ", "Nhấn R để chơi lại, N để tạo nhân vật mới")
 	win_overlay = _build_overlay("HOÀN THÀNH BẢN DEMO!",
-		"Bạn đã vượt qua Hầm Ngục Cổ và bước vào Cổng Xoáy.\nVùng đất mới và sức mạnh nguyên tố sẽ có ở phần sau.\nCảm ơn bạn đã chơi thử!\n\nNhấn R để chơi lại, N để tạo nhân vật mới")
+		"Bạn đã hạ Malakar, vượt qua 5 tầng Hầm Ngục Cổ và bước vào Cổng Xoáy.\nVùng đất mới và sức mạnh nguyên tố sẽ có ở phần sau.\nCảm ơn bạn đã chơi thử!\n\nNhấn R để chơi lại, N để tạo nhân vật mới")
 	_ignore_mouse(self)
 	_build_bag()
+	_build_equip_panel()
 	_build_craft_panel()
+	_build_shop_panel()
 	_build_skill_panel()
 	minimap = Minimap.new()
 	add_child(minimap)
@@ -297,10 +311,13 @@ func _build_bag() -> void:
 		count.size = Vector2(30, 10)
 		count.position = Vector2(0, 21)
 		button.add_child(count)
-		bag_buttons.append([button, count])
+		var mark := _make_label("", 10, Color(0.45, 1.0, 0.45))
+		mark.position = Vector2(2, -3)
+		button.add_child(mark)
+		bag_buttons.append([button, count, mark])
 	bag_gold = _make_label("", 9, Color(1.0, 0.9, 0.5))
 	bag_panel.add_child(bag_gold)
-	bag_hint = _make_label("Bấm vào vật phẩm để dùng / ăn", 8, Color(0.85, 0.8, 0.75))
+	bag_hint = _make_label("Bấm để dùng / ăn / mặc đồ", 8, Color(0.85, 0.8, 0.75))
 	bag_panel.add_child(bag_hint)
 	_resize_bag(Player.BAG_SLOTS_START)
 
@@ -326,17 +343,152 @@ func _refresh_bag() -> void:
 	for i in bag_buttons.size():
 		var button: Button = bag_buttons[i][0]
 		var count: Label = bag_buttons[i][1]
+		var mark: Label = bag_buttons[i][2]
+		var style := button.get_theme_stylebox("normal") as StyleBoxFlat
+		style.border_color = Color(0.45, 0.35, 0.25)
+		button.modulate = Color.WHITE
+		mark.text = ""
 		if i < player.bag.size():
 			var slot: Dictionary = player.bag[i]
 			var data := Items.info(slot["id"])
 			button.icon = data.get("icon")
-			button.tooltip_text = "%s\n%s" % [data.get("name", ""), data.get("desc", "")]
-			count.text = "x%d" % slot["count"]
+			if Equipment.is_gear(slot["id"]):
+				# Trang bị: viền theo độ hiếm, đỏ lên khi hỏng, dấu "+" khi tốt hơn món đang mặc
+				button.tooltip_text = Equipment.tooltip(slot) + "\nBấm để mặc"
+				style.border_color = Equipment.rarity_info(slot.get("rarity", ""))["color"]
+				count.text = ""
+				if Equipment.is_broken(slot):
+					button.modulate = Color(1.0, 0.5, 0.5)
+				elif _gear_is_better(slot):
+					mark.text = "+"
+			else:
+				button.tooltip_text = "%s\n%s" % [data.get("name", ""), data.get("desc", "")]
+				count.text = "x%d" % slot["count"]
 		else:
 			button.icon = null
 			button.tooltip_text = ""
 			count.text = ""
 	bag_gold.text = "Vàng: %d" % player.gold
+	_refresh_equip()
+	if shop_panel != null and shop_panel.visible:
+		_refresh_shop_later()
+
+
+## Món trong túi có tốt hơn món đang mặc ở cùng chỗ không (chỗ trống hoặc món đang mặc đã hỏng = có).
+func _gear_is_better(item: Dictionary) -> bool:
+	var worn: Dictionary = player.gear.get(Equipment.slot_of(item["id"]), {})
+	if worn.is_empty() or Equipment.is_broken(worn):
+		return true
+	return Equipment.score(item["id"], item.get("rarity", "")) > Equipment.score(worn["id"], worn.get("rarity", ""))
+
+
+# ---------------------------------------------------------------- Bảng Trang bị (mở cùng túi đồ)
+
+## 4 ô trang bị: Mũ, Giáp, Quần, Giày. Dưới mỗi ô có thanh độ bền. Bên dưới là tổng chỉ số trang bị.
+func _build_equip_panel() -> void:
+	equip_panel = Panel.new()
+	equip_panel.size = Vector2(104, 186)
+	equip_panel.position = Vector2(SCREEN.x - 160 - equip_panel.size.x - 4, 64)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.12, 0.09, 0.07, 0.92)
+	sb.border_color = Color(0.75, 0.6, 0.4)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(4)
+	equip_panel.add_theme_stylebox_override("panel", sb)
+	equip_panel.visible = false
+	add_child(equip_panel)
+	var title := _make_label("Trang bị", 10, Color(1.0, 0.85, 0.5))
+	title.position = Vector2(8, 4)
+	equip_panel.add_child(title)
+	for i in Equipment.SLOTS.size():
+		var slot: String = Equipment.SLOTS[i]
+		var pos := Vector2(12 + (i % 2) * 48, 22 + floori(i / 2.0) * 40)
+		var button := Button.new()
+		button.position = pos
+		button.size = Vector2(32, 32)
+		button.expand_icon = true
+		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.focus_mode = Control.FOCUS_NONE
+		var normal := StyleBoxFlat.new()
+		normal.bg_color = Color(0.18, 0.14, 0.1)
+		normal.border_color = Color(0.45, 0.35, 0.25)
+		normal.set_border_width_all(1)
+		var hover := normal.duplicate() as StyleBoxFlat
+		hover.border_color = Color(1.0, 0.85, 0.4)
+		button.add_theme_stylebox_override("normal", normal)
+		button.add_theme_stylebox_override("hover", hover)
+		button.add_theme_stylebox_override("pressed", hover)
+		button.pressed.connect(_on_equip_slot_pressed.bind(slot))
+		equip_panel.add_child(button)
+		var slot_name := _make_label(Equipment.SLOT_NAMES[slot], 7, Color(0.8, 0.75, 0.65))
+		slot_name.position = Vector2(pos.x + 34, pos.y + 1)
+		equip_panel.add_child(slot_name)
+		# Thanh độ bền
+		var bar := ColorRect.new()
+		bar.color = Color(0.05, 0.04, 0.04)
+		bar.position = pos + Vector2(0, 34)
+		bar.size = Vector2(32, 3)
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		equip_panel.add_child(bar)
+		var fill := ColorRect.new()
+		fill.size = Vector2(32, 3)
+		fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		bar.add_child(fill)
+		equip_slots[slot] = { "button": button, "style": normal, "bar": bar, "fill": fill }
+	equip_stats = _make_label("", 8, Color(1.0, 0.95, 0.85))
+	equip_stats.position = Vector2(8, 102)
+	equip_panel.add_child(equip_stats)
+
+
+func _refresh_equip() -> void:
+	if equip_panel == null or player == null or not is_instance_valid(player):
+		return
+	for slot in Equipment.SLOTS:
+		var ui: Dictionary = equip_slots[slot]
+		var button: Button = ui["button"]
+		var style: StyleBoxFlat = ui["style"]
+		var bar: ColorRect = ui["bar"]
+		var fill: ColorRect = ui["fill"]
+		var item: Dictionary = player.gear[slot]
+		button.modulate = Color.WHITE
+		if item.is_empty():
+			button.icon = Equipment.SLOT_ICONS[slot]
+			button.tooltip_text = "%s: chưa mặc gì.\nNhặt trang bị trong rương hầm ngục, bấm vào món trong túi để mặc." % Equipment.SLOT_NAMES[slot]
+			style.border_color = Color(0.45, 0.35, 0.25)
+			bar.visible = false
+			continue
+		button.icon = Equipment.icon(item["id"])
+		button.tooltip_text = Equipment.tooltip(item) + "\nBấm để tháo ra"
+		style.border_color = Equipment.rarity_info(item.get("rarity", ""))["color"]
+		var ratio := float(item["dur"]) / float(maxi(Equipment.max_durability(item["id"], item.get("rarity", "")), 1))
+		bar.visible = true
+		fill.size.x = maxf(32.0 * ratio, 0.0)
+		fill.color = Color(0.4, 0.9, 0.4) if ratio > 0.5 else (Color(1.0, 0.8, 0.3) if ratio > Equipment.LOW_DURABILITY else Color(1.0, 0.35, 0.3))
+		if Equipment.is_broken(item):
+			button.modulate = Color(1.0, 0.45, 0.45)
+	var b: Dictionary = player.gear_bonus
+	var lines := PackedStringArray()
+	lines.append("Phòng thủ %d" % player.defense)
+	lines.append("  (chặn %d%% sát thương)" % Equipment.block_percent(player.defense))
+	lines.append("Máu +%d" % int(b["hp"]))
+	lines.append("Tấn công +%d" % int(b["attack"]))
+	lines.append("Tốc độ +%d%%" % int(b["speed"]))
+	var cost := player.repair_all_cost()
+	if cost > 0:
+		lines.append("Sửa đồ: %d vàng" % cost)
+	equip_stats.text = "\n".join(lines)
+
+
+## Trang bị thay đổi (mặc, tháo, mòn, sửa): cập nhật bảng Trang bị và tab Sửa đồ của thợ rèn.
+func _on_gear_changed() -> void:
+	_refresh_equip()
+	if shop_panel.visible and shop_tab == "repair":
+		_refresh_shop_later()
+
+
+func _on_equip_slot_pressed(slot: String) -> void:
+	if player != null and is_instance_valid(player) and not get_tree().paused:
+		player.unequip(slot)
 
 
 func _on_bag_slot_pressed(index: int) -> void:
@@ -347,6 +499,7 @@ func _on_bag_slot_pressed(index: int) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("inventory") and not get_tree().paused:
 		bag_panel.visible = not bag_panel.visible
+		equip_panel.visible = bag_panel.visible
 		_refresh_bag()
 	elif event.is_action_pressed("skills_menu"):
 		toggle_skill_panel()
@@ -528,7 +681,7 @@ func _on_station_changed(station: String) -> void:
 		craft_rows.clear()
 		return
 	_fill_craft_panel(station)
-	craft_panel.visible = true
+	craft_panel.visible = shop_id == ""   # đang mở cửa hàng thì bảng chế tạo đợi
 
 
 func _fill_craft_panel(station: String) -> void:
@@ -641,6 +794,256 @@ func _on_craft_pressed(recipe: Dictionary) -> void:
 	_refresh_bag()
 
 
+# ---------------------------------------------------------------- Cửa hàng (scripts/shops.gd)
+
+## Bảng cửa hàng: tự mở khi đứng gần người bán hàng (có đồng xu trên đầu), đi ra xa thì đóng.
+## Tab Mua / Bán (Thợ rèn có thêm Sửa đồ). Mỗi trang SHOP_PAGE dòng, bấm < > để lật trang.
+func _build_shop_panel() -> void:
+	shop_panel = Panel.new()
+	shop_panel.position = Vector2(108, 52)   # bên phải bản đồ nhỏ, dưới thanh máu
+	shop_panel.size = Vector2(SHOP_W, 120)
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color(0.12, 0.09, 0.07, 0.94)
+	sb.border_color = Color(0.85, 0.7, 0.35)
+	sb.set_border_width_all(2)
+	sb.set_corner_radius_all(4)
+	shop_panel.add_theme_stylebox_override("panel", sb)
+	shop_panel.visible = false
+	add_child(shop_panel)
+	Game.shop_changed.connect(_on_shop_changed)
+
+
+func _on_shop_changed(shop: String) -> void:
+	if shop == "" or not Shops.SHOPS.has(shop):
+		shop_id = ""
+		shop_panel.visible = false
+		# Bảng chế tạo đang đợi (đứng gần cả trạm chế tạo) thì hiện lại
+		craft_panel.visible = craft_station != "" and Recipes.STATIONS.has(craft_station) and not craft_rows.is_empty()
+		return
+	shop_id = shop
+	shop_tab = "buy"
+	shop_page = 0
+	craft_panel.visible = false
+	_fill_shop()
+	shop_panel.visible = true
+
+
+## Một nút có màu (Mua, Bán, Sửa, các tab).
+func _shop_button(text: String, pos: Vector2, button_size: Vector2, base: Color, action: Callable) -> Button:
+	var button := Button.new()
+	button.text = text
+	button.position = pos
+	button.size = button_size
+	button.focus_mode = Control.FOCUS_NONE
+	button.add_theme_font_size_override("font_size", 8)
+	var normal := StyleBoxFlat.new()
+	normal.bg_color = base
+	normal.border_color = base.lightened(0.4)
+	normal.set_border_width_all(1)
+	normal.set_corner_radius_all(3)
+	var hover := normal.duplicate() as StyleBoxFlat
+	hover.bg_color = base.lightened(0.15)
+	var off := normal.duplicate() as StyleBoxFlat
+	off.bg_color = Color(0.25, 0.22, 0.2)
+	off.border_color = Color(0.4, 0.36, 0.32)
+	button.add_theme_stylebox_override("normal", normal)
+	button.add_theme_stylebox_override("hover", hover)
+	button.add_theme_stylebox_override("pressed", hover)
+	button.add_theme_stylebox_override("disabled", off)
+	button.pressed.connect(action)
+	return button
+
+
+## Vẽ lại bảng cửa hàng sau khung hình này (không xoá nút ngay lúc nút đang được bấm).
+func _refresh_shop_later() -> void:
+	if shop_refresh_queued:
+		return
+	shop_refresh_queued = true
+	_fill_shop_now.call_deferred()
+
+
+func _fill_shop_now() -> void:
+	shop_refresh_queued = false
+	if shop_panel.visible:
+		_fill_shop()
+
+
+## Vẽ lại bảng cửa hàng theo tab đang chọn.
+func _fill_shop() -> void:
+	if shop_id == "" or player == null or not is_instance_valid(player):
+		return
+	for child in shop_panel.get_children():
+		shop_panel.remove_child(child)
+		child.queue_free()
+	shop_shown_gold = player.gold
+	var info := Shops.info(shop_id)
+	var title := _make_label(info["name"], 10, Color(1.0, 0.85, 0.5))
+	title.position = Vector2(8, 3)
+	shop_panel.add_child(title)
+	var gold := _make_label("Vàng: %d" % player.gold, 8, Color(1.0, 0.9, 0.5))
+	gold.position = Vector2(8, 17)
+	shop_panel.add_child(gold)
+	# Các tab
+	var tabs := [["buy", "Mua"], ["sell", "Bán"]]
+	if info.get("repair", false):
+		tabs.append(["repair", "Sửa đồ"])
+	for i in tabs.size():
+		var key: String = tabs[i][0]
+		var on := key == shop_tab
+		shop_panel.add_child(_shop_button(tabs[i][1], Vector2(8 + i * 52, 30), Vector2(48, 15),
+			Color(0.55, 0.42, 0.2) if on else Color(0.28, 0.22, 0.16), _on_shop_tab.bind(key)))
+	# Danh sách các dòng của tab
+	var rows: Array = []   # mỗi dòng: [hình, tên, dòng phụ, màu dòng phụ, chữ nút, nút sáng?, Callable, chữ khi rê chuột, màu viền]
+	var plain := Color(0.4, 0.31, 0.22)
+	match shop_tab:
+		"buy":
+			for id in info["sells"]:
+				var data := Items.info(id)
+				var price := Shops.buy_price(id)
+				var tip: String = Equipment.tooltip(Equipment.make(id)) if Equipment.is_gear(id) else "%s\n%s" % [data.get("name", id), data.get("desc", "")]
+				rows.append([data.get("icon"), data.get("name", id), "%d vàng" % price,
+					Color(1.0, 0.85, 0.4) if player.gold >= price else Color(1.0, 0.5, 0.45),
+					"Mua", player.gold >= price, _on_shop_buy.bind(id), tip, plain])
+		"sell":
+			for i in player.bag.size():
+				var entry: Dictionary = player.bag[i]
+				var data := Items.info(entry["id"])
+				var item_name: String = data.get("name", entry["id"])
+				var border := plain
+				var tip := "%s\n%s" % [item_name, data.get("desc", "")]
+				if Equipment.is_gear(entry["id"]):
+					item_name = Equipment.short_name(entry)
+					border = Equipment.rarity_info(entry.get("rarity", ""))["color"]
+					tip = Equipment.tooltip(entry)
+				elif int(entry["count"]) > 1:
+					item_name += " x%d" % int(entry["count"])
+				rows.append([data.get("icon"), item_name, "Bán được %d vàng" % Shops.sell_price(entry),
+					Color(0.6, 1.0, 0.6), "Bán", true, _on_shop_sell.bind(i), tip, border])
+		"repair":
+			for item in player.all_gear_items():
+				var cost := Equipment.repair_cost(item)
+				var worn := not item.has("count")   # món trong túi có "count", món đang mặc thì không
+				var sub: String = "Còn tốt" if cost == 0 else "Sửa: %d vàng" % cost
+				if Equipment.is_broken(item):
+					sub = "HỎNG - sửa: %d vàng" % cost
+				rows.append([Equipment.icon(item["id"]), Equipment.short_name(item) + (" (đang mặc)" if worn else ""), sub,
+					Color(1.0, 0.45, 0.4) if Equipment.is_broken(item) else Color(1.0, 0.85, 0.4),
+					"Sửa", cost > 0 and player.gold >= cost, _on_shop_repair.bind(item), Equipment.tooltip(item),
+					Equipment.rarity_info(item.get("rarity", ""))["color"]])
+	var pages := maxi(1, ceili(rows.size() / float(SHOP_PAGE)))
+	shop_page = clampi(shop_page, 0, pages - 1)
+	var first := shop_page * SHOP_PAGE
+	var shown := mini(SHOP_PAGE, rows.size() - first)
+	for i in shown:
+		_shop_row(rows[first + i], Vector2(8, 50 + i * 26))
+	var bottom := 50.0 + maxi(shown, 1) * 26.0
+	if rows.is_empty():
+		var empty_text := "Túi đang trống" if shop_tab == "sell" else "Chưa có trang bị nào"
+		var empty := _make_label(empty_text, 8, Color(0.8, 0.75, 0.7))
+		empty.position = Vector2(10, 54)
+		shop_panel.add_child(empty)
+	# Dòng cuối: lật trang, sửa tất cả, lời nhắc
+	if pages > 1:
+		var prev := _shop_button("<", Vector2(SHOP_W - 72, bottom + 1), Vector2(18, 15), Color(0.3, 0.24, 0.18), _on_shop_page.bind(-1))
+		prev.disabled = shop_page == 0
+		shop_panel.add_child(prev)
+		var page_label := _make_label("%d/%d" % [shop_page + 1, pages], 8, Color(0.9, 0.85, 0.75))
+		page_label.position = Vector2(SHOP_W - 52, bottom + 2)
+		shop_panel.add_child(page_label)
+		var next := _shop_button(">", Vector2(SHOP_W - 26, bottom + 1), Vector2(18, 15), Color(0.3, 0.24, 0.18), _on_shop_page.bind(1))
+		next.disabled = shop_page >= pages - 1
+		shop_panel.add_child(next)
+	if shop_tab == "repair":
+		var cost := player.repair_all_cost()
+		var repair_button := _shop_button("Sửa hết: %d vàng" % cost, Vector2(8, bottom + 1), Vector2(96, 15),
+			Color(0.35, 0.5, 0.25), _on_shop_repair_all)
+		repair_button.disabled = cost <= 0 or player.gold < cost
+		shop_panel.add_child(repair_button)
+	else:
+		var hint := _make_label("Đi ra xa để đóng", 7, Color(0.8, 0.75, 0.7))
+		hint.position = Vector2(8, bottom + 3)
+		shop_panel.add_child(hint)
+	shop_panel.size = Vector2(SHOP_W, bottom + 20)
+
+
+func _shop_row(row: Array, pos: Vector2) -> void:
+	var panel := Panel.new()
+	panel.position = pos
+	panel.size = Vector2(SHOP_ROW_W, 24)
+	var st := StyleBoxFlat.new()
+	st.bg_color = Color(0.2, 0.15, 0.11)
+	st.border_color = row[8]
+	st.set_border_width_all(1)
+	panel.add_theme_stylebox_override("panel", st)
+	panel.tooltip_text = row[7]
+	shop_panel.add_child(panel)
+	if row[0] != null:
+		panel.add_child(_make_icon(row[0], Vector2(3, 3), 18.0))
+	var label := _make_label(row[1], 8, Color(1.0, 0.95, 0.8))
+	label.position = Vector2(25, 0)
+	label.size = Vector2(SHOP_ROW_W - 72, 12)
+	label.clip_text = true
+	panel.add_child(label)
+	var sub := _make_label(row[2], 7, row[3])
+	sub.position = Vector2(25, 11)
+	panel.add_child(sub)
+	var button := _shop_button(row[4], Vector2(SHOP_ROW_W - 43, 4), Vector2(39, 16), Color(0.35, 0.5, 0.25), row[6])
+	button.disabled = not row[5]
+	panel.add_child(button)
+
+
+func _shop_message(text: String, good: bool) -> void:
+	Game.popup_text(player.global_position + Vector2(0, -24), text,
+		Color(1.0, 0.9, 0.5) if good else Color(1.0, 0.6, 0.5), 9)
+
+
+func _on_shop_tab(tab: String) -> void:
+	shop_tab = tab
+	shop_page = 0
+	_refresh_shop_later()
+
+
+func _on_shop_page(step: int) -> void:
+	shop_page += step
+	_refresh_shop_later()
+
+
+func _on_shop_buy(id: String) -> void:
+	if player == null or not is_instance_valid(player) or get_tree().paused:
+		return
+	var err := Shops.buy(player, id)
+	if err == "":
+		_shop_message("+ %s" % Items.info(id).get("name", id), true)
+	else:
+		_shop_message(err, false)
+	_refresh_shop_later()
+
+
+func _on_shop_sell(index: int) -> void:
+	if player == null or not is_instance_valid(player) or get_tree().paused:
+		return
+	var got := Shops.sell(player, index)
+	if got > 0:
+		_shop_message("+%d vàng" % got, true)
+	_refresh_shop_later()
+
+
+func _on_shop_repair(item: Dictionary) -> void:
+	if player == null or not is_instance_valid(player) or get_tree().paused:
+		return
+	var err := player.repair_item(item)
+	_shop_message("Sửa xong!" if err == "" else err, err == "")
+	_refresh_shop_later()
+
+
+func _on_shop_repair_all() -> void:
+	if player == null or not is_instance_valid(player) or get_tree().paused:
+		return
+	var err := player.repair_all()
+	_shop_message("Sửa xong hết!" if err == "" else err, err == "")
+	_refresh_shop_later()
+
+
 ## Mọi thứ trên HUD (trừ túi đồ) để chuột "xuyên qua", để bấm chuột phải đi lại vẫn được.
 func _ignore_mouse(node: Node) -> void:
 	for child in node.get_children():
@@ -709,9 +1112,11 @@ func _controls_text(skill_ids: Array = []) -> String:
 		"Chuột phải: đi tới chỗ bấm / bấm vào quái (con trỏ hình kiếm, viền đỏ) để khóa mục tiêu và tự đánh tới khi quái chết",
 		"Chuột trái: đánh về phía con trỏ (Cung: giữ để gồng)   A + chuột trái: vừa đi vừa đánh (hiện vòng tầm đánh)   S: đứng lại",
 		"Q W E R: giữ phím để xem tầm kỹ năng, thả ra để tung chiêu (chuột phải để hủy). Mở ở cấp 5, 10, 15, 20",
-		"F: lướt né   D: uống bình máu (mở ở cấp 30)   B: túi đồ   K: bảng kỹ năng / đổi thứ tự   N: nhân vật mới",
+		"F: lướt né   D: uống bình máu (mở ở cấp 30)   B: túi đồ + trang bị   K: bảng kỹ năng / đổi thứ tự   N: nhân vật mới",
 		"Bản đồ nhỏ (vòng tròn góc trên bên trái): bấm chuột phải lên bản đồ để đi tới đó   M: bản đồ lớn",
 		"Đi tới cây chín để hái. Đi tới 4 trạm chế tạo quanh quảng trường Làng Khởi Nguyên để chế đồ",
+		"Người có đồng xu trên đầu bán đồ: tới gần để mua / bán. Bác Sắt thợ rèn sửa trang bị bị mòn",
+		"Hầm Ngục Cổ (hang sau đấu trường): 5 tầng, Boss Malakar ở tầng 5. Hạ hết quái một tầng thì rương báu mở khoá",
 		"",
 	]
 	var weapon_index := int(Game.appearance.get("weapon", 0)) % Weapons.ORDER.size()
@@ -757,12 +1162,16 @@ func _process(delta: float) -> void:
 	if bound_player != player:
 		bound_player = player
 		player.bag_changed.connect(_refresh_bag)
+		player.gear_changed.connect(_on_gear_changed)
 	# Bản đồ nhỏ: con trỏ nằm trên bản đồ / bảng giao diện thì nhân vật không đi theo chuột dưới đó
 	minimap.player = player
-	player.mouse_on_ui = minimap.is_mouse_over() or _mouse_on_panel(bag_panel) \
+	player.mouse_on_ui = minimap.is_mouse_over() or _mouse_on_panel(bag_panel) or _mouse_on_panel(equip_panel) \
+		or _mouse_on_panel(shop_panel) \
 		or _mouse_on_panel(skill_panel) or _mouse_on_panel(craft_panel)
 	if bag_panel.visible:
 		bag_gold.text = "Vàng: %d" % player.gold
+	if shop_panel.visible and player.gold != shop_shown_gold:
+		_refresh_shop_later()   # nhặt được vàng / tiêu vàng: cập nhật nút Mua sáng / tối
 
 	# Ô đánh thường: che tối theo thời gian hồi chiêu, viền sáng khi đang gồng cung
 	var style: StyleBoxFlat = skill_slots["weapon"]["style"]

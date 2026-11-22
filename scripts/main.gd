@@ -13,6 +13,9 @@ func _ready() -> void:
 	hud.player = level.player
 	level.player.died.connect(_on_player_died)
 	Game.game_won.connect(_on_game_won)
+	# Chế độ quay video (chỉ khi mở game bằng dòng lệnh có -- --demo=..., xem scripts/demo.gd)
+	if Demo.requested() != "":
+		add_child(Demo.new())
 
 
 func _unhandled_input(event: InputEvent) -> void:
