@@ -6,14 +6,14 @@ Một chiến binh thức tỉnh trong thế giới bị các thế lực cổ �
 
 ## Video giới thiệu
 
-| | |
-|---|---|
-| ![Tạo nhân vật](doc/videos/tao_nhan_vat.gif)<br>**Tạo nhân vật** | ![Làng và cửa hàng](doc/videos/lang.gif)<br>**Làng và cửa hàng** |
-| ![Kiếm](doc/videos/kiem.gif)<br>**Kiếm** | ![Cung](doc/videos/cung.gif)<br>**Cung** |
-| ![Thương](doc/videos/giao.gif)<br>**Thương** | ![Hầm ngục 4 tầng](doc/videos/ham_nguc.gif)<br>**Hầm ngục 4 tầng** |
-| ![Mở rương](doc/videos/ruong.gif)<br>**Mở rương** | ![Boss Malakar](doc/videos/boss.gif)<br>**Boss Malakar** |
+![Video demo Fantasy: The Awakening](doc/videos/demo.gif)
 
-Các video được quay từ game thật bằng chế độ demo tự chơi (`scripts/demo.gd`), lệnh: `godot --path . --write-movie _video/<cảnh>.avi --fixed-fps 30 -- --demo=<cảnh>`.
+Video demo dài khoảng 1 phút 34 giây, gồm 8 phần nối liền nhau: **Tạo nhân vật**, **Làng và cửa hàng**, **Kiếm Sĩ**,
+**Xạ Thủ**, **Thương Thủ**, **Hầm Ngục Cổ**, **Rương báu** và **Boss Malakar**.
+Bản video MP4 (nét hơn, nhẹ hơn, tua được): [doc/videos/demo.mp4](doc/videos/demo.mp4).
+
+Các cảnh được quay từ game thật bằng chế độ demo tự chơi (`scripts/demo.gd`), lệnh: `godot --path . --write-movie _video/<cảnh>.avi --fixed-fps 30 -- --demo=<cảnh>`,
+rồi ghép lại thành một video dài có tấm tiêu đề cho từng phần.
 
 ## Cách mở game
 
@@ -172,28 +172,35 @@ Nguyên liệu (lúa mì, bình nước, gỗ, da thú, xương, dây thừng) d
 **Bộ lửa trại**: bấm vào nó trong túi là đặt một bếp lửa xuống trước mặt (ở đâu cũng được, trừ chỗ có nước hoặc sát trạm khác).
 Thêm vật phẩm mới: sửa `scripts/items.gd`.
 
-## Trang bị (mũ, giáp, quần, giày) và độ bền
+## Trang bị (mũ, giáp, quần, giày, vũ khí) và độ bền
 
 ![Trang bị và rương](doc/images/trang_bi.png)
 
-Mở túi (**B**) là thấy bảng **Trang bị** bên trái túi: 4 ô Mũ, Giáp, Quần, Giày.
+Mở túi (**B**) là thấy bảng **Trang bị** bên trái túi: 5 ô Mũ, Giáp, Quần, Giày và **Vũ khí**.
 - **Bấm vào món trang bị trong túi** để mặc (món đang mặc chỗ đó quay về túi). **Bấm vào ô đang mặc** để tháo ra.
 - Nhặt được món mới mà chỗ đó còn trống thì **tự mặc luôn**.
 - Trong túi, món có dấu **+** xanh là tốt hơn món đang mặc. Rê chuột lên món đồ để xem chỉ số và độ bền.
 - Chỉ số: **Phòng thủ** (giảm sát thương nhận vào: phòng thủ 50 thì chỉ còn nhận một nửa), **Máu**, **Tấn công**, **Tốc độ chạy**.
   Bảng Trang bị ghi tổng chỉ số và phòng thủ chặn được bao nhiêu % sát thương.
 - 5 bậc: **Da, Sắt, Thép xanh, Dung Nham, Bóng Đêm** (theo tầng hầm ngục: tầng càng sâu bậc càng cao).
-- 4 độ hiếm: **Thường, Bạc, Vàng, Kim cương** (theo may rủi khi mở rương, xem bảng ở phần Hầm Ngục Cổ).
-  Đồ Bạc / Vàng / Kim cương có chỉ số, độ bền và giá gấp **1.2 / 1.45 / 1.8** lần đồ Thường.
-  Tên và viền ô có màu theo độ hiếm, ví dụ "Mũ sắt [Vàng]". Đồ hiếm nằm dưới đất thì lấp lánh.
-- **Độ bền**: mỗi lần bị đánh trúng, mọi món đang mặc mất 1 độ bền (thanh nhỏ dưới mỗi ô). Còn ít thì có lời nhắc "sắp hỏng".
+- 5 độ hiếm: **Thường, Hiếm, Cực hiếm, Huyền thoại, Thần thánh** (theo may rủi khi mở rương, xem bảng ở phần Hầm Ngục Cổ).
+  Đồ Hiếm / Cực hiếm / Huyền thoại / Thần thánh có chỉ số, độ bền và giá gấp **1.25 / 1.6 / 2 / 2.6** lần đồ Thường.
+  Tên và viền ô có màu theo độ hiếm (xám, xanh dương, tím, cam, đỏ), ví dụ "Kiếm sắt [Huyền thoại]".
+  Đồ từ Hiếm trở lên nằm dưới đất thì lấp lánh.
+- **Vũ khí**: vào game là đã cầm sẵn vũ khí bậc 1 (Kiếm đồng, Thương đồng, Cung gỗ hoặc Sách phép da).
+  Rương chỉ rơi **đúng loại vũ khí của bạn**: Kiếm Sĩ nhặt kiếm, Thương Thủ nhặt thương, Xạ Thủ nhặt cung, Pháp Sư nhặt sách phép.
+  Vũ khí chủ yếu tăng **Tấn công**, thêm một chỉ số phụ: kiếm và cung thêm Tốc độ, thương thêm Phòng thủ, sách phép thêm Máu.
+  Vũ khí bậc cao có màu khác trên tay nhân vật (đồng, sắt, thép xanh, dung nham, bóng đêm).
+  Vũ khí mòn khi **đánh** (cứ 15 đòn đánh thường mất 1 độ bền), không mòn khi bị đánh. Chưa đổi được loại vũ khí khi đang chơi.
+- **Độ bền**: mỗi lần bị đánh trúng, mọi món đang mặc (trừ vũ khí) mất 1 độ bền (thanh nhỏ dưới mỗi ô). Còn ít thì có lời nhắc "sắp hỏng".
   Hết độ bền thì món đó **Hỏng** (ô đỏ lên): vẫn mặc nhưng không còn cộng chỉ số. Mang tới **Bác Sắt thợ rèn** ở quảng trường để sửa.
 - Có đồ ở đâu: **rương báu trong Hầm Ngục Cổ** (tầng càng sâu đồ càng xịn), **Bác Sắt** bán đồ Da và Sắt,
   bàn chế tạo làm được **Áo giáp da**.
 
 Tự chỉnh: `scripts/equipment.gd` (tên, chỉ số từng món trong `DATA`, độ bền theo bậc `TIER_DURABILITY`,
-mòn mỗi lần trúng đòn `WEAR_PER_HIT`, giá sửa `REPAIR_GOLD`, giá bán `TIER_PRICE`, độ mạnh của phòng thủ `DEFENSE_SCALE`).
-Hình trang bị: `assets/gear/` (16x16).
+mòn mỗi lần trúng đòn `WEAR_PER_HIT`, vũ khí mòn sau bao nhiêu đòn `WEAPON_WEAR_EVERY`, giá sửa `REPAIR_GOLD`,
+giá bán `TIER_PRICE`, độ mạnh của phòng thủ `DEFENSE_SCALE`, độ hiếm `RARITIES`).
+Hình trang bị: `assets/gear/` (16x16), hình kiếm và thương cầm trên tay: `assets/gear/held/`.
 
 ## Cửa hàng và thợ rèn
 
@@ -310,14 +317,17 @@ Lướt (F) qua bẫy gai, lỗ lửa, đầm độc thì không bị trúng.
 **Rương báu** `'`: mỗi tầng có 2 đến 3 rương, bị **khoá** tới khi bạn hạ hết quái của tầng đó (bản đồ nhỏ ghi "Còn N quái").
 Dọn sạch tầng thì rương mở khoá, đi tới sát rương là rương tự mở, đồ văng ra đất. Hạ Malakar còn rơi thêm một **Rương kim cương**.
 
-Mỗi rương ra **1 hoặc 2 trang bị**. Mỗi món tự quay độ hiếm theo tỉ lệ của loại rương đó:
+Mỗi rương ra **1 hoặc 2 trang bị**. Mỗi món có 30% là **vũ khí đúng loại của bạn**, còn lại là mũ, giáp, quần hoặc giày.
+Mỗi món tự quay độ hiếm theo tỉ lệ của loại rương đó:
 
-| Rương | Cơ hội ra 2 món | Đồ Thường | Đồ Bạc | Đồ Vàng | Đồ Kim cương |
-|---|---|---|---|---|---|
-| Thường | 15% | 89.999% | 9% | 1% | 0.001% |
-| Bạc | 30% | 55% | 38% | 6.9% | 0.1% |
-| Vàng | 45% | 20% | 45% | 33% | 2% |
-| Kim cương | 60% | | 20% | 50% | 30% (món đầu tiên chắc chắn 100% là đồ Kim cương) |
+| Rương | Cơ hội ra 2 món | Thường | Hiếm | Cực hiếm | Huyền thoại | Thần thánh |
+|---|---|---|---|---|---|---|
+| Thường | 15% | 80% | 16% | 3.5% | 0.499% | 0.001% |
+| Bạc | 30% | 55% | 32% | 10% | 2.9% | 0.1% |
+| Vàng | 45% | 25% | 40% | 25% | 9% | 1% |
+| Kim cương | 60% | | 15% | 40% | 35% | 10% |
+
+Rương kim cương: món đầu tiên **chắc chắn từ Huyền thoại trở lên**.
 
 Đồ lặt vặt thì rương nào cũng **luôn có**, rương càng xịn càng nhiều:
 
@@ -329,12 +339,13 @@ Mỗi rương ra **1 hoặc 2 trang bị**. Mỗi món tự quay độ hiếm th
 | Kim cương | 4 loại nguyên liệu, rất nhiều vàng, 2 bình máu lớn, pha lê sức mạnh |
 
 Bậc trang bị: rương thường ra bậc bằng hoặc thấp hơn tầng 1 bậc, bạc bằng tầng, vàng có thể cao hơn 1 bậc, kim cương cao hơn 1 bậc.
-Ra được đồ hiếm hơn hẳn loại rương (ví dụ đồ Kim cương từ rương thường) thì hiện chữ **CỰC HIẾM!** và màn hình rung.
+Ra được đồ hiếm hơn hẳn loại rương (ví dụ đồ Thần thánh từ rương thường) thì hiện chữ **QUÁ MAY MẮN!** và màn hình rung.
 
 Tầng càng sâu càng hay gặp rương xịn: tầng 1 phần lớn là rương thường, tầng 5 chủ yếu rương vàng và kim cương.
 Nguyên liệu trong rương: da thú, xương, dây thừng, gỗ, thảo dược, nước, lúa mì, nấm, trái cây, thịt (để chế tạo).
 Tỉ lệ từng loại rương mỗi tầng: `chest_odds` trong `scripts/dungeon.gd`. Đồ trong từng loại rương: `TIERS` trong `scripts/chest.gd`
-(`gear_two`: cơ hội ra 2 món, `rarity`: tỉ lệ phần trăm từng độ hiếm, `guaranteed`: độ hiếm chắc chắn có).
+(`gear_two`: cơ hội ra 2 món, `rarity`: tỉ lệ phần trăm từng độ hiếm, `guaranteed`: độ hiếm thấp nhất của món đầu tiên),
+phần trăm ra vũ khí: `WEAPON_CHANCE`.
 Tên, màu và độ mạnh của từng độ hiếm: `RARITIES` trong `scripts/equipment.gd`.
 
 **Boss Malakar** (`}`) có 3 giai đoạn:
@@ -380,7 +391,7 @@ scripts/
   character_parts.gd   Danh sách màu da, tóc, áo, mũ và cách ghép các lớp hình
   weapons.gd           Thông số 4 loại vũ khí và bộ kỹ năng mặc định của từng loại
   items.gd             Vật phẩm cất trong túi đồ
-  equipment.gd         Trang bị mũ, giáp, quần, giày: chỉ số, bậc, độ hiếm, độ bền, giá sửa
+  equipment.gd         Trang bị mũ, giáp, quần, giày, vũ khí: chỉ số, bậc, độ hiếm, độ bền, giá sửa
   chest.gd             Rương báu trong hầm ngục: 4 loại rương và đồ bên trong
   shops.gd             Cửa hàng của dân làng: bán gì, giá mua, giá bán lại
   recipes.gd           Công thức chế tạo của 4 trạm (nồi thuốc, bếp lửa, lò nấu ăn, bàn chế tạo)
@@ -406,7 +417,7 @@ assets/
   plaza/               Quảng trường: sân đá, đài phun nước, ghế, cột đèn, sạp hàng, chậu hoa (Claude vẽ theo màu Tiny Town)
   dungeon/             Hầm ngục: sàn, tường, nến, đuốc, bình gốm, bệ thờ, cột sáng, cổng xoáy, bẫy gai, lỗ phun lửa,
                        cột lửa, dung nham, đầm độc, bia cổ ngữ, lối xuống (Claude vẽ), 4 loại rương (Kenney Tiny Dungeon, đổi màu)
-  gear/                Trang bị mũ, giáp, quần, giày 5 bậc và hình ô trống (Claude vẽ)
+  gear/                Trang bị mũ, giáp, quần, giày 5 bậc, vũ khí 5 bậc (held/: hình cầm tay) và hình ô trống (Claude vẽ)
   eco/                 Cây thu hoạch, cây liễu, nấm khổng lồ, cối xay gió, nhà kho, thuyền, cầu tàu... (Claude vẽ)
   critters/            Thú hiền (Claude vẽ)
   craft/               Nồi luyện thuốc, bàn chế tạo, bếp lửa, lò nấu ăn, gốc cây có gỗ, xô nước (Claude vẽ), cái đe (Kenney Tiny Dungeon)

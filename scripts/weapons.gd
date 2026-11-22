@@ -12,6 +12,7 @@ extends RefCounted
 ##   hold          : góc cầm vũ khí lúc đứng / đi (độ) khi nhìn xuống, lên, ngang
 ##
 ## Vũ khí được chọn khi tạo nhân vật và KHÔNG đổi được khi đang chơi.
+## Món vũ khí cụ thể (Kiếm đồng, Kiếm sắt...) nằm ở ô Vũ khí trong bảng Trang bị: xem scripts/equipment.gd.
 ##
 ## "skills": bộ kỹ năng mặc định khi vào game, theo thứ tự phím Q, W, E và R (tuyệt chiêu).
 ##   Chỉ ghi id kỹ năng. Thông số và mô tả kỹ năng nằm ở scripts/skills.gd.
@@ -114,13 +115,15 @@ static func hand_position(row: int, col: int) -> Vector2:
 
 ## Đặt vũ khí cầm trong tay theo hướng nhìn. pivot là Node2D có 1 Sprite2D con,
 ## body là Sprite2D thân nhân vật nằm cùng cha (để xếp vũ khí ra sau hoặc trước người).
-static func pose_held(pivot: Node2D, body: Sprite2D, type: int, row: int, col: int, face_left: bool) -> void:
+## texture: hình vũ khí đang cầm (vũ khí bậc cao có màu khác), bỏ trống = hình gốc.
+static func pose_held(pivot: Node2D, body: Sprite2D, type: int, row: int, col: int, face_left: bool,
+		texture: Texture2D = null) -> void:
 	var w := info(type)
 	if not w.has("hold"):
 		pivot.visible = false
 		return
 	var held := pivot.get_child(0) as Sprite2D
-	held.texture = w["texture"]
+	held.texture = texture if texture != null else w["texture"]
 	held.offset = Vector2(w["grip"], 0)
 	var hand := hand_position(row, col)
 	var angle := deg_to_rad(float(w["hold"][["down", "up", "side"][row]]))

@@ -431,10 +431,13 @@ func _set_level(lv: int) -> void:
 	player.skills_changed.emit()
 
 
-## Mặc đủ bộ trang bị bậc tier (1 = Da ... 5 = Bóng Đêm).
+## Mặc đủ bộ trang bị bậc tier (1 = Da ... 5 = Bóng Đêm), cầm vũ khí cùng bậc.
 func _give_gear(tier: int) -> void:
 	for slot in Equipment.SLOTS:
-		player.gear[slot] = Equipment.make("%s_%d" % [slot, tier])
+		var id := "%s_%d" % [slot, tier]
+		if slot == "weapon":
+			id = Equipment.weapon_id(player.weapon, tier)
+		player.gear[slot] = Equipment.make(id)
 	player._apply_gear()
 	player.hp = player.max_hp
 	player.gear_changed.emit()

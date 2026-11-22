@@ -21,14 +21,12 @@
 
 ## Video giới thiệu
 
-| | |
-|---|---|
-| ![Tạo nhân vật](videos/tao_nhan_vat.gif)<br>**Tạo nhân vật** | ![Làng và cửa hàng](videos/lang.gif)<br>**Làng và cửa hàng** |
-| ![Kiếm](videos/kiem.gif)<br>**Kiếm** | ![Cung](videos/cung.gif)<br>**Cung** |
-| ![Thương](videos/giao.gif)<br>**Thương** | ![Hầm ngục 4 tầng](videos/ham_nguc.gif)<br>**Hầm ngục 4 tầng** |
-| ![Mở rương](videos/ruong.gif)<br>**Mở rương** | ![Boss Malakar](videos/boss.gif)<br>**Boss Malakar** |
+![Video demo Fantasy: The Awakening](videos/demo.gif)
 
-Các video được quay từ game thật bằng chế độ demo tự chơi (`scripts/demo.gd`), lệnh: `godot --path . --write-movie _video/<cảnh>.avi --fixed-fps 30 -- --demo=<cảnh>`.
+Video demo dài khoảng 1 phút 34 giây, gồm 8 phần: tạo nhân vật, làng và cửa hàng, Kiếm Sĩ, Xạ Thủ, Thương Thủ,
+Hầm Ngục Cổ, rương báu và Boss Malakar. Bản video MP4 nét hơn: [videos/demo.mp4](videos/demo.mp4).
+
+Các cảnh được quay từ game thật bằng chế độ demo tự chơi (`scripts/demo.gd`), lệnh: `godot --path . --write-movie _video/<cảnh>.avi --fixed-fps 30 -- --demo=<cảnh>`.
 
 ---
 
@@ -212,17 +210,19 @@ Mẹo: lướt (**F**) qua bẫy gai, lỗ lửa, đầm độc thì không bị
 **Rương báu**: mỗi tầng có vài rương, bị **khoá** cho tới khi bạn hạ hết quái của tầng (bản đồ nhỏ ghi "Còn N quái").
 Có 4 loại: **thường, bạc, vàng, kim cương**. Tầng càng sâu càng hay gặp rương xịn. Hạ Malakar rơi thêm một Rương kim cương.
 
-Mỗi rương ra **1 hoặc 2 trang bị**, độ hiếm của từng món là may rủi theo loại rương:
+Mỗi rương ra **1 hoặc 2 trang bị**, có khi là **vũ khí đúng loại của bạn** (dùng kiếm thì rơi kiếm, dùng cung thì rơi cung...).
+Độ hiếm của từng món là may rủi theo loại rương:
 
-| Rương | Cơ hội ra 2 món | Đồ Thường | Đồ Bạc | Đồ Vàng | Đồ Kim cương |
-|---|---|---|---|---|---|
-| Thường | 15% | 89.999% | 9% | 1% | 0.001% |
-| Bạc | 30% | 55% | 38% | 6.9% | 0.1% |
-| Vàng | 45% | 20% | 45% | 33% | 2% |
-| Kim cương | 60% | | 20% | 50% | chắc chắn có 1 món |
+| Rương | Cơ hội ra 2 món | Thường | Hiếm | Cực hiếm | Huyền thoại | Thần thánh |
+|---|---|---|---|---|---|---|
+| Thường | 15% | 80% | 16% | 3.5% | 0.499% | 0.001% |
+| Bạc | 30% | 55% | 32% | 10% | 2.9% | 0.1% |
+| Vàng | 45% | 25% | 40% | 25% | 9% | 1% |
+| Kim cương | 60% | | 15% | 40% | 35% | 10% |
 
+Rương kim cương thì món đầu tiên chắc chắn từ **Huyền thoại** trở lên.
 Vàng, bình máu và **nguyên liệu chế tạo** (da thú, xương, dây thừng, gỗ, thảo dược...) thì rương nào cũng luôn có,
-rương càng xịn càng nhiều. Rương thường mà ra đồ Kim cương (cứ 100.000 món mới có 1) thì hiện chữ **CỰC HIẾM!**
+rương càng xịn càng nhiều. Rương thường mà ra đồ Thần thánh (cứ 100.000 món mới có 1) thì hiện chữ **QUÁ MAY MẮN!**
 
 ![Boss Malakar và các loại bẫy](images/ham_nguc_moi.png)
 
@@ -253,13 +253,16 @@ Có quả mọng, thảo dược, nấm, lúa mì, cà rốt, bí ngô, táo. **
 
 ![Trang bị và rương](images/trang_bi.png)
 
-Mở túi (B) là thấy bảng **Trang bị** bên cạnh: **Mũ, Giáp, Quần, Giày**. Trang bị tăng **Phòng thủ** (bị đánh đỡ đau hơn),
+Mở túi (B) là thấy bảng **Trang bị** bên cạnh: **Mũ, Giáp, Quần, Giày, Vũ khí**. Trang bị tăng **Phòng thủ** (bị đánh đỡ đau hơn),
 **Máu**, có món tăng **Tấn công** hoặc **Tốc độ chạy**. Có 5 bậc: Da, Sắt, Thép xanh, Dung Nham, Bóng Đêm.
-Có 4 độ hiếm: **Thường, Bạc, Vàng, Kim cương**. Đồ càng hiếm thì chỉ số và độ bền càng cao
-(gấp 1.2 / 1.45 / 1.8 lần đồ Thường), tên có màu riêng, ví dụ "Mũ sắt [Vàng]".
+Có 5 độ hiếm: **Thường, Hiếm, Cực hiếm, Huyền thoại, Thần thánh**. Đồ càng hiếm thì chỉ số và độ bền càng cao
+(gấp 1.25 / 1.6 / 2 / 2.6 lần đồ Thường), tên có màu riêng, ví dụ "Kiếm sắt [Huyền thoại]".
 
-Mỗi lần bị đánh trúng, đồ đang mặc **mòn** đi một chút. Hết độ bền thì đồ **hỏng**, không còn tác dụng cho tới khi
-mang về cho **Bác Sắt thợ rèn** sửa (tốn vàng).
+**Vũ khí**: vào game là đã cầm sẵn vũ khí bậc 1 của loại bạn chọn. Vũ khí tăng nhiều **Tấn công**,
+vũ khí bậc cao đổi màu trên tay nhân vật. Rương chỉ rơi đúng loại vũ khí của bạn.
+
+Mỗi lần bị đánh trúng, đồ đang mặc **mòn** đi một chút (vũ khí thì mòn khi bạn đánh). Hết độ bền thì đồ **hỏng**,
+không còn tác dụng cho tới khi mang về cho **Bác Sắt thợ rèn** sửa (tốn vàng).
 
 ### Cửa hàng
 
@@ -330,7 +333,8 @@ Mẹo: làm **Rìu** trước (chỉ cần xương và dây thừng), có rìu m
 
 - Thức tỉnh **nguyên tố** Lửa và Sấm, gắn kỹ năng nguyên tố vào ô Q W E R.
 - Bộ kỹ năng riêng cho **Sách Phép**.
-- Hiệu ứng riêng cho đồ **Kim cương** (ví dụ phát sáng trên người nhân vật).
+- **Đổi vũ khí** khi đang chơi.
+- Hiệu ứng riêng cho đồ **Thần thánh** (ví dụ phát sáng trên người nhân vật).
 - Lưu túi đồ và trang bị giữa các lần chơi.
 
 ---

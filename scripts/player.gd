@@ -157,10 +157,12 @@ signal bag_changed
 
 # --- Trang bị (scripts/equipment.gd) ---
 ## Mỗi ô: món đang mặc { "id", "rarity", "dur" } hoặc {} = chưa mặc gì.
-var gear := { "helmet": {}, "armor": {}, "pants": {}, "boots": {} }
+var gear := { "helmet": {}, "armor": {}, "pants": {}, "boots": {}, "weapon": {} }
 var defense := 0                     # phòng thủ: giảm sát thương nhận vào
 var gear_bonus := { "defense": 0, "hp": 0, "attack": 0, "speed": 0 }   # chỉ số trang bị đang cộng vào nhân vật
 signal gear_changed
+var weapon_uses := 0                 # đếm đòn đánh thường: đủ Equipment.WEAPON_WEAR_EVERY đòn thì vũ khí mòn 1
+var weapon_look: Texture2D = null    # hình món vũ khí đang cầm (null = dùng hình vũ khí gốc)
 
 # --- Chế tạo (scripts/recipes.gd) ---
 var upgrades := {}                   # đồ nâng cấp đã làm: { "bag": 1, "charm": 1, ... }
@@ -220,6 +222,11 @@ func _ready() -> void:
 	var defaults: Array = Weapons.info(weapon)["skills"]
 	for i in mini(defaults.size(), skill_slots.size()):
 		skill_slots[i] = defaults[i]
+	# Vũ khí khởi đầu: bậc 1, đúng loại vũ khí đã chọn (ô Vũ khí trong bảng Trang bị)
+	var starter := Equipment.weapon_id(weapon, 1)
+	if starter != "":
+		gear["weapon"] = Equipment.make(starter)
+		_apply_gear()
 	add_item("potion_hp", 2)  # túi đồ khởi đầu
 
 
@@ -1391,7 +1398,7 @@ func pick_up_gear(item: Dictionary) -> bool:
 		return false
 	var item_name: String = Equipment.full_name(item["id"], item.get("rarity", Equipment.DEFAULT_RARITY))
 	var color: Color = Equipment.rarity_info(item.get("rarity", Equipment.DEFAULT_RARITY))["color"]
-	if gear[slot].is_empty() and not is_dead:
+	if gear[slot].is_empty() and not is_dead and can_use_gear(item["id"]):
 		gear[slot] = _gear_only(item)
 		_apply_gear()
 		gear_changed.emit()
@@ -1410,6 +1417,11 @@ func equip_bag_slot(index: int) -> bool:
 	var item: Dictionary = bag[index]
 	var slot := Equipment.slot_of(item["id"])
 	if slot == "":
+		return false
+	if not can_use_gear(item["id"]):
+		var type := Equipment.weapon_type(item["id"])
+		Game.popup_text(global_position + Vector2(0, -16), "Chỉ %s mới dùng được!" % Weapons.info(Weapons.ORDER[type])["class_name"],
+			Color(1.0, 0.6, 0.5), 9)
 		return false
 	var old: Dictionary = gear[slot]
 	bag.remove_at(index)
@@ -1446,6 +1458,13 @@ func unequip(slot: String) -> bool:
 	return true
 
 
+## Món này nhân vật dùng được không: vũ khí phải đúng loại vũ khí đã chọn khi tạo nhân vật
+## (Kiếm Sĩ cầm kiếm, Xạ Thủ cầm cung...). Sau này có đổi vũ khí thì sửa ở đây.
+func can_use_gear(id: String) -> bool:
+	var type := Equipment.weapon_type(id)
+	return type < 0 or type == weapon
+
+
 func _gear_only(item: Dictionary) -> Dictionary:
 	var rarity: String = item.get("rarity", Equipment.DEFAULT_RARITY)
 	return {
@@ -1468,32 +1487,77 @@ func _apply_gear() -> void:
 	attack += int(total["attack"]) - int(gear_bonus["attack"])
 	defense = int(total["defense"])
 	gear_bonus = total
+	_refresh_weapon_look()
 
 
-## Bị đánh trúng: mọi món đang mặc mòn đi. Hết độ bền thì hỏng (không còn cộng chỉ số).
+## Hình vũ khí đang dùng: có món trong ô Vũ khí thì lấy hình của món đó (mỗi bậc một màu).
+## fallback là hình vũ khí gốc, hình khác (mũi tên...) thì giữ nguyên.
+func _weapon_look(fallback: Texture2D) -> Texture2D:
+	if weapon_look == null or fallback != Weapons.info(weapon)["texture"]:
+		return fallback
+	return weapon_look
+
+
+## Mặc / tháo vũ khí: nhớ hình món đang cầm, đổi hình sách phép bay cạnh người.
+func _refresh_weapon_look() -> void:
+	var item: Dictionary = gear.get("weapon", {})
+	weapon_look = null
+	if not item.is_empty():
+		weapon_look = Equipment.held_texture(item["id"])
+	if book_sprite == null:
+		return
+	var book_texture: Texture2D = Weapons.info(Weapons.Type.BOOK)["texture"]
+	if weapon == Weapons.Type.BOOK:
+		book_texture = _weapon_look(book_texture)
+	book_sprite.texture = book_texture
+
+
+## Bị đánh trúng: mọi món đang mặc mòn đi (vũ khí thì mòn khi đánh, xem _wear_weapon).
+## Hết độ bền thì hỏng (không còn cộng chỉ số).
 func _wear_gear() -> void:
 	var worn := false
 	var broke := false
 	for slot in gear:
 		var item: Dictionary = gear[slot]
-		if item.is_empty() or Equipment.is_broken(item):
+		if slot == "weapon" or item.is_empty() or Equipment.is_broken(item):
 			continue
-		var dur_max := Equipment.max_durability(item["id"], item["rarity"])
-		var before := int(item["dur"])
-		item["dur"] = maxi(before - Equipment.WEAR_PER_HIT, 0)
 		worn = true
-		var item_name: String = Equipment.full_name(item["id"], item.get("rarity", Equipment.DEFAULT_RARITY))
-		var low := float(dur_max) * Equipment.LOW_DURABILITY
-		if int(item["dur"]) == 0:
+		if _wear_item(item):
 			broke = true
-			Game.popup_text(global_position + Vector2(0, -26), "%s hỏng!" % item_name, Color(1.0, 0.45, 0.35), 9)
-			Game.message.emit("%s đã HỎNG, không còn tác dụng! Mang tới Thợ rèn ở quảng trường làng để sửa." % item_name)
-		elif float(before) > low and float(item["dur"]) <= low:
-			Game.message.emit("%s sắp hỏng (còn %d/%d độ bền). Ghé Thợ rèn để sửa nhé." % [item_name, item["dur"], dur_max])
 	if broke:
 		_apply_gear()
 	if worn:
 		gear_changed.emit()
+
+
+## Đánh thường: cứ Equipment.WEAPON_WEAR_EVERY đòn thì vũ khí đang cầm mòn 1 độ bền.
+func _wear_weapon() -> void:
+	var item: Dictionary = gear.get("weapon", {})
+	if item.is_empty() or Equipment.is_broken(item):
+		return
+	weapon_uses += 1
+	if weapon_uses < Equipment.WEAPON_WEAR_EVERY:
+		return
+	weapon_uses = 0
+	if _wear_item(item):
+		_apply_gear()
+	gear_changed.emit()
+
+
+## Một món mất WEAR_PER_HIT độ bền, báo khi sắp hỏng / hỏng. Trả về true nếu món đó vừa hỏng.
+func _wear_item(item: Dictionary) -> bool:
+	var dur_max := Equipment.max_durability(item["id"], item.get("rarity", Equipment.DEFAULT_RARITY))
+	var before := int(item["dur"])
+	item["dur"] = maxi(before - Equipment.WEAR_PER_HIT, 0)
+	var item_name: String = Equipment.full_name(item["id"], item.get("rarity", Equipment.DEFAULT_RARITY))
+	var low := float(dur_max) * Equipment.LOW_DURABILITY
+	if int(item["dur"]) == 0:
+		Game.popup_text(global_position + Vector2(0, -26), "%s hỏng!" % item_name, Color(1.0, 0.45, 0.35), 9)
+		Game.message.emit("%s đã HỎNG, không còn tác dụng! Mang tới Thợ rèn ở quảng trường làng để sửa." % item_name)
+		return true
+	if float(before) > low and float(item["dur"]) <= low:
+		Game.message.emit("%s sắp hỏng (còn %d/%d độ bền). Ghé Thợ rèn để sửa nhé." % [item_name, item["dur"], dur_max])
+	return false
 
 
 ## Mọi món trang bị (đang mặc và trong túi).
@@ -1706,6 +1770,7 @@ func _try_attack() -> void:
 			_attack_spear()
 		Weapons.Type.BOOK:
 			_attack_book()
+	_wear_weapon()
 
 
 ## Gây sát thương cho mọi quái nằm trong hình quạt trước mặt. Trả về true nếu trúng ít nhất 1 con.
@@ -1728,7 +1793,7 @@ func _hit_cone(reach: float, arc_degrees: float, damage: int, push: float,
 
 
 func _show_weapon(texture: Texture2D, behind: bool) -> void:
-	weapon_sprite.texture = texture
+	weapon_sprite.texture = _weapon_look(texture)
 	weapon_sprite.offset = Vector2(Weapons.info(weapon).get("grip", 6.0), 0)
 	weapon_sprite.position = Vector2.ZERO
 	weapon_sprite.modulate = Color.WHITE
@@ -1871,6 +1936,7 @@ func _fire_arrow(dir: Vector2, charge: float) -> void:
 		Game.shake(2.0)
 	p.global_position = global_position + Vector2(0, -1) + facing * 6.0
 	get_parent().add_child(p)
+	_wear_weapon()
 	var tw := _weapon_tween()
 	tw.tween_interval(0.12)
 	tw.tween_callback(func(): weapon_pivot.visible = false)
@@ -2120,7 +2186,8 @@ func _update_visual(delta: float, move_dir: Vector2) -> void:
 func _update_held_weapon(row: int, col: int) -> void:
 	hold_pivot.visible = weapon != Weapons.Type.BOOK and not weapon_pivot.visible
 	if hold_pivot.visible:
-		Weapons.pose_held(hold_pivot, sprite, weapon, row, col, row == 2 and sprite.flip_h)
+		Weapons.pose_held(hold_pivot, sprite, weapon, row, col, row == 2 and sprite.flip_h,
+			_weapon_look(Weapons.info(weapon)["texture"]))
 
 
 func _spawn_ghost() -> void:

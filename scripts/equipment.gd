@@ -1,33 +1,45 @@
 class_name Equipment
 extends RefCounted
-## Trang bị: Mũ, Giáp, Quần, Giày. Bấm B mở túi đồ, bảng "Trang bị" nằm bên trái túi.
+## Trang bị: Mũ, Giáp, Quần, Giày và Vũ khí. Bấm B mở túi đồ, bảng "Trang bị" nằm bên trái túi.
 ## Bấm vào món trang bị trong túi để mặc (món cũ quay về túi), bấm vào ô đang mặc để tháo ra.
 ## Nhặt được món mới mà chỗ đó còn trống thì tự mặc luôn.
 ## Trang bị rơi ra từ rương báu trong Hầm Ngục Cổ (scripts/chest.gd): tầng càng sâu, đồ càng xịn.
 ## Áo giáp da còn làm được ở bàn chế tạo (scripts/recipes.gd).
 ##
+## Vũ khí: rương chỉ rơi đúng loại vũ khí nhân vật đang dùng (Kiếm Sĩ nhặt kiếm, Xạ Thủ nhặt cung...).
+## Vào game là đã cầm sẵn vũ khí bậc 1. Vũ khí khác loại thì chưa cầm được (sau này sẽ có đổi vũ khí).
+## Vũ khí mòn khi đánh: cứ WEAPON_WEAR_EVERY đòn đánh thường thì mất 1 độ bền.
+## Vũ khí bậc cao trông khác đi (màu lưỡi kiếm, mũi thương, thân cung, bìa sách theo bậc).
+##
 ## Chỉ số trang bị ("stats"):
 ##   defense: phòng thủ, giảm sát thương nhận vào (phòng thủ 50 = chỉ còn nhận một nửa sát thương)
 ##   hp: máu tối đa      attack: tấn công      speed: chạy nhanh hơn bao nhiêu phần trăm
 ##
-## Độ bền: mỗi lần bị đánh trúng, mọi món đang mặc mất WEAR_PER_HIT độ bền.
+## Độ bền: mỗi lần bị đánh trúng, mọi món đang mặc (trừ vũ khí) mất WEAR_PER_HIT độ bền.
 ## Hết độ bền thì món đó "Hỏng": vẫn mặc trên người nhưng không còn cộng chỉ số.
 ## Mang tới Thợ rèn ở quảng trường làng để sửa (tốn vàng, món càng xịn sửa càng đắt).
 ##
 ## Muốn thêm trang bị mới: thêm một mục vào DATA và vẽ hình 16x16 đặt ở assets/gear/<tên>.png
-##   slot: helmet (mũ), armor (giáp), pants (quần), boots (giày)
+##   slot: helmet (mũ), armor (giáp), pants (quần), boots (giày), weapon (vũ khí)
 ##   tier: bậc 1 đến 5 (rương ở tầng hầm ngục sâu hơn ra bậc cao hơn)
+##   weapon: (chỉ vũ khí) loại vũ khí: sword (kiếm), spear (thương), bow (cung), book (sách phép).
+##           Hình cầm trên tay của kiếm và thương nằm ở assets/gear/held/<tên>.png
 ##
 ## Mỗi món trang bị trong túi / trên người là một Dictionary:
 ##   { "id": "helmet_2", "rarity": "common", "dur": 64 }   (dur = độ bền còn lại)
 ##
 ## Hai thứ khác nhau quyết định món đồ mạnh cỡ nào:
 ##   Bậc (Da, Sắt, Thép, Dung Nham, Bóng Đêm): theo tầng hầm ngục, tầng càng sâu bậc càng cao.
-##   Độ hiếm (Thường, Bạc, Vàng, Kim cương): theo may rủi khi mở rương, rương xịn thì dễ ra độ hiếm cao.
-##   Ví dụ "Mũ sắt [Vàng]" = mũ bậc 2, độ hiếm Vàng: chỉ số và độ bền gấp 1.45 lần Mũ sắt thường.
+##   Độ hiếm (Thường, Hiếm, Cực hiếm, Huyền thoại, Thần thánh): theo may rủi khi mở rương,
+##   rương xịn thì dễ ra độ hiếm cao. Ví dụ "Mũ sắt [Huyền thoại]" = mũ bậc 2, độ hiếm Huyền thoại:
+##   chỉ số và độ bền gấp 2 lần Mũ sắt thường.
 
-const SLOTS := ["helmet", "armor", "pants", "boots"]
-const SLOT_NAMES := { "helmet": "Mũ", "armor": "Giáp", "pants": "Quần", "boots": "Giày" }
+const SLOTS := ["helmet", "armor", "pants", "boots", "weapon"]
+const SLOT_NAMES := { "helmet": "Mũ", "armor": "Giáp", "pants": "Quần", "boots": "Giày", "weapon": "Vũ khí" }
+## Loại vũ khí, đúng thứ tự Weapons.Type (Kiếm, Thương, Cung, Sách Phép).
+const WEAPON_KEYS := ["sword", "spear", "bow", "book"]
+## Vũ khí mòn 1 độ bền sau mỗi chừng này đòn đánh thường.
+const WEAPON_WEAR_EVERY := 15
 const STAT_NAMES := { "defense": "Phòng thủ", "hp": "Máu", "attack": "Tấn công", "speed": "Tốc độ" }
 const TIER_NAMES := ["", "Da", "Sắt", "Thép", "Dung Nham", "Bóng Đêm"]
 const MAX_TIER := 5
@@ -43,7 +55,7 @@ const REPAIR_GOLD := 0.4
 ## Giá mua ở Thợ rèn theo bậc (bán lại được SELL_RATIO giá, đồ đã mòn thì rẻ hơn).
 const TIER_PRICE := [0, 40, 90, 180, 350, 650]
 
-## Độ hiếm: 4 bậc giống tên 4 loại rương (Thường, Bạc, Vàng, Kim cương).
+## Độ hiếm: 5 bậc, từ thường tới hiếm nhất. Độ hiếm càng cao thì chỉ số càng mạnh.
 ## Tỉ lệ ra từng độ hiếm khi mở rương nằm ở "rarity" của từng loại rương trong scripts/chest.gd.
 ##   name: tên hiện lên      color: màu tên đồ và viền ô
 ##   mult: chỉ số, độ bền và giá gấp bao nhiêu lần đồ Thường
@@ -52,12 +64,13 @@ const TIER_PRICE := [0, 40, 90, 180, 350, 650]
 const DEFAULT_RARITY := "common"
 const RARITIES := {
 	"common": { "name": "Thường", "color": Color(0.88, 0.88, 0.86), "mult": 1.0 },
-	"silver": { "name": "Bạc", "color": Color(0.72, 0.84, 1.0), "mult": 1.2 },
-	"gold": { "name": "Vàng", "color": Color(1.0, 0.84, 0.3), "mult": 1.45 },
-	"diamond": { "name": "Kim cương", "color": Color(0.45, 0.95, 1.0), "mult": 1.8 },
+	"rare": { "name": "Hiếm", "color": Color(0.4, 0.72, 1.0), "mult": 1.25 },
+	"epic": { "name": "Cực hiếm", "color": Color(0.78, 0.48, 1.0), "mult": 1.6 },
+	"legendary": { "name": "Huyền thoại", "color": Color(1.0, 0.62, 0.2), "mult": 2.0 },
+	"mythic": { "name": "Thần thánh", "color": Color(1.0, 0.32, 0.4), "mult": 2.6 },
 }
 ## Thứ tự từ thấp tới cao.
-const RARITY_ORDER := ["common", "silver", "gold", "diamond"]
+const RARITY_ORDER := ["common", "rare", "epic", "legendary", "mythic"]
 
 const DATA := {
 	# ---- Bậc 1: Da (bàn chế tạo, rương tầng 1)
@@ -85,6 +98,32 @@ const DATA := {
 	"armor_5": { "slot": "armor", "tier": 5, "name": "Giáp bóng đêm", "stats": { "defense": 18, "hp": 64, "attack": 3 } },
 	"pants_5": { "slot": "pants", "tier": 5, "name": "Quần giáp bóng đêm", "stats": { "defense": 12, "hp": 34, "attack": 2 } },
 	"boots_5": { "slot": "boots", "tier": 5, "name": "Giày cánh bóng đêm", "stats": { "defense": 8, "speed": 10, "attack": 2 } },
+
+	# ---- Vũ khí: mỗi loại 5 bậc. Chủ yếu tăng Tấn công, thêm một chỉ số phụ theo loại vũ khí.
+	# Kiếm: thêm Tốc độ
+	"sword_1": { "slot": "weapon", "weapon": "sword", "tier": 1, "name": "Kiếm đồng", "stats": { "attack": 2 } },
+	"sword_2": { "slot": "weapon", "weapon": "sword", "tier": 2, "name": "Kiếm sắt", "stats": { "attack": 5, "speed": 2 } },
+	"sword_3": { "slot": "weapon", "weapon": "sword", "tier": 3, "name": "Kiếm thép xanh", "stats": { "attack": 8, "speed": 3 } },
+	"sword_4": { "slot": "weapon", "weapon": "sword", "tier": 4, "name": "Kiếm dung nham", "stats": { "attack": 12, "speed": 4 } },
+	"sword_5": { "slot": "weapon", "weapon": "sword", "tier": 5, "name": "Kiếm bóng đêm", "stats": { "attack": 17, "speed": 5 } },
+	# Thương: thêm Phòng thủ
+	"spear_1": { "slot": "weapon", "weapon": "spear", "tier": 1, "name": "Thương đồng", "stats": { "attack": 2 } },
+	"spear_2": { "slot": "weapon", "weapon": "spear", "tier": 2, "name": "Thương sắt", "stats": { "attack": 5, "defense": 2 } },
+	"spear_3": { "slot": "weapon", "weapon": "spear", "tier": 3, "name": "Thương thép xanh", "stats": { "attack": 8, "defense": 3 } },
+	"spear_4": { "slot": "weapon", "weapon": "spear", "tier": 4, "name": "Thương dung nham", "stats": { "attack": 12, "defense": 5 } },
+	"spear_5": { "slot": "weapon", "weapon": "spear", "tier": 5, "name": "Thương bóng đêm", "stats": { "attack": 17, "defense": 7 } },
+	# Cung: thêm Tốc độ (dễ chạy thả diều)
+	"bow_1": { "slot": "weapon", "weapon": "bow", "tier": 1, "name": "Cung gỗ", "stats": { "attack": 2 } },
+	"bow_2": { "slot": "weapon", "weapon": "bow", "tier": 2, "name": "Cung sắt", "stats": { "attack": 5, "speed": 2 } },
+	"bow_3": { "slot": "weapon", "weapon": "bow", "tier": 3, "name": "Cung thép xanh", "stats": { "attack": 8, "speed": 3 } },
+	"bow_4": { "slot": "weapon", "weapon": "bow", "tier": 4, "name": "Cung dung nham", "stats": { "attack": 12, "speed": 4 } },
+	"bow_5": { "slot": "weapon", "weapon": "bow", "tier": 5, "name": "Cung bóng đêm", "stats": { "attack": 17, "speed": 5 } },
+	# Sách Phép: thêm Máu
+	"book_1": { "slot": "weapon", "weapon": "book", "tier": 1, "name": "Sách phép da", "stats": { "attack": 2 } },
+	"book_2": { "slot": "weapon", "weapon": "book", "tier": 2, "name": "Sách phép sắt", "stats": { "attack": 5, "hp": 8 } },
+	"book_3": { "slot": "weapon", "weapon": "book", "tier": 3, "name": "Sách phép thép xanh", "stats": { "attack": 8, "hp": 14 } },
+	"book_4": { "slot": "weapon", "weapon": "book", "tier": 4, "name": "Sách phép dung nham", "stats": { "attack": 12, "hp": 20 } },
+	"book_5": { "slot": "weapon", "weapon": "book", "tier": 5, "name": "Sách phép bóng đêm", "stats": { "attack": 17, "hp": 28 } },
 }
 
 const SLOT_ICONS := {
@@ -92,6 +131,7 @@ const SLOT_ICONS := {
 	"armor": preload("res://assets/gear/slot_armor.png"),
 	"pants": preload("res://assets/gear/slot_pants.png"),
 	"boots": preload("res://assets/gear/slot_boots.png"),
+	"weapon": preload("res://assets/gear/slot_weapon.png"),
 }
 
 
@@ -101,6 +141,44 @@ static func is_gear(id: String) -> bool:
 
 static func slot_of(id: String) -> String:
 	return DATA.get(id, {}).get("slot", "")
+
+
+## Loại vũ khí của món id theo Weapons.Type (0 = Kiếm, 1 = Thương, 2 = Cung, 3 = Sách Phép), -1 nếu không phải vũ khí.
+static func weapon_type(id: String) -> int:
+	return WEAPON_KEYS.find(DATA.get(id, {}).get("weapon", ""))
+
+
+## id vũ khí theo loại (Weapons.Type) và bậc, ví dụ weapon_id(Weapons.Type.BOW, 3) = "bow_3".
+static func weapon_id(type: int, tier: int) -> String:
+	if type < 0 or type >= WEAPON_KEYS.size():
+		return ""
+	var id := "%s_%d" % [WEAPON_KEYS[type], clampi(tier, 1, MAX_TIER)]
+	return id if DATA.has(id) else ""
+
+
+## Hình vũ khí cầm trên tay (kiếm, thương có hình riêng; cung, sách dùng luôn hình trong túi).
+static func held_texture(id: String) -> Texture2D:
+	var path := "res://assets/gear/held/%s.png" % id
+	if ResourceLoader.exists(path):
+		return load(path)
+	return icon(id)
+
+
+## "bậc 2 (Sắt)" với áo giáp, "bậc 2" với vũ khí (mỗi loại vũ khí có chất liệu riêng).
+static func tier_label(id: String) -> String:
+	var tier := tier_of(id)
+	if slot_of(id) == "weapon":
+		return "bậc %d" % tier
+	return "bậc %d (%s)" % [tier, TIER_NAMES[tier]]
+
+
+## "Mũ" hoặc "Vũ khí (Kiếm)".
+static func kind_name(id: String) -> String:
+	var slot := slot_of(id)
+	var type := weapon_type(id)
+	if type >= 0:
+		return "%s (%s)" % [SLOT_NAMES[slot], Weapons.info(Weapons.ORDER[type])["name"]]
+	return SLOT_NAMES.get(slot, "")
 
 
 static func rarity_info(rarity: String) -> Dictionary:
@@ -183,17 +261,16 @@ static func tooltip(item: Dictionary) -> String:
 		return ""
 	var data: Dictionary = DATA[id]
 	var rarity: String = item.get("rarity", DEFAULT_RARITY)
-	var tier := int(data["tier"])
 	var dur_max := max_durability(id, rarity)
 	var dur := int(item.get("dur", dur_max))
-	var text := "%s  [%s]\n%s, bậc %d (%s)\n%s\nĐộ bền: %d/%d" % [data["name"], rarity_info(rarity)["name"],
-		SLOT_NAMES[data["slot"]], tier, TIER_NAMES[tier], stats_text(stats(id, rarity)), dur, dur_max]
+	var text := "%s  [%s]\n%s, %s\n%s\nĐộ bền: %d/%d" % [data["name"], rarity_info(rarity)["name"],
+		kind_name(id), tier_label(id), stats_text(stats(id, rarity)), dur, dur_max]
 	if dur <= 0:
 		text += "  (HỎNG: không còn tác dụng, mang tới Thợ rèn để sửa)"
 	return text
 
 
-## Tên kèm độ hiếm (đồ Thường thì chỉ có tên): "Mũ sắt [Vàng]".
+## Tên kèm độ hiếm (đồ Thường thì chỉ có tên): "Mũ sắt [Huyền thoại]".
 static func full_name(id: String, rarity: String = DEFAULT_RARITY) -> String:
 	var name: String = DATA.get(id, {}).get("name", id)
 	if rarity == "" or rarity == DEFAULT_RARITY or not RARITIES.has(rarity):
@@ -201,7 +278,7 @@ static func full_name(id: String, rarity: String = DEFAULT_RARITY) -> String:
 	return "%s [%s]" % [name, RARITIES[rarity]["name"]]
 
 
-## Độ hiếm cao tới đâu: 0 = Thường, 1 = Bạc, 2 = Vàng, 3 = Kim cương.
+## Độ hiếm cao tới đâu: 0 = Thường, 1 = Hiếm, 2 = Cực hiếm, 3 = Huyền thoại, 4 = Thần thánh.
 static func rarity_rank(rarity: String) -> int:
 	return maxi(RARITY_ORDER.find(rarity), 0)
 
@@ -218,13 +295,12 @@ static func item_info(id: String) -> Dictionary:
 	if not DATA.has(id):
 		return {}
 	var data: Dictionary = DATA[id]
-	var tier := int(data["tier"])
 	return {
 		"name": data["name"],
 		"icon": icon(id),
 		"gear": data["slot"],
-		"desc": "%s bậc %d (%s): %s. Bấm để mặc." % [SLOT_NAMES[data["slot"]], tier, TIER_NAMES[tier],
-			stats_text(stats(id))],
+		"desc": "%s %s: %s. Bấm để %s." % [kind_name(id), tier_label(id), stats_text(stats(id)),
+			"cầm" if data["slot"] == "weapon" else "mặc"],
 	}
 
 
@@ -247,11 +323,12 @@ static func block_percent(defense: int) -> int:
 	return roundi(100.0 - 100.0 * DEFENSE_SCALE / (DEFENSE_SCALE + float(maxi(defense, 0))))
 
 
-## Một món ngẫu nhiên thuộc bậc tier ("" nếu không có món nào).
+## Một món mũ / giáp / quần / giày ngẫu nhiên thuộc bậc tier ("" nếu không có món nào).
+## Vũ khí không nằm trong này: rương chọn vũ khí riêng theo loại vũ khí của nhân vật (weapon_id).
 static func random_piece(tier: int) -> String:
 	var pool: Array[String] = []
 	for id in DATA:
-		if int(DATA[id]["tier"]) == tier:
+		if int(DATA[id]["tier"]) == tier and DATA[id]["slot"] != "weapon":
 			pool.append(id)
 	if pool.is_empty():
 		return ""
@@ -259,7 +336,8 @@ static func random_piece(tier: int) -> String:
 
 
 ## Chọn độ hiếm theo tỉ lệ phần trăm, số lẻ cũng được,
-## ví dụ { "common": 89.999, "silver": 9, "gold": 1, "diamond": 0.001 } (0.001 = cứ 100.000 lần mới ra 1 lần).
+## ví dụ { "common": 80, "rare": 16, "epic": 3.5, "legendary": 0.499, "mythic": 0.001 }
+## (0.001 = cứ 100.000 lần mới ra 1 lần).
 static func roll_rarity(weights: Dictionary) -> String:
 	var total := 0.0
 	for key in weights:

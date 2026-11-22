@@ -354,7 +354,7 @@ func _refresh_bag() -> void:
 			button.icon = data.get("icon")
 			if Equipment.is_gear(slot["id"]):
 				# Trang bị: viền theo độ hiếm, đỏ lên khi hỏng, dấu "+" khi tốt hơn món đang mặc
-				button.tooltip_text = Equipment.tooltip(slot) + "\nBấm để mặc"
+				button.tooltip_text = Equipment.tooltip(slot) + ("\nBấm để cầm" if Equipment.slot_of(slot["id"]) == "weapon" else "\nBấm để mặc")
 				style.border_color = Equipment.rarity_info(slot.get("rarity", ""))["color"]
 				count.text = ""
 				if Equipment.is_broken(slot):
@@ -376,6 +376,8 @@ func _refresh_bag() -> void:
 
 ## Món trong túi có tốt hơn món đang mặc ở cùng chỗ không (chỗ trống hoặc món đang mặc đã hỏng = có).
 func _gear_is_better(item: Dictionary) -> bool:
+	if not player.can_use_gear(item["id"]):
+		return false   # vũ khí khác loại: chưa dùng được
 	var worn: Dictionary = player.gear.get(Equipment.slot_of(item["id"]), {})
 	if worn.is_empty() or Equipment.is_broken(worn):
 		return true
@@ -384,10 +386,10 @@ func _gear_is_better(item: Dictionary) -> bool:
 
 # ---------------------------------------------------------------- Bảng Trang bị (mở cùng túi đồ)
 
-## 4 ô trang bị: Mũ, Giáp, Quần, Giày. Dưới mỗi ô có thanh độ bền. Bên dưới là tổng chỉ số trang bị.
+## 5 ô trang bị: Mũ, Giáp, Quần, Giày, Vũ khí. Dưới mỗi ô có thanh độ bền. Bên dưới là tổng chỉ số trang bị.
 func _build_equip_panel() -> void:
 	equip_panel = Panel.new()
-	equip_panel.size = Vector2(104, 186)
+	equip_panel.size = Vector2(104, 226)
 	equip_panel.position = Vector2(SCREEN.x - 160 - equip_panel.size.x - 4, 64)
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = Color(0.12, 0.09, 0.07, 0.92)
@@ -436,7 +438,7 @@ func _build_equip_panel() -> void:
 		bar.add_child(fill)
 		equip_slots[slot] = { "button": button, "style": normal, "bar": bar, "fill": fill }
 	equip_stats = _make_label("", 8, Color(1.0, 0.95, 0.85))
-	equip_stats.position = Vector2(8, 102)
+	equip_stats.position = Vector2(8, 142)
 	equip_panel.add_child(equip_stats)
 
 
@@ -454,6 +456,8 @@ func _refresh_equip() -> void:
 		if item.is_empty():
 			button.icon = Equipment.SLOT_ICONS[slot]
 			button.tooltip_text = "%s: chưa mặc gì.\nNhặt trang bị trong rương hầm ngục, bấm vào món trong túi để mặc." % Equipment.SLOT_NAMES[slot]
+			if slot == "weapon":
+				button.tooltip_text = "Vũ khí: chưa cầm món nào (vẫn đánh được nhưng không được cộng Tấn công).\nRương hầm ngục rơi đúng loại vũ khí của bạn, bấm vào món trong túi để cầm."
 			style.border_color = Color(0.45, 0.35, 0.25)
 			bar.visible = false
 			continue

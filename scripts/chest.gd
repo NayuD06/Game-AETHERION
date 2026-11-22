@@ -8,12 +8,15 @@ extends Node2D
 ## 4 loại rương: thường, bạc, vàng, kim cương. Tầng càng sâu càng hay gặp rương xịn
 ## (tỉ lệ "chest_odds" của từng tầng nằm trong scripts/dungeon.gd).
 ## Đồ trong mỗi loại rương (TIERS bên dưới):
-##   Trang bị: mỗi rương chỉ ra 1 hoặc 2 món.
+##   Trang bị: mỗi rương chỉ ra 1 hoặc 2 món. Mỗi món có WEAPON_CHANCE phần trăm là vũ khí
+##   (đúng loại vũ khí nhân vật đang dùng: Kiếm Sĩ ra kiếm, Xạ Thủ ra cung...), còn lại là mũ / giáp / quần / giày.
 ##     gear_two: phần trăm cơ hội ra thêm món thứ 2 (0 = luôn 1 món, 100 = luôn 2 món)
 ##     gear_tier: bậc trang bị = số tầng + [cộng ít nhất, cộng nhiều nhất] (bậc 1 đến 5, xem scripts/equipment.gd)
-##     rarity: tỉ lệ PHẦN TRĂM ra từng độ hiếm cho mỗi món (Thường, Bạc, Vàng, Kim cương).
+##     rarity: tỉ lệ PHẦN TRĂM ra từng độ hiếm cho mỗi món:
+##             common = Thường, rare = Hiếm, epic = Cực hiếm, legendary = Huyền thoại, mythic = Thần thánh.
 ##             Số lẻ cũng được: 0.001 = cứ 100.000 món mới ra 1 món. Cộng lại nên bằng 100.
-##     guaranteed: món đầu tiên chắc chắn có độ hiếm này (Rương kim cương luôn ra 1 món Kim cương)
+##     guaranteed: món đầu tiên chắc chắn có độ hiếm ÍT NHẤT là độ hiếm này
+##             (Rương kim cương: món đầu luôn từ Huyền thoại trở lên)
 ##   Đồ lặt vặt thì rương nào cũng luôn có, rương càng xịn càng nhiều:
 ##     materials: số loại nguyên liệu chế tạo, amount: mỗi loại bao nhiêu cái [ít nhất, nhiều nhất]
 ##     gold: vàng (nhân với số tầng)
@@ -24,31 +27,34 @@ const TIERS := {
 		"name": "Rương thường", "texture": preload("res://assets/dungeon/chest_normal.png"),
 		"color": Color(1.0, 0.7, 0.4),
 		"gear_two": 15, "gear_tier": [-1, 0],
-		"rarity": { "common": 89.999, "silver": 9.0, "gold": 1.0, "diamond": 0.001 },
+		"rarity": { "common": 80.0, "rare": 16.0, "epic": 3.5, "legendary": 0.499, "mythic": 0.001 },
 		"materials": 2, "amount": [1, 3], "gold": 12, "potions": 0, "big_potions": 0, "crystals": 0,
 	},
 	"silver": {
 		"name": "Rương bạc", "texture": preload("res://assets/dungeon/chest_silver.png"),
 		"color": Color(0.82, 0.88, 1.0),
 		"gear_two": 30, "gear_tier": [0, 0],
-		"rarity": { "common": 55.0, "silver": 38.0, "gold": 6.9, "diamond": 0.1 },
+		"rarity": { "common": 55.0, "rare": 32.0, "epic": 10.0, "legendary": 2.9, "mythic": 0.1 },
 		"materials": 3, "amount": [2, 3], "gold": 25, "potions": 1, "big_potions": 0, "crystals": 0,
 	},
 	"gold": {
 		"name": "Rương vàng", "texture": preload("res://assets/dungeon/chest_gold.png"),
 		"color": Color(1.0, 0.85, 0.3),
 		"gear_two": 45, "gear_tier": [0, 1],
-		"rarity": { "common": 20.0, "silver": 45.0, "gold": 33.0, "diamond": 2.0 },
+		"rarity": { "common": 25.0, "rare": 40.0, "epic": 25.0, "legendary": 9.0, "mythic": 1.0 },
 		"materials": 3, "amount": [2, 4], "gold": 50, "potions": 1, "big_potions": 1, "crystals": 0,
 	},
 	"diamond": {
 		"name": "Rương kim cương", "texture": preload("res://assets/dungeon/chest_diamond.png"),
 		"color": Color(0.5, 0.95, 1.0),
-		"gear_two": 60, "gear_tier": [1, 1], "guaranteed": "diamond",
-		"rarity": { "silver": 20.0, "gold": 50.0, "diamond": 30.0 },
+		"gear_two": 60, "gear_tier": [1, 1], "guaranteed": "legendary",
+		"rarity": { "rare": 15.0, "epic": 40.0, "legendary": 35.0, "mythic": 10.0 },
 		"materials": 4, "amount": [3, 5], "gold": 100, "potions": 0, "big_potions": 2, "crystals": 1,
 	},
 }
+
+## Mỗi món trang bị trong rương có bao nhiêu phần trăm là vũ khí (đúng loại vũ khí của nhân vật).
+const WEAPON_CHANCE := 30.0
 
 ## Nguyên liệu chế tạo có thể nằm trong rương. Số càng lớn càng hay gặp.
 const MATERIALS := {
@@ -186,14 +192,20 @@ func _drop_loot() -> void:
 	var tier_range: Array = data["gear_tier"]
 	var count := 2 if randf() * 100.0 < float(data.get("gear_two", 0)) else 1
 	var best := ""
+	var weapon_type := _player_weapon()
+	var sure := str(data.get("guaranteed", ""))
 	for i in count:
 		var gear_tier := clampi(floor_index + randi_range(int(tier_range[0]), int(tier_range[1])), 1, Equipment.MAX_TIER)
-		var id := Equipment.random_piece(gear_tier)
+		var id := ""
+		if weapon_type >= 0 and randf() * 100.0 < WEAPON_CHANCE:
+			id = Equipment.weapon_id(weapon_type, gear_tier)   # vũ khí đúng loại nhân vật đang dùng
+		if id == "":
+			id = Equipment.random_piece(gear_tier)
 		if id == "":
 			continue
 		var rarity := Equipment.roll_rarity(data["rarity"])
-		if i == 0 and str(data.get("guaranteed", "")) != "":
-			rarity = str(data["guaranteed"])
+		if i == 0 and sure != "" and Equipment.rarity_rank(rarity) < Equipment.rarity_rank(sure):
+			rarity = sure
 		Pickup.spawn_item(parent, id, at, 1, rarity)
 		names.append(Equipment.full_name(id, rarity))
 		if best == "" or Equipment.rarity_rank(rarity) > Equipment.rarity_rank(best):
@@ -220,15 +232,21 @@ func _drop_loot() -> void:
 		Game.message.emit("Mở %s: %s!" % [data["name"], ", ".join(names)])
 
 
-## Ra được đồ hiếm: hiện chữ to theo màu độ hiếm. Rương thường mà ra đồ Kim cương thì báo "CỰC HIẾM".
+## Loại vũ khí nhân vật đang dùng (Weapons.Type), -1 nếu không thấy nhân vật.
+func _player_weapon() -> int:
+	var player := get_tree().get_first_node_in_group("player") as Player
+	return player.weapon if player != null else -1
+
+
+## Ra được đồ hiếm: hiện chữ to theo màu độ hiếm. Rương thường mà ra đồ Thần thánh thì báo "QUÁ MAY MẮN".
 func _announce_rare(rarity: String) -> void:
 	var rank := Equipment.rarity_rank(rarity)
-	if rank < 2:   # Thường, Bạc: không cần báo
+	if rank < 2:   # Thường, Hiếm: không cần báo
 		return
 	var info := Equipment.rarity_info(rarity)
 	var color: Color = info["color"]
 	var lucky := rank > Equipment.rarity_rank(_usual_best())   # ra đồ hiếm hơn hẳn loại rương này hay ra
-	var text: String = ("CỰC HIẾM! Trang bị %s!" if lucky else "Trang bị %s!") % info["name"]
+	var text: String = ("QUÁ MAY MẮN! Trang bị %s!" if lucky else "Trang bị %s!") % info["name"]
 	Game.popup_text(global_position + Vector2(0, -36), text, color, 12 if lucky else 10)
 	Game.burst(global_position + Vector2(0, -8), color, 26 if lucky else 14, 90.0, 70.0, 0.7, 2.2)
 	if lucky:
