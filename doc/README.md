@@ -117,6 +117,8 @@ Bản đồ chỉ hiện khu bạn đang đứng: ở ngoài thì không thấy 
 - Quái có **giáp** (hình khiên trên đầu) bị trừ bớt sát thương mỗi đòn. Thương phá được giáp.
 - Đánh trúng có rung màn hình, khựng hình, quái nháy trắng cho đã tay.
 - Hạ quái rơi **ngọc xanh** (kinh nghiệm), bình máu, vàng, pha lê tím (+tấn công). Đủ kinh nghiệm là **lên cấp**.
+- Trên đầu mỗi con quái có chữ **Lv** là cấp của nó. Màu chữ cho biết nó mạnh hay yếu so với bạn:
+  **xám** là rất yếu, **xanh lá** là yếu hơn, **trắng** là ngang sức, **cam** là mạnh hơn, **đỏ** là rất nguy hiểm.
 
 ### Lên cấp và mở khóa kỹ năng
 
@@ -146,8 +148,17 @@ Mỗi cấp được thêm 8 máu tối đa và 1 tấn công. Ô kỹ năng ch�
 | **Boss Gorrak** (Thạch Vương Cổ Đại) | Đấu Trường Đá Cổ | 5 giáp. Nhảy đập (né vòng đỏ!), bắn cầu bóng tối tỏa tròn, dưới nửa máu thì gọi thêm slime. |
 | **Boss Malakar** (Vua Xương Bất Tử) | Hầm Ngục Cổ, tầng 5 | Bắn cầu hồn xoắn ốc, dịch chuyển tới chỗ bạn rồi nổ (thấy vòng tím là chạy!), mưa hồn (vòng đỏ dưới đất), gọi cung thủ xương. Còn 1/4 máu thì cuồng nộ. |
 
-Quái thường (trừ Boss) hạ xong sẽ quay lại sau 2 phút, nên cứ đánh tiếp để luyện cấp. Quái trong hầm ngục mạnh hơn
-và cho nhiều kinh nghiệm hơn, tầng càng sâu càng mạnh.
+Quái thường (trừ Boss) hạ xong sẽ quay lại sau 2 phút, nên cứ đánh tiếp để luyện cấp.
+Quái cấp càng cao thì càng trâu, đánh càng đau, nhưng cho nhiều kinh nghiệm và vàng hơn:
+
+| Nơi | Cấp quái |
+|---|---|
+| Rừng Hoang | 1 - 4 |
+| Rừng Thông | 4 - 7 |
+| Đầm Lầy Nấm | 6 - 9 |
+| Boss Gorrak | 10 |
+| Hầm ngục tầng 1 đến tầng 4 | 10 - 12, 13 - 15, 16 - 19, 20 - 23 |
+| Boss Malakar (tầng 5) | 30 |
 
 ### Mục tiêu bản chơi thử
 
@@ -195,15 +206,15 @@ bị **phong ấn tím** chặn lại. Hạ Boss xong phong ấn vỡ ra, đi v�
 Hầm ngục là một **bản đồ riêng**, chỉ đi vào cửa hang mới xuống được. Bên trong tối om, chỉ có nến, đuốc, bệ thờ phát sáng
 và một vòng sáng nhỏ quanh người bạn (có **Đuốc** trong túi thì vòng sáng to hơn).
 **Hố đen có bậc thang dưới sàn** là lối xuống tầng dưới, **cầu thang sáng trên tường** là lối lên.
-Mỗi tầng có bản đồ, màu sắc và cơ chế riêng, càng xuống sâu quái càng mạnh:
+Mỗi tầng có bản đồ, màu sắc và cơ chế riêng. Càng xuống sâu quái càng **cao cấp**, nhiều giáp và chạy nhanh hơn:
 
-| Tầng | Tên | Cần chú ý |
-|---|---|---|
-| 1 | Hầm Mộ Cổ | **Bẫy gai**: gai nhú lên là sắp đâm, đợi gai thụt xuống rồi đi qua. |
-| 2 | Hang Nấm Độc | **Đầm độc** màu xanh: đi chậm và mất máu liên tục. Có một dòng suối độc phải lội qua. |
-| 3 | Mê Cung Bóng Tối | Mê cung rất tối. Tìm và thắp sáng **3 bia cổ ngữ** ở 3 góc thì lối xuống ở giữa mới mở. |
-| 4 | Lò Rèn Dung Nham | **Sông dung nham** chặn đường, đi qua cầu đá. **Lỗ phun lửa** đỏ lên là sắp phun, tránh xa! |
-| 5 | Điện Thờ Bóng Đêm | Phòng Boss **Malakar**. Uống bình máu ở 2 bệ thờ trước khi vào. Hạ hắn để mở Cổng Xoáy. |
+| Tầng | Tên | Cấp quái | Cần chú ý |
+|---|---|---|---|
+| 1 | Hầm Mộ Cổ | 10 - 12 | **Bẫy gai**: gai nhú lên là sắp đâm, đợi gai thụt xuống rồi đi qua. |
+| 2 | Hang Nấm Độc | 13 - 15 | **Đầm độc** màu xanh: đi chậm và mất máu liên tục. Có một dòng suối độc phải lội qua. |
+| 3 | Mê Cung Bóng Tối | 16 - 19 | Mê cung rất tối. Tìm và thắp sáng **3 bia cổ ngữ** ở 3 góc thì lối xuống ở giữa mới mở. |
+| 4 | Lò Rèn Dung Nham | 20 - 23 | **Sông dung nham** chặn đường, đi qua cầu đá. **Lỗ phun lửa** đỏ lên là sắp phun, tránh xa! |
+| 5 | Điện Thờ Bóng Đêm | Boss cấp 30 | Phòng Boss **Malakar**. Uống bình máu ở 2 bệ thờ trước khi vào. Hạ hắn để mở Cổng Xoáy. |
 
 Mẹo: lướt (**F**) qua bẫy gai, lỗ lửa, đầm độc thì không bị trúng.
 

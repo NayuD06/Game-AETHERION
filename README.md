@@ -43,6 +43,40 @@ Nhân vật luôn cầm vũ khí đã chọn trên tay. Nhân vật được lư
 Quái có giáp (biểu tượng khiên trên đầu, số giáp hiện ở thanh máu Boss) bị trừ bớt sát thương mỗi đòn.
 Thương xuyên phần lớn giáp và mỗi đòn trúng làm giáp giảm đi 2 ("Phá giáp!"). Cung thủ xương có 3 giáp, Boss có 5, quái tinh anh thêm 2.
 
+## Cấp của quái
+
+Mỗi con quái có **cấp** (chữ **Lv** ngay trên thanh máu, Boss thì ghi cấp cạnh tên trên thanh máu lớn).
+Cấp càng cao thì quái càng nhiều máu, đánh càng đau, nhưng cho nhiều kinh nghiệm và vàng hơn.
+Mỗi cấp quái thêm khoảng 8% máu, 6% sát thương, 7% kinh nghiệm (cộng dồn), nên quái cấp 10 trâu gấp đôi quái cấp 1.
+
+| Khu vực | Cấp quái |
+|---|---|
+| Rừng Hoang | 1 - 4 |
+| Rừng Thông | 4 - 7 |
+| Đầm Lầy Nấm | 6 - 9 |
+| Boss Gorrak (Đấu Trường Đá Cổ) | 10 |
+| Hầm ngục tầng 1 | 10 - 12 |
+| Hầm ngục tầng 2 | 13 - 15 |
+| Hầm ngục tầng 3 | 16 - 19 |
+| Hầm ngục tầng 4 | 20 - 23 |
+| Hầm ngục tầng 5 | Boss Malakar cấp 30 (cung thủ hắn gọi ra cấp 26) |
+
+Màu chữ Lv so với cấp của bạn:
+
+| Màu | Nghĩa |
+|---|---|
+| Xám | Quái yếu hơn bạn 5 cấp trở lên |
+| Xanh lá | Quái yếu hơn bạn 2 đến 4 cấp |
+| Trắng | Ngang sức (chênh 1 cấp) |
+| Cam | Quái mạnh hơn bạn 2 đến 4 cấp, cẩn thận |
+| Đỏ | Quái mạnh hơn bạn 5 cấp trở lên, rất nguy hiểm |
+
+Quái do Boss gọi ra thấp cấp hơn Boss (slime của Gorrak thấp hơn 2 cấp, cung thủ của Malakar thấp hơn 4 cấp). Bù nhìn tập đánh không có cấp.
+
+Muốn chỉnh: cấp quái ngoài trời là `enemy_level` của từng khu trong `AREAS` (đầu file `scripts/level.gd`), cấp Boss là
+`BOSS_LEVELS` cũng trong file đó, cấp quái hầm ngục là `level` của từng tầng trong `scripts/dungeon.gd`.
+Mỗi cấp tăng bao nhiêu: `HP_PER_LEVEL`, `DAMAGE_PER_LEVEL`, `XP_PER_LEVEL`, `GOLD_PER_LEVEL` ở đầu `scripts/enemies/enemy.gd`.
+
 Nếu có lỗi, xem tab **Output** / **Debugger** ở dưới cùng của Godot.
 
 ## Điều khiển (chuột kiểu Liên Minh Huyền Thoại / Dota)
@@ -114,7 +148,7 @@ Kỹ năng mở dần theo cấp:
 Kinh nghiệm cần để lên cấp tiếp = 10 + 5 x (cấp hiện tại - 1): cấp 1 cần 10, cấp 2 cần 15, cấp 3 cần 20...
 Tổng cộng khoảng 70 kinh nghiệm để tới cấp 5, 270 tới cấp 10, 600 tới cấp 15, 1000 tới cấp 20, 2300 tới cấp 30.
 Quái thường (trừ Boss và bù nhìn) hạ xong sẽ quay lại chỗ cũ sau 2 phút để bạn luyện cấp. Quái trong hầm ngục
-mạnh hơn và cho nhiều kinh nghiệm hơn, tầng càng sâu càng nhiều (tầng 1 gấp 1.6 lần, tầng 5 gấp 5 lần).
+cấp cao hơn nên mạnh hơn và cho nhiều kinh nghiệm hơn, tầng càng sâu càng cao cấp (xem phần "Cấp của quái").
 
 Muốn chỉnh: mở `scripts/player.gd`, phần "Cấp độ mở khóa" ở đầu file: `SKILL_UNLOCK_LEVELS` (cấp mở Q W E R),
 `QUICK_ITEM_LEVEL` (cấp mở D), `XP_BASE` và `XP_STEP` (kinh nghiệm cần), `LEVEL_HP` và `LEVEL_ATTACK` (thêm mỗi cấp),
@@ -303,15 +337,16 @@ Hầm ngục là **bản đồ riêng**: không nằm trên bản đồ thế gi
 Trong hầm: **hố đen có bậc thang dưới sàn** là lối xuống tầng dưới, **cầu thang sáng trên tường** là lối lên
 (ở Tầng 1 thì là lối ra lại cửa hang). Camera và bản đồ nhỏ chỉ thấy tầng đang đứng.
 
-| Tầng | Tên | Cơ chế riêng | Quái |
-|---|---|---|---|
-| 1 | Hầm Mộ Cổ | **Bẫy gai** `9`: gai nhú lên là sắp đâm, đợi thụt xuống rồi đi qua | slime, dơi, cung thủ xương |
-| 2 | Hang Nấm Độc | **Đầm độc** `]`: đi chậm, mất máu liên tục. Hang uốn lượn, nấm khổng lồ, có suối độc phải lội qua | slime, dơi, cung thủ (màu xanh) |
-| 3 | Mê Cung Bóng Tối | Mê cung rất tối (vòng sáng nhỏ, nên mang **Đuốc**). Thắp đủ **3 bia cổ ngữ** `?` ở 3 góc thì lối xuống ở giữa mới mở | quái tinh anh |
-| 4 | Lò Rèn Dung Nham | **Sông dung nham** `|` chặn đường, chỉ qua bằng cầu đá. **Lỗ phun lửa** `/` đỏ lên rồi phun | sói, heo rừng, cung thủ (màu đỏ) |
-| 5 | Điện Thờ Bóng Đêm | Phòng Boss: **Malakar - Vua Xương Bất Tử**. Tiền sảnh có 2 bệ thờ bình máu | Boss |
+| Tầng | Tên | Cơ chế riêng | Quái | Cấp quái |
+|---|---|---|---|---|
+| 1 | Hầm Mộ Cổ | **Bẫy gai** `9`: gai nhú lên là sắp đâm, đợi thụt xuống rồi đi qua | slime, dơi, cung thủ xương | 10 - 12 |
+| 2 | Hang Nấm Độc | **Đầm độc** `]`: đi chậm, mất máu liên tục. Hang uốn lượn, nấm khổng lồ, có suối độc phải lội qua | slime, dơi, cung thủ (màu xanh) | 13 - 15 |
+| 3 | Mê Cung Bóng Tối | Mê cung rất tối (vòng sáng nhỏ, nên mang **Đuốc**). Thắp đủ **3 bia cổ ngữ** `?` ở 3 góc thì lối xuống ở giữa mới mở | quái tinh anh | 16 - 19 |
+| 4 | Lò Rèn Dung Nham | **Sông dung nham** `\|` chặn đường, chỉ qua bằng cầu đá. **Lỗ phun lửa** `/` đỏ lên rồi phun | sói, heo rừng, cung thủ (màu đỏ) | 20 - 23 |
+| 5 | Điện Thờ Bóng Đêm | Phòng Boss: **Malakar - Vua Xương Bất Tử**. Tiền sảnh có 2 bệ thờ bình máu | Boss | Malakar cấp 30 |
 
-Mỗi tầng một màu sàn, độ tối và kiểu bản đồ khác nhau. Quái mạnh dần theo tầng (máu, sát thương, giáp, tốc độ, kinh nghiệm).
+Mỗi tầng một màu sàn, độ tối và kiểu bản đồ khác nhau. Tầng càng sâu quái càng **cao cấp** (nhiều máu, đánh đau,
+nhiều kinh nghiệm hơn), thêm **giáp** (tầng 2 +1, tầng 3 +2, tầng 4 +3) và chạy **nhanh** hơn.
 Lướt (F) qua bẫy gai, lỗ lửa, đầm độc thì không bị trúng.
 
 **Rương báu** `'`: mỗi tầng có 2 đến 3 rương, bị **khoá** tới khi bạn hạ hết quái của tầng đó (bản đồ nhỏ ghi "Còn N quái").
@@ -356,7 +391,8 @@ Tên, màu và độ mạnh của từng độ hiếm: `RARITIES` trong `scripts
 Hạ Malakar thì **Cổng Xoáy** sau lưng hắn mở ra, bước vào là thắng.
 
 **Tự sửa hầm ngục**: mở `scripts/dungeon.gd`. Mỗi tầng có bản đồ chữ riêng (`map`), tên, lời nhắc, màu (`tint`),
-độ tối (`dark`), vòng sáng quanh người (`light`), độ mạnh của quái (`power`), tỉ lệ rương (`chest_odds`). Chú thích ký tự ở đầu file
+độ tối (`dark`), vòng sáng quanh người (`light`), cấp quái (`level`: [thấp nhất, cao nhất]),
+giáp và tốc độ thêm cho quái (`power`), tỉ lệ rương (`chest_odds`). Chú thích ký tự ở đầu file
 (dấu nháy đơn `'` là rương báu).
 Sát thương bẫy: `SPIKE_DAMAGE`, `FIRE_DAMAGE`, `POISON_DAMAGE`, độ chậm trong đầm độc `POISON_SLOW`.
 Chiêu và chỉ số Boss: `scripts/enemies/lich.gd` và `scenes/enemies/lich.tscn`. Bẫy: `scripts/dungeon_trap.gd`.

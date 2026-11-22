@@ -42,7 +42,7 @@ func _set_state(new_state: State) -> void:
 func _activate() -> void:
 	if state != State.IDLE:
 		return
-	Game.boss_started.emit(display_name)
+	Game.boss_started.emit("%s  (Lv %d)" % [display_name, monster_level])
 	Game.boss_health_changed.emit(hp, max_hp)
 	Game.boss_armor_changed.emit(armor)
 	Game.message.emit("%s đã thức giấc! Giáp đá rất dày, hãy dùng Thương để phá giáp." % display_name)
@@ -142,6 +142,7 @@ func _summon() -> void:
 	for i in 2:
 		var slime := SLIME_SCENE.instantiate() as Enemy
 		slime.position = global_position + Vector2(-24 if i == 0 else 24, 16)
+		slime.set_level(maxi(monster_level - 2, 1))   # tay sai thấp hơn Boss 2 cấp
 		slime.xp_reward = 2
 		get_parent().add_child(slime)
 		minions.append(slime)

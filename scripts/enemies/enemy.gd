@@ -2,6 +2,13 @@ class_name Enemy
 extends CharacterBody2D
 ## Lớp cơ sở cho mọi quái vật. Quái cụ thể (slime, dơi, cung thủ, boss)
 ## kế thừa file này và viết lại hàm _ai() để có cách di chuyển riêng.
+##
+## Cấp quái (chữ "Lv" trên đầu): chỉ số trong file cảnh .tscn là của quái cấp base_level (thường là cấp 1).
+## Mỗi cấp cao hơn: máu nhân thêm HP_PER_LEVEL, sát thương nhân thêm DAMAGE_PER_LEVEL,
+## kinh nghiệm nhân thêm XP_PER_LEVEL (cộng dồn kiểu lãi kép), vàng cộng thêm GOLD_PER_LEVEL.
+## Cấp của quái do màn chơi đặt: ngoài trời theo khu vực ("enemy_level" trong AREAS của scripts/level.gd),
+## trong hầm ngục theo tầng ("level" trong scripts/dungeon.gd).
+## Màu chữ Lv so với cấp của bạn: xám = quá yếu, xanh = yếu hơn, trắng = ngang sức, cam = mạnh hơn, đỏ = rất nguy hiểm.
 
 signal died(enemy: Enemy)
 
@@ -22,6 +29,18 @@ signal died(enemy: Enemy)
 ## Vật phẩm rơi vào túi khi chết, mỗi mục: [tên vật phẩm, tỉ lệ rơi 0..1, ít nhất, nhiều nhất]
 ## Ví dụ sói: [["hide", 0.7, 1, 1], ["meat", 0.6, 1, 2], ["bone", 0.4, 1, 1]]
 @export var item_drops: Array = []
+## Chỉ số trong cảnh là của quái cấp này (Boss có cấp gốc riêng do màn chơi đặt).
+@export var base_level := 1
+@export var show_level := true         # hiện chữ "Lv" trên đầu (bù nhìn thì không)
+
+const HP_PER_LEVEL := 0.08       # mỗi cấp máu x1.08
+const DAMAGE_PER_LEVEL := 0.06   # mỗi cấp sát thương x1.06
+const XP_PER_LEVEL := 0.07       # mỗi cấp kinh nghiệm x1.07
+const GOLD_PER_LEVEL := 0.15     # mỗi cấp vàng thêm 15% (cấp 11 = gấp 2.5 lần)
+## Các kiểu sát thương riêng của từng loại quái (tên cung thủ, đòn của Boss) cũng mạnh lên theo cấp.
+const LEVEL_DAMAGE_PROPS := ["arrow_damage", "slam_damage", "orb_damage", "spiral_damage", "blast_damage", "rain_damage"]
+
+var monster_level := 1
 
 var hp := 0
 var player: Player = null
@@ -46,6 +65,8 @@ var highlighted := false   # chuột đang rê lên quái này (viền đỏ, hi
 var targeted := false      # người chơi đang khóa mục tiêu vào quái này (vòng đỏ dưới chân)
 var sprite_base_y := 0.0   # hình được đẩy lên khi phóng to để chân vẫn chạm đất
 var hp_bar: Node2D
+var level_tag: Node2D        # chữ "Lv 12" trên đầu
+var shown_player_level := -1 # cấp người chơi lúc vẽ chữ Lv (lên cấp thì đổi màu chữ)
 var outline_material: ShaderMaterial
 
 var max_armor := 0
@@ -80,6 +101,13 @@ func _ready() -> void:
 	hp_bar.visible = false
 	hp_bar.draw.connect(_draw_hp_bar)
 	add_child(hp_bar)
+	# Chữ cấp quái, luôn hiện trên thanh máu
+	level_tag = Node2D.new()
+	level_tag.position = Vector2(0, head_y - 6.0)
+	level_tag.z_index = 3
+	level_tag.visible = show_level and overhead_bar
+	level_tag.draw.connect(_draw_level_tag)
+	add_child(level_tag)
 	shield_icon = Sprite2D.new()
 	shield_icon.texture = SHIELD_TEXTURE
 	shield_icon.scale = Vector2.ONE * 0.5
@@ -106,15 +134,27 @@ func make_elite() -> void:
 	base_modulate = Color(1.0, 0.7, 1.0)
 
 
-## Quái trong hầm ngục: mạnh lên theo tầng (power, màu, tinh anh lấy từ scripts/dungeon.gd).
+## Đặt cấp cho quái: máu, sát thương, kinh nghiệm, vàng tăng theo cấp (so với base_level).
+## Gọi trước khi thêm vào scene.
+func set_level(lv: int) -> void:
+	monster_level = maxi(lv, 1)
+	var steps := monster_level - base_level
+	var dmg := pow(1.0 + DAMAGE_PER_LEVEL, steps)
+	max_hp = maxi(1, roundi(max_hp * pow(1.0 + HP_PER_LEVEL, steps)))
+	contact_damage = roundi(contact_damage * dmg)
+	for prop in LEVEL_DAMAGE_PROPS:
+		if prop in self:
+			set(prop, roundi(float(get(prop)) * dmg))
+	xp_reward = maxi(0, roundi(xp_reward * pow(1.0 + XP_PER_LEVEL, steps)))
+	gold_reward = maxi(0, roundi(gold_reward * maxf(1.0 + GOLD_PER_LEVEL * steps, 0.2)))
+	if level_tag != null:
+		level_tag.queue_redraw()
+
+
+## Quái trong hầm ngục: thêm giáp, tốc độ, màu, tinh anh theo tầng (scripts/dungeon.gd).
+## Máu và sát thương thì theo cấp quái (set_level), cấp do tầng quyết định.
 ## Gọi trước khi thêm vào scene.
 func apply_floor(power: Dictionary, tint: Color, elite: bool) -> void:
-	max_hp = int(max_hp * float(power.get("hp", 1.0)))
-	contact_damage = roundi(contact_damage * float(power.get("damage", 1.0)))
-	if "arrow_damage" in self:
-		set("arrow_damage", roundi(float(get("arrow_damage")) * float(power.get("damage", 1.0))))
-	xp_reward = int(xp_reward * float(power.get("xp", 1.0)))
-	gold_reward *= int(power.get("gold", 1))
 	armor += int(power.get("armor", 0))
 	speed *= float(power.get("speed", 1.0))
 	base_modulate = tint
@@ -126,6 +166,8 @@ func _physics_process(delta: float) -> void:
 		return
 	if player == null or not is_instance_valid(player):
 		player = get_tree().get_first_node_in_group("player") as Player
+	if player != null and level_tag != null and level_tag.visible and player.level != shown_player_level:
+		level_tag.queue_redraw()   # người chơi lên cấp: đổi màu chữ Lv
 	contact_cd = maxf(contact_cd - delta, 0.0)
 	flash_time = maxf(flash_time - delta, 0.0)
 
@@ -227,6 +269,7 @@ func _die() -> void:
 	is_dead = true
 	remove_from_group("enemies")
 	_update_hp_bar()
+	level_tag.visible = false
 	outline_material.set_shader_parameter("outline_on", false)
 	queue_redraw()
 	$CollisionShape2D.set_deferred("disabled", true)
@@ -320,6 +363,34 @@ func _draw_hp_bar() -> void:
 	hp_bar.draw_rect(Rect2(-w / 2.0 - 1.0, -1.0, w + 2.0, 5.0), Color(0.05, 0.03, 0.05, 0.9))
 	hp_bar.draw_rect(Rect2(-w / 2.0, 0.0, w * ratio, 3.0), Color(0.95, 0.2, 0.2) if not is_elite else Color(0.85, 0.3, 0.95))
 	hp_bar.draw_rect(Rect2(-w / 2.0, 0.0, w * ratio, 1.0), Color(1.0, 0.55, 0.5, 0.8))
+
+
+## Màu chữ Lv so với cấp người chơi: xám = quá yếu, xanh = yếu hơn, trắng = ngang sức,
+## cam = mạnh hơn, đỏ = rất nguy hiểm.
+func level_color() -> Color:
+	var diff := 0
+	if player != null and is_instance_valid(player):
+		diff = monster_level - player.level
+	if diff <= -5:
+		return Color(0.62, 0.62, 0.62)
+	if diff <= -2:
+		return Color(0.55, 0.95, 0.45)
+	if diff <= 1:
+		return Color(1.0, 0.96, 0.82)
+	if diff <= 4:
+		return Color(1.0, 0.62, 0.25)
+	return Color(1.0, 0.3, 0.3)
+
+
+func _draw_level_tag() -> void:
+	shown_player_level = player.level if player != null and is_instance_valid(player) else -1
+	var text := "Lv %d" % monster_level
+	var font := ThemeDB.fallback_font
+	var font_size := 7
+	var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+	var at := Vector2(-w / 2.0, 0.0)
+	level_tag.draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 3, Color(0, 0, 0, 0.85))
+	level_tag.draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, level_color())
 
 
 ## Vòng dưới chân: đỏ đậm khi đang bị khóa mục tiêu, đỏ nhạt khi rê chuột lên.

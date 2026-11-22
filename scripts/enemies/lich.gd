@@ -51,7 +51,7 @@ func _set_state(new_state: State) -> void:
 func _activate() -> void:
 	if state != State.IDLE:
 		return
-	Game.boss_started.emit(display_name)
+	Game.boss_started.emit("%s  (Lv %d)" % [display_name, monster_level])
 	Game.boss_health_changed.emit(hp, max_hp)
 	Game.boss_armor_changed.emit(armor)
 	Game.message.emit("%s: \"Kẻ phàm trần dám bước vào điện thờ của ta sao?\"" % display_name)
@@ -198,6 +198,7 @@ func _summon() -> void:
 		var archer := ARCHER_SCENE.instantiate() as Enemy
 		archer.position = _open_spot_near(global_position + Vector2(-30 if i == 0 else 30, 18), 10.0)
 		archer.apply_floor(Dungeon.FLOORS[Dungeon.FLOORS.size() - 1]["power"], Color(0.9, 0.75, 1.0), true)
+		archer.set_level(maxi(monster_level - 4, 1))   # lính xương thấp hơn Malakar 4 cấp
 		archer.xp_reward = 6
 		get_parent().add_child(archer)
 		Game.burst(archer.position, Color(0.7, 0.4, 1.0), 10, 50.0)

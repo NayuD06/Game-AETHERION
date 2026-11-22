@@ -55,6 +55,7 @@ const TILE := 16
 ## biome: kiểu cảnh (village, forest, pine = rừng thông, swamp = đầm lầy).
 ## critters: số thú hiền mỗi loại (rabbit thỏ, deer nai, bird chim, butterfly bướm, frog ếch, duck vịt).
 ## lilies: tỉ lệ lá sen trên mặt nước. fireflies: có đom đóm bay.
+## enemy_level: cấp quái trong khu [thấp nhất, cao nhất] (chữ "Lv" trên đầu quái, cấp càng cao quái càng mạnh).
 const AREAS := [
 	{
 		"name": "Làng Ven Hồ", "rect": Rect2i(0, 0, 31, 32), "biome": "village",
@@ -62,7 +63,7 @@ const AREAS := [
 		"critters": { "duck": 4, "bird": 5, "butterfly": 5 }, "lilies": 0.12,
 	},
 	{
-		"name": "Rừng Thông", "rect": Rect2i(31, 0, 52, 32), "biome": "pine",
+		"name": "Rừng Thông", "rect": Rect2i(31, 0, 52, 32), "biome": "pine", "enemy_level": [4, 7],
 		"message": "Rừng thông: có nai, thỏ... và bầy sói! Quả mọng, thảo dược hái được để hồi máu.",
 		"critters": { "rabbit": 7, "deer": 4, "bird": 5, "butterfly": 5, "duck": 2 }, "lilies": 0.08,
 	},
@@ -72,7 +73,7 @@ const AREAS := [
 		"critters": { "bird": 4, "butterfly": 4 },
 	},
 	{
-		"name": "Rừng Hoang", "rect": Rect2i(31, 32, 52, 32), "biome": "forest",
+		"name": "Rừng Hoang", "rect": Rect2i(31, 32, 52, 32), "biome": "forest", "enemy_level": [1, 4],
 		"message": "Hãy mạnh lên và đánh bại kẻ canh giữ ở phía đông!",
 		"critters": { "rabbit": 4, "bird": 4, "butterfly": 4 }, "lilies": 0.1,
 	},
@@ -82,7 +83,7 @@ const AREAS := [
 		"critters": { "bird": 8, "butterfly": 6, "rabbit": 2 },
 	},
 	{
-		"name": "Đầm Lầy Nấm", "rect": Rect2i(31, 64, 52, 32), "biome": "swamp",
+		"name": "Đầm Lầy Nấm", "rect": Rect2i(31, 64, 52, 32), "biome": "swamp", "enemy_level": [6, 9],
 		"message": "Đầm lầy ẩm ướt, đầy nấm và ếch. Coi chừng slime và heo rừng!",
 		"critters": { "frog": 10, "butterfly": 3, "bird": 2 }, "lilies": 0.22, "fireflies": true,
 	},
@@ -573,6 +574,10 @@ const WELL_BUCKET := { "item": "water", "tex": preload("res://assets/craft/bucke
 const STATION_RANGE := 30.0   # đứng gần trạm chế tạo bao nhiêu pixel thì mở bảng chế tạo
 ## Sói, heo rừng bị hạ sẽ quay lại chỗ cũ sau bấy nhiêu giây (khi người chơi không đứng gần)
 const ENEMY_RESPAWN := 120.0   # quái thường hồi sinh sau bao nhiêu giây (Boss và bù nhìn thì không)
+## Cấp Boss: [cấp hiện trên đầu, cấp gốc của chỉ số trong file cảnh]. Gorrak giữ nguyên sức mạnh,
+## Malakar mạnh hơn bản gốc 8 cấp cho xứng với quái tầng 5. Quái thường: cấp theo "enemy_level" của khu vực
+## (AREAS ở trên) hoặc "level" của tầng hầm ngục (scripts/dungeon.gd).
+const BOSS_LEVELS := { "B": [10, 10], "}": [30, 22] }
 const WATER_CHARS := "~[$"    # các ô có nước bên dưới (cầu gỗ và thuyền nằm trên nước)
 const CROP_CHARS := "456"     # cây trồng trên ruộng (có đất cày)
 
@@ -1513,6 +1518,7 @@ func _spawn_everything() -> void:
 					portal_open = false               # cổng xoáy chỉ mở khi hạ Boss hầm ngục
 				if fl > 0:
 					_track_floor_enemy(enemy, fl)     # hạ hết quái của tầng thì rương mở khoá
+				_apply_enemy_level(enemy, c, x, y)
 				if c == "D":
 					enemy.armor = 6
 					enemy.display_name = "Bù nhìn giáp"
@@ -1563,6 +1569,7 @@ func _respawn_enemy(c: String, pos: Vector2) -> void:
 	var fl := floor_at(floori(pos.x / TILE), floori(pos.y / TILE))
 	if fl > 0:
 		_apply_floor_power(enemy, fl)   # quái trong hầm ngục mạnh dần theo tầng
+	_apply_enemy_level(enemy, c, floori(pos.x / TILE), floori(pos.y / TILE))
 	enemy.died.connect(_on_enemy_died.bind(c, pos))
 	entities.add_child(enemy)
 
@@ -1608,7 +1615,27 @@ func floor_enemies_left(fl: int) -> int:
 	return int(floor_alive.get(fl, 0))
 
 
-## Quái ở tầng fl của hầm ngục: máu, sát thương, giáp... nhân theo "power" của tầng (scripts/dungeon.gd).
+## Cấp quái mới sinh ra ở ô (x, y): Boss theo BOSS_LEVELS, bù nhìn không có cấp,
+## quái thường theo tầng hầm ngục ("level" trong scripts/dungeon.gd) hoặc khu vực ngoài trời ("enemy_level" trong AREAS).
+func _apply_enemy_level(enemy: Enemy, c: String, x: int, y: int) -> void:
+	if c == "d" or c == "D":
+		enemy.show_level = false
+		return
+	if BOSS_LEVELS.has(c):
+		var boss_level: Array = BOSS_LEVELS[c]
+		enemy.base_level = int(boss_level[1])
+		enemy.set_level(int(boss_level[0]))
+		return
+	var fl := floor_at(x, y)
+	var lv_range: Array = [1, 1]
+	if fl > 0:
+		lv_range = Dungeon.FLOORS[fl - 1].get("level", [1, 1])
+	else:
+		lv_range = _area_at(x, y).get("enemy_level", [1, 1])
+	enemy.set_level(randi_range(int(lv_range[0]), int(lv_range[1])))
+
+
+## Quái ở tầng fl của hầm ngục: thêm giáp, tốc độ, màu theo "power" của tầng (scripts/dungeon.gd).
 func _apply_floor_power(enemy: Enemy, fl: int) -> void:
 	var data: Dictionary = Dungeon.FLOORS[fl - 1]
 	enemy.apply_floor(data["power"], data["enemy_tint"], data["elite"])

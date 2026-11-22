@@ -16,7 +16,7 @@ extends RefCounted
 ##   '  rương báu (dấu nháy đơn): khoá tới khi hạ hết quái của tầng, loại rương theo "chest_odds"
 ##   }  Boss hầm ngục: Malakar - Vua Xương Bất Tử
 ##   O  cổng xoáy (đích cuối, chỉ mở khi hạ Boss hầm ngục)
-##   s b a X N  quái (slime, dơi, cung thủ xương, sói, heo rừng): tự mạnh lên theo "power" của tầng
+##   s b a X N  quái (slime, dơi, cung thủ xương, sói, heo rừng): cấp quái theo "level" của tầng
 ##   E Q  bệ thờ có pha lê sức mạnh / bình máu     h m c  bình máu, bình năng lượng, pha lê
 ##   i I u K S  nến, chân nến, bình gốm, khối đá, xương
 ##
@@ -25,8 +25,9 @@ extends RefCounted
 ##   tint: màu phủ sàn và tường            dark: độ tối (càng nhỏ càng tối)
 ##   light: bán kính vòng sáng quanh người (có Đuốc thì to hơn)
 ##   enemy_tint: màu quái                  elite: quái có thanh máu tím (quái tinh anh)
-##   power: quái mạnh hơn quái ngoài trời bao nhiêu lần (hp máu, damage sát thương, xp kinh nghiệm,
-##          gold vàng, armor cộng thêm giáp, speed tốc độ)
+##   level: cấp quái của tầng [thấp nhất, cao nhất]. Tầng càng sâu cấp càng cao, quái càng trâu và đánh càng đau.
+##          Cấp quái tính ra máu, sát thương, kinh nghiệm, vàng: xem đầu scripts/enemies/enemy.gd.
+##   power: armor cộng thêm giáp, speed tốc độ (nhân lên)
 ##   chest_odds: tỉ lệ ra từng loại rương ở tầng này (normal thường, silver bạc, gold vàng, diamond kim cương).
 ##          Ví dụ { "normal": 70, "silver": 25, "gold": 5 } = 70% rương thường, 25% bạc, 5% vàng.
 ##          Đồ trong từng loại rương: xem scripts/chest.gd
@@ -48,7 +49,8 @@ const FLOORS := [
 		"light": 100.0,
 		"enemy_tint": Color(1, 1, 1),
 		"elite": false,
-		"power": { "hp": 1.4, "damage": 1.15, "xp": 1.6, "gold": 2, "armor": 0, "speed": 1.0 },
+		"level": [10, 12],
+		"power": { "armor": 0, "speed": 1.0 },
 		"chest_odds": { "normal": 70, "silver": 25, "gold": 5 },
 		"map": """
 ###########################################
@@ -91,7 +93,8 @@ const FLOORS := [
 		"light": 100.0,
 		"enemy_tint": Color(0.8, 1.0, 0.7),
 		"elite": false,
-		"power": { "hp": 2.0, "damage": 1.35, "xp": 2.2, "gold": 3, "armor": 1, "speed": 1.05 },
+		"level": [13, 15],
+		"power": { "armor": 1, "speed": 1.05 },
 		"chest_odds": { "normal": 45, "silver": 40, "gold": 13, "diamond": 2 },
 		"map": """
 ########################################################
@@ -141,7 +144,8 @@ const FLOORS := [
 		"light": 72.0,
 		"enemy_tint": Color(0.75, 0.75, 1.0),
 		"elite": true,
-		"power": { "hp": 2.6, "damage": 1.6, "xp": 3.0, "gold": 4, "armor": 2, "speed": 1.1 },
+		"level": [16, 19],
+		"power": { "armor": 2, "speed": 1.1 },
 		"chest_odds": { "normal": 25, "silver": 40, "gold": 28, "diamond": 7 },
 		"map": """
 #####################################################
@@ -190,7 +194,8 @@ const FLOORS := [
 		"light": 100.0,
 		"enemy_tint": Color(1.0, 0.7, 0.6),
 		"elite": true,
-		"power": { "hp": 3.4, "damage": 1.9, "xp": 4.0, "gold": 5, "armor": 3, "speed": 1.15 },
+		"level": [20, 23],
+		"power": { "armor": 3, "speed": 1.15 },
 		"chest_odds": { "normal": 10, "silver": 32, "gold": 40, "diamond": 18 },
 		"map": """
 ############################################################
@@ -240,7 +245,8 @@ const FLOORS := [
 		"light": 110.0,
 		"enemy_tint": Color(0.9, 0.75, 1.0),
 		"elite": true,
-		"power": { "hp": 4.2, "damage": 2.2, "xp": 5.0, "gold": 6, "armor": 4, "speed": 1.2 },
+		"level": [24, 27],  # tầng 5 chỉ có Boss, cấp này dành cho quái nếu bạn thêm vào bản đồ
+		"power": { "armor": 4, "speed": 1.2 },
 		"chest_odds": { "silver": 15, "gold": 45, "diamond": 40 },
 		"map": """
 ####################################################
