@@ -4,7 +4,8 @@ extends RefCounted
 ##   Mua:    mua đồ người đó bán (trừ vàng).
 ##   Bán:    bán đồ trong túi lấy vàng (cửa hàng nào cũng mua mọi thứ, giá bằng SELL_RATIO giá gốc).
 ##   Sửa đồ: chỉ Thợ rèn có. Sửa lại độ bền trang bị (xem scripts/equipment.gd).
-## Người bán nào mở cửa hàng nào: thêm "shop": "<tên cửa hàng>" vào người đó trong NPC_DATA (scripts/level.gd).
+## Người bán nào mở cửa hàng nào: thêm "shop": "<tên cửa hàng>" vào người đó trong NPC_DATA (scripts/level.gd,
+## dân các làng mới nằm trong NPC_DATA của scripts/world_map.gd).
 ##
 ## Muốn thêm cửa hàng mới: thêm một mục vào SHOPS.
 ##   name: tên cửa hàng     sells: danh sách đồ bán (tên trong scripts/items.gd hoặc scripts/equipment.gd)
@@ -30,6 +31,32 @@ const SHOPS := {
 		"name": "Tiệm thuốc - Bà thầy thuốc",
 		"sells": ["potion_hp", "potion_hp_big", "potion_strength", "potion_speed", "herb", "water"],
 	},
+	# ---- Các làng mới
+	"fish": {
+		"name": "Sạp cá - Cô Sáu (Làng Chài)",
+		"sells": ["fish", "shrimp", "big_fish", "grilled_fish", "grilled_tuna", "fish_soup", "fishing_rod", "water"],
+	},
+	"boat": {
+		"name": "Xưởng thuyền - Bác Thuyền (Làng Chài)",
+		"sells": ["boat", "fishing_rod", "rope", "wood"],
+	},
+	"smith2": {
+		"name": "Lò rèn - Bà Tuyết (Làng Tuyết)",
+		"sells": ["helmet_2", "armor_2", "pants_2", "boots_2", "helmet_3", "armor_3", "pants_3", "boots_3", "torch", "rope"],
+		"repair": true,
+	},
+	"tea": {
+		"name": "Quán trà - Cô Đào (Làng Hoa Đào)",
+		"sells": ["cherry_tea", "apple_pie", "bread", "mushroom_soup", "potion_speed"],
+	},
+	"herbal": {
+		"name": "Nhà thuốc - Thầy lang Trúc (Làng Tre)",
+		"sells": ["potion_hp", "potion_hp_big", "potion_strength", "herb", "mushroom_soup", "bone_broth", "fish_soup"],
+	},
+	"oasis": {
+		"name": "Quầy hàng - Ông Sa (Ốc Đảo)",
+		"sells": ["water", "date", "potion_hp", "potion_hp_big", "bread", "grilled_fish"],
+	},
 }
 
 ## Giá mua (vàng). Đồ không có trong danh sách: giá DEFAULT_PRICE.
@@ -40,6 +67,9 @@ const PRICES := {
 	"axe": 40, "sickle": 35, "torch": 30, "campfire_kit": 30,
 	"cooked_meat": 14, "mushroom_skewer": 12, "roast_pumpkin": 20, "meat_skewer": 26,
 	"pumpkin_soup": 30, "apple_pie": 22, "bread": 10, "mushroom_soup": 22, "bone_broth": 28,
+	"fish": 6, "shrimp": 5, "big_fish": 14, "pearl": 60, "crab_meat": 8, "date": 4, "scorpion_tail": 10,
+	"fishing_rod": 30, "boat": 150, "grilled_fish": 14, "grilled_tuna": 30, "grilled_crab": 22,
+	"fish_soup": 34, "cherry_tea": 28,
 }
 const DEFAULT_PRICE := 4
 ## Bán lại được bao nhiêu phần giá mua (0.4 = 40%). Trang bị đã mòn thì còn rẻ hơn nữa.

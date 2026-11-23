@@ -16,7 +16,7 @@ extends Node
 ## Nhân vật của bạn (user://nhan_vat.cfg) không bị đổi: cảnh quay chỉ mượn ngoại hình, không lưu lại.
 
 const SCENES := ["tao_nhan_vat", "lang", "kiem", "cung", "giao", "ham_nguc", "ruong", "boss"]
-const COMBAT_SPOT := Vector2i(47, 47)   # khoảng đất trống trong Rừng Hoang (ô trên bản đồ thế giới)
+const COMBAT_SPOT := Vector2i(47, 47)   # khoảng đất trống trong Rừng Hoang (ô trên bản đồ cũ, MAP trong scripts/level.gd)
 const BOSS_FIGHT := 13.0                 # đánh Boss khoảng bao nhiêu giây
 const PACK_HP := 8                       # quái gọi ra trong cảnh đánh quái trâu hơn bao nhiêu lần (để kịp tung đủ chiêu)
 
@@ -162,14 +162,14 @@ func _scene_village() -> void:
 	await _wait(1.4)
 	_show_bag(false)
 	_say("Đi về phía đông là tới Rừng Hoang")
-	await _walk(_world_cell(33, 46), 3.0)
+	await _walk(_core_cell(33, 46), 3.0)
 	await _wait(0.6)
 
 
 func _scene_weapon() -> void:
 	_set_level(20)
 	_give_gear(2)
-	var center := _world_cell(COMBAT_SPOT.x, COMBAT_SPOT.y)
+	var center := _core_cell(COMBAT_SPOT.x, COMBAT_SPOT.y)
 	player.teleport_to(center)
 	await _wait(0.1)
 	_quiet_messages("Rừng Hoang")
@@ -483,6 +483,11 @@ func _pack_alive() -> int:
 
 
 # ================================================================ Tìm đồ vật trong màn chơi
+
+## Ô (x, y) của bản đồ cũ (MAP trong scripts/level.gd), nằm ở giữa thế giới lớn.
+func _core_cell(x: int, y: int) -> Vector2:
+	return _world_cell(WorldMap.CORE.position.x + x, WorldMap.CORE.position.y + y)
+
 
 func _world_cell(x: int, y: int) -> Vector2:
 	return level.to_global(Vector2(x + 0.5, y + 0.5) * Level.TILE)

@@ -116,7 +116,7 @@ func _ready() -> void:
 	add_child(shield_icon)
 	add_to_group("enemies")
 	collision_layer = 4      # lớp "enemies"
-	collision_mask = 1 | 4   # va vào tường và các quái khác
+	collision_mask = 1 | 4 | 8   # va vào tường, các quái khác và nước (quái không bơi được)
 	home = global_position
 	wander_target = global_position
 	anim_time = randf() * TAU

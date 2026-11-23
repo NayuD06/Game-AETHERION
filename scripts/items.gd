@@ -196,6 +196,90 @@ const DATA := {
 		"desc": "Hồi máu từ từ: 6 máu mỗi giây trong 15 giây.",
 		"regen": [6, 15],
 	},
+	# --- Biển, sông hồ (câu ở chỗ nước gợn sóng, cần Cần câu)
+	"fish": {
+		"name": "Cá",
+		"icon": preload("res://assets/items/fish.png"),
+		"desc": "Câu ở chỗ nước gợn sóng. Ăn sống hồi 6 máu, nướng ở bếp lửa ngon hơn.",
+		"heal": 6,
+	},
+	"shrimp": {
+		"name": "Tôm",
+		"icon": preload("res://assets/items/shrimp.png"),
+		"desc": "Câu được ở biển và hồ. Ăn hồi 5 máu.",
+		"heal": 5,
+	},
+	"big_fish": {
+		"name": "Cá ngừ",
+		"icon": preload("res://assets/items/big_fish.png"),
+		"desc": "Cá to, hiếm khi câu được. Nướng thành Cá ngừ nướng hồi rất nhiều máu.",
+		"heal": 12,
+	},
+	"pearl": {
+		"name": "Ngọc trai",
+		"icon": preload("res://assets/items/pearl.png"),
+		"desc": "Rất hiếm, câu được ở biển hoặc rơi ra từ cua. Bán được nhiều vàng.",
+	},
+	"crab_meat": {
+		"name": "Thịt cua",
+		"icon": preload("res://assets/items/crab_meat.png"),
+		"desc": "Rơi ra khi hạ cua ở bờ biển. Ăn sống hồi 8 máu.",
+		"heal": 8,
+	},
+	"date": {
+		"name": "Quả chà là",
+		"icon": preload("res://assets/items/date.png"),
+		"desc": "Quả ngọt ở Ốc Đảo giữa sa mạc. Hồi 12 máu.",
+		"heal": 12,
+	},
+	"scorpion_tail": {
+		"name": "Đuôi bọ cạp",
+		"icon": preload("res://assets/items/scorpion_tail.png"),
+		"desc": "Rơi ra khi hạ bọ cạp sa mạc. Nấu ở nồi luyện thuốc thành Thuốc sức mạnh.",
+	},
+	"fishing_rod": {
+		"name": "Cần câu",
+		"icon": preload("res://assets/items/fishing_rod.png"),
+		"desc": "Công cụ: có cần câu trong túi thì đứng gần chỗ nước gợn sóng là câu được cá.",
+		"tool": true,
+	},
+	"boat": {
+		"name": "Thuyền",
+		"icon": preload("res://assets/items/boat.png"),
+		"desc": "Công cụ: có thuyền trong túi thì đi được trên sông, hồ, biển (chuột phải xuống nước).",
+		"tool": true,
+	},
+	"grilled_fish": {
+		"name": "Cá nướng",
+		"icon": preload("res://assets/items/grilled_fish.png"),
+		"desc": "Cá nướng thơm lừng. Hồi 30 máu.",
+		"heal": 30,
+	},
+	"grilled_tuna": {
+		"name": "Cá ngừ nướng",
+		"icon": preload("res://assets/items/grilled_tuna.png"),
+		"desc": "Miếng cá ngừ to nướng vàng. Hồi 70 máu.",
+		"heal": 70,
+	},
+	"grilled_crab": {
+		"name": "Cua nướng",
+		"icon": preload("res://assets/items/grilled_crab.png"),
+		"desc": "Cua nướng chắc thịt. Hồi 45 máu.",
+		"heal": 45,
+	},
+	"fish_soup": {
+		"name": "Canh cá",
+		"icon": preload("res://assets/items/fish_soup.png"),
+		"desc": "Hồi máu từ từ: 9 máu mỗi giây trong 12 giây.",
+		"regen": [9, 12],
+	},
+	"cherry_tea": {
+		"name": "Trà hoa đào",
+		"icon": preload("res://assets/items/cherry_tea.png"),
+		"desc": "Trà thơm của Làng Hoa Đào. Hồi 15 máu, chạy nhanh hơn 20% trong 90 giây.",
+		"heal": 15,
+		"buff": ["speed", 0.2, 90.0],
+	},
 }
 
 

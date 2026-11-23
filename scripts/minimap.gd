@@ -7,6 +7,8 @@ extends Control
 ## Chấm trắng: bạn. Chấm đỏ: quái. Chấm cam: trạm chế tạo / lửa trại. Khung trắng: phần đang thấy trên màn hình.
 ## Bản đồ chỉ hiện khu bạn đang đứng: ở ngoài thì là thế giới bên ngoài (không có hầm ngục),
 ## xuống hầm ngục thì chỉ hiện tầng đang đứng (hố đen có viền trắng: lối xuống, ô vàng: cầu thang lên).
+## Thế giới bên ngoài chỉ hiện chỗ đã đi tới (khám phá tới đâu mở bản đồ tới đó), chỗ chưa tới là màu tối.
+## Màu mặt đất theo vùng: cát vàng, tuyết trắng, cát đỏ, đá xám... Tên làng có dấu vuông nhỏ.
 
 const SCREEN := Vector2(640, 360)
 const SMALL_SCALE := 1.5      # mỗi ô bản đồ (16x16) = bao nhiêu pixel trên bản đồ nhỏ (to hơn = nhìn gần hơn)
@@ -39,6 +41,17 @@ const COLOR_MUSHROOM := Color8(200, 92, 92)
 const COLOR_POISON := Color8(96, 176, 70)       # đầm độc
 const COLOR_LAVA := Color8(244, 126, 40)        # dung nham
 const COLOR_DUNGEON_PROP := Color8(64, 60, 78)  # khối đá, bia, bình gốm trong hầm ngục
+const COLOR_FOG := Color8(40, 37, 50)           # chỗ chưa khám phá
+const COLOR_DEEP := Color8(44, 100, 178)        # biển sâu
+## Màu mặt đất và màu rừng theo loại đất (BIOME_GROUND trong scripts/level.gd)
+const GROUND_COLORS := {
+	"sand": Color8(226, 206, 142), "snow": Color8(232, 238, 246), "red": Color8(204, 116, 74),
+	"stone": Color8(148, 148, 142), "myc": Color8(150, 114, 152),
+}
+const FOREST_COLORS := {
+	"sand": Color8(82, 142, 70), "snow": Color8(66, 108, 96), "red": Color8(126, 92, 60),
+	"stone": Color8(52, 96, 66), "myc": Color8(156, 74, 112),
+}
 
 var player: Player
 var level: Level
@@ -51,6 +64,8 @@ var dragging := false
 var drag_timer := 0.0
 var hint: Label
 var arena_center := Vector2(-1, -1)     # giữa đấu trường (theo ô), để ghi tên trên bản đồ lớn
+var world_colors: Image                 # màu thật của thế giới bên ngoài (tính một lần)
+var map_image: Image                    # ảnh đang hiện: chỗ chưa khám phá tô màu tối
 
 
 func _ready() -> void:
@@ -86,6 +101,10 @@ func _process(delta: float) -> void:
 		region_rect = level.region_rect(region)
 		_build_texture()
 		_layout()
+	elif region == 0 and not level.fog_changes.is_empty():
+		_reveal(level.fog_changes)
+	if region != 0:
+		level.fog_changes.clear()
 	hint.visible = visible
 	# Giữ chuột và kéo trên bản đồ: liên tục đổi chỗ đến
 	if dragging:
@@ -126,7 +145,7 @@ func _map_scale() -> float:
 func _layout() -> void:
 	if big:
 		# phóng to cho vừa màn hình (thế giới bên ngoài: BIG_SCALE, tầng hầm ngục nhỏ hơn nên to hơn)
-		var fit := minf(560.0 / region_rect.size.x, 290.0 / region_rect.size.y)
+		var fit := minf(560.0 / region_rect.size.x, 326.0 / region_rect.size.y)
 		big_scale = clampf(floorf(fit * 2.0) / 2.0, 1.0, maxf(BIG_SCALE, 6.0))
 		size = Vector2(region_rect.size) * big_scale
 		position = ((SCREEN - size) / 2.0).floor()
@@ -180,28 +199,58 @@ func _gui_input(event: InputEvent) -> void:
 
 # ---------------------------------------------------------------- Vẽ bản đồ
 
-## Mỗi ô của khu đang đứng thành 1 pixel màu.
 func _build_texture() -> void:
 	var r := region_rect
 	var image := Image.create_empty(r.size.x, r.size.y, false, Image.FORMAT_RGBA8)
-	var arena_box := Rect2()
-	for y in range(r.position.y, r.end.y):
-		for x in range(r.position.x, r.end.x):
-			image.set_pixel(x - r.position.x, y - r.position.y, _tile_color(x, y))
-			if level.cell(x, y) == ":":
-				arena_box = Rect2(x, y, 1, 1) if arena_box.size == Vector2.ZERO else arena_box.expand(Vector2(x + 1, y + 1))
+	if region == 0:
+		if world_colors == null:
+			world_colors = Image.create_empty(r.size.x, r.size.y, false, Image.FORMAT_RGBA8)
+			for y in range(r.position.y, r.end.y):
+				for x in range(r.position.x, r.end.x):
+					world_colors.set_pixel(x - r.position.x, y - r.position.y, _tile_color(x, y))
+		image.fill(COLOR_FOG)
+		for y in r.size.y:
+			for x in r.size.x:
+				if level.is_explored(x + r.position.x, y + r.position.y):
+					image.set_pixel(x, y, world_colors.get_pixel(x, y))
+		level.fog_changes.clear()
+		var arena: Rect2i = level.arena_rect
+		arena_center = Vector2(arena.get_center()) if arena.size != Vector2i.ZERO else Vector2(-1, -1)
+	else:
+		for y in range(r.position.y, r.end.y):
+			for x in range(r.position.x, r.end.x):
+				image.set_pixel(x - r.position.x, y - r.position.y, _tile_color(x, y))
+		arena_center = Vector2(-1, -1)
+	map_image = image
 	map_texture = ImageTexture.create_from_image(image)
-	arena_center = arena_box.get_center() if arena_box.size != Vector2.ZERO else Vector2(-1, -1)
+
+
+## Mở bản đồ ở các ô vừa khám phá.
+func _reveal(cells: Array[Vector2i]) -> void:
+	if map_image == null or world_colors == null:
+		return
+	var r := region_rect
+	for c in cells:
+		var x := c.x - r.position.x
+		var y := c.y - r.position.y
+		if x >= 0 and y >= 0 and x < r.size.x and y < r.size.y:
+			map_image.set_pixel(x, y, world_colors.get_pixel(x, y))
+	cells.clear()
+	map_texture.update(map_image)
 
 
 func _tile_color(x: int, y: int) -> Color:
 	var c := level.cell(x, y)
 	var in_dungeon := region > 0
-	var in_arena := level.arena_column != -1 and x >= level.arena_column and not in_dungeon
+	var in_arena := not in_dungeon and level.arena_rect.has_point(Vector2i(x, y))
+	var biome := "" if in_dungeon else level._biome_at(x, y)
+	var ground: String = Level.BIOME_GROUND.get(biome, "grass")
 	if Level.WALL_CHARS.contains(c) or c == "G":
-		if _solid_rock(x, y):
-			return COLOR_VOID
-		return COLOR_DUNGEON_WALL if in_dungeon else COLOR_WALL
+		if in_dungeon:
+			return COLOR_VOID if _solid_rock(x, y) else COLOR_DUNGEON_WALL
+		# núi đá ngoài trời: lòng núi tối hơn mép núi một chút
+		var rock: Color = COLOR_WALL * Level.ROCK_TINT.get(biome, Color.WHITE)
+		return rock.darkened(0.3) if _solid_rock(x, y) else rock
 	if in_dungeon:
 		var tint: Color = Dungeon.FLOORS[region - 1]["tint"]
 		match c:
@@ -218,10 +267,12 @@ func _tile_color(x: int, y: int) -> Color:
 		return COLOR_WATER if c == "F" else COLOR_PLAZA
 	match c:
 		"T":
-			return COLOR_FOREST
+			return FOREST_COLORS.get(ground, COLOR_FOREST)
 		"t", "7", "o":
-			return COLOR_VILLAGE_TREE
-		"~", "$", "V":
+			return COLOR_VILLAGE_TREE if ground == "grass" else FOREST_COLORS.get(ground, COLOR_VILLAGE_TREE).lightened(0.1)
+		"~", "$", "V", "á":
+			if biome == "ocean" and level._open_sea(x, y):
+				return COLOR_DEEP
 			return COLOR_WATER
 		"[":
 			return COLOR_BRIDGE
@@ -235,13 +286,20 @@ func _tile_color(x: int, y: int) -> Color:
 			return COLOR_CROPS
 		"f":
 			return COLOR_FENCE
-		"R", "U", "W", "M", "H", "x", "!", "&":
+		"R", "U", "W", "M", "H", "x", "!", "&", "ê", "J":
 			return COLOR_BUILDING
 		"r":
 			return COLOR_ROCK
 		"*":
-			return COLOR_MUSHROOM
-	return COLOR_ARENA if in_arena else COLOR_GRASS
+			return Color8(86, 150, 76) if ground == "sand" or ground == "red" else COLOR_MUSHROOM
+		",":
+			if ground != "grass":
+				return COLOR_GRASS
+	if in_arena:
+		return COLOR_ARENA
+	if ground != "grass":
+		return GROUND_COLORS[ground]
+	return COLOR_GRASS * Level.BIOME_TINT.get(biome, Color.WHITE)
 
 
 ## Ô tường nằm giữa khối đá (8 ô xung quanh đều là tường): vẽ màu tối như khoảng trống.
@@ -266,11 +324,11 @@ func _draw() -> void:
 	# Trạm chế tạo, lửa trại
 	for st in level.stations:
 		var p := _from_level(Vector2(st["pos"]))
-		if not _in_region(Vector2(st["pos"])) or _off(p):
+		if not _in_region(Vector2(st["pos"])) or _off(p) or not _seen(Vector2(st["pos"])):
 			continue
 		draw_rect(Rect2(p - Vector2(1.5, 1.5), Vector2(3, 3)), Color(1.0, 0.6, 0.2))
 	# Cửa hang (tím khi còn phong ấn)
-	if region == 0 and level.cave_entrance != Vector2.INF:
+	if region == 0 and level.cave_entrance != Vector2.INF and _seen(level.cave_entrance):
 		var cave := _from_level(level.cave_entrance)
 		draw_circle(cave, 2.5, Color(0.1, 0.05, 0.1))
 		draw_circle(cave, 1.6, Color(0.7, 0.35, 1.0) if not level.gate_open else Color(0.25, 0.2, 0.25))
@@ -313,7 +371,7 @@ func _draw() -> void:
 		if enemy == null or not is_instance_valid(enemy) or enemy.is_dead:
 			continue
 		var p := map_at(enemy.global_position)
-		if _off(p) or not _in_region(level.to_local(enemy.global_position)):
+		if _off(p) or not _in_region(level.to_local(enemy.global_position)) or not _seen(level.to_local(enemy.global_position)):
 			continue
 		if enemy.is_in_group("boss"):
 			draw_circle(p, dot * 2.4, Color(0.1, 0.0, 0.0))
@@ -357,32 +415,67 @@ func _in_region(local: Vector2) -> bool:
 	return region_rect.has_point(Vector2i(floori(local.x / Level.TILE), floori(local.y / Level.TILE)))
 
 
+## Điểm (toạ độ trong màn chơi) đã khám phá chưa. Trong hầm ngục: luôn thấy.
+func _seen(local: Vector2) -> bool:
+	if region != 0:
+		return true
+	return level.is_explored(floori(local.x / Level.TILE), floori(local.y / Level.TILE))
+
+
 ## Điểm p nằm ngoài vòng tròn bản đồ nhỏ (khỏi vẽ cho nhẹ máy).
 func _off(p: Vector2) -> bool:
 	return not big and p.distance_to(size / 2.0) > size.x / 2.0 + 4.0
 
 
-## Tên các khu trên bản đồ lớn.
 func _draw_area_names() -> void:
 	var font := get_theme_default_font()
-	var names := []
+	var names := []   # [chữ, vị trí (ô), là làng, cỡ chữ]
 	if region == 0:
-		for area in Level.AREAS:
+		for area in WorldMap.AREAS:
 			var rect: Rect2i = area["rect"]
-			names.append([area["name"], Vector2(rect.position) + Vector2(rect.size) / 2.0])
-		if arena_center.x >= 0.0:
-			names.append(["Đấu Trường", arena_center])
+			var at: Vector2 = area.get("label", Vector2(rect.position) + Vector2(rect.size) / 2.0)
+			if not level.is_explored(floori(at.x), floori(at.y)):
+				continue   # chưa tới thì chưa biết tên
+			var village: bool = area.get("village", false) or area.get("biome", "") == "village"
+			names.append([area["name"], at, village, 8 if big_scale < 2.0 else 10])
+		if arena_center.x >= 0.0 and level.is_explored(floori(arena_center.x), floori(arena_center.y)):
+			names.append(["Đấu Trường", arena_center, false, 8 if big_scale < 2.0 else 10])
+		names.sort_custom(func(a, b): return a[2] and not b[2])   # tên làng ưu tiên
 	else:
 		# tầng hầm ngục: ghi tên tầng ở mép trên
-		names.append([Dungeon.floor_name(region), Vector2(region_rect.get_center().x, region_rect.position.y + 1.5)])
+		names.append([Dungeon.floor_name(region), Vector2(region_rect.get_center().x, region_rect.position.y + 1.5), false, 10])
+	var used: Array[Rect2] = []
 	for item in names:
 		var text: String = item[0]
+		var font_size: int = item[3]
 		var pos: Vector2 = _origin() + item[1] * big_scale
-		var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10).x
-		var at := pos - Vector2(w / 2.0, -4)
-		at.x = clampf(at.x, 3.0, size.x - w - 3.0)   # không cho chữ tràn ra ngoài khung
-		draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, 4, Color(0, 0, 0, 0.85))
-		draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, 10, Color(1.0, 0.95, 0.8))
+		var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
+		# Tên đè lên tên khác thì thử dịch lên / xuống một chút, không được thì bỏ qua
+		var placed := false
+		var at := Vector2.ZERO
+		for dy in [0.0, -float(font_size) - 2.0, float(font_size) + 2.0]:
+			at = pos - Vector2(w / 2.0, -4.0 - dy)
+			at.x = clampf(at.x, 3.0, size.x - w - 3.0)   # không cho chữ tràn ra ngoài khung
+			at.y = clampf(at.y, float(font_size) + 2.0, size.y - 3.0)
+			var box := Rect2(at - Vector2(1, font_size), Vector2(w + 2, font_size + 2))
+			var free := true
+			for b in used:
+				if b.intersects(box):
+					free = false
+					break
+			if free:
+				used.append(box)
+				placed = true
+				break
+		if not placed:
+			continue
+		var color := Color(1.0, 0.95, 0.8)
+		if item[2]:
+			color = Color(1.0, 0.85, 0.45)
+			draw_rect(Rect2(pos - Vector2(2, 2), Vector2(4, 4)), Color(0.1, 0.05, 0.05))
+			draw_rect(Rect2(pos - Vector2(1, 1), Vector2(2, 2)), Color(1.0, 0.85, 0.45))
+		draw_string_outline(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, 4, Color(0, 0, 0, 0.85))
+		draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size, color)
 
 
 ## Bản đồ nhỏ trong hầm ngục: ghi "Tầng N" ở mép trên vòng tròn.

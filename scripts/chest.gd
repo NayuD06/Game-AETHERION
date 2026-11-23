@@ -4,6 +4,7 @@ extends Node2D
 ## Rương bị KHOÁ tới khi hạ hết quái của tầng đó (tầng 5 phải hạ cả Boss Malakar).
 ## Mở khoá rồi thì đi tới sát rương là rương tự mở, đồ văng ra đất, đi qua là nhặt.
 ## Hạ Malakar còn rơi thêm một Rương kim cương ngay chỗ hắn ngã xuống.
+## Rương ngoài trời (ký tự ' ở các vùng mới, scripts/world_map.gd) không khoá, độ xịn theo "chest_level" của khu.
 ##
 ## 4 loại rương: thường, bạc, vàng, kim cương. Tầng càng sâu càng hay gặp rương xịn
 ## (tỉ lệ "chest_odds" của từng tầng nằm trong scripts/dungeon.gd).
@@ -67,6 +68,7 @@ const OPEN_RANGE := 18.0
 
 var tier := "normal"
 var floor_index := 1
+var power := 1      # độ xịn của đồ trong rương (bậc trang bị, vàng): bằng số tầng, rương ngoài trời theo khu
 var locked := true
 var opened := false
 var level: Level
@@ -80,13 +82,14 @@ var msg_cd := 0.0
 var sparkle_cd := 0.0
 
 
-func setup(chest_tier: String, fl: int, start_locked: bool, lvl: Level) -> void:
+func setup(chest_tier: String, fl: int, start_locked: bool, lvl: Level, chest_power: int = 0) -> void:
 	tier = chest_tier if TIERS.has(chest_tier) else "normal"
 	floor_index = fl
+	power = chest_power if chest_power > 0 else maxi(fl, 1)
 	locked = start_locked
 	level = lvl
-	if lvl != null:
-		light_texture = lvl.light_texture
+	if lvl != null and fl > 0:
+		light_texture = lvl.light_texture   # ánh sáng chỉ cần trong hầm ngục tối
 
 
 func _ready() -> void:
@@ -195,7 +198,7 @@ func _drop_loot() -> void:
 	var weapon_type := _player_weapon()
 	var sure := str(data.get("guaranteed", ""))
 	for i in count:
-		var gear_tier := clampi(floor_index + randi_range(int(tier_range[0]), int(tier_range[1])), 1, Equipment.MAX_TIER)
+		var gear_tier := clampi(power + randi_range(int(tier_range[0]), int(tier_range[1])), 1, Equipment.MAX_TIER)
 		var id := ""
 		if weapon_type >= 0 and randf() * 100.0 < WEAPON_CHANCE:
 			id = Equipment.weapon_id(weapon_type, gear_tier)   # vũ khí đúng loại nhân vật đang dùng
@@ -216,7 +219,7 @@ func _drop_loot() -> void:
 	for id in _pick_materials(int(data["materials"])):
 		Pickup.spawn_item(parent, id, at, randi_range(int(amount[0]), int(amount[1])))
 	# Vàng: chia thành vài đồng xu
-	var gold := int(data["gold"]) * floor_index
+	var gold := int(data["gold"]) * power
 	var coins := clampi(int(gold / 15.0), 2, 8)
 	for i in coins:
 		Pickup.spawn(parent, Pickup.Kind.GOLD, at, maxi(1, int(gold / float(coins))))

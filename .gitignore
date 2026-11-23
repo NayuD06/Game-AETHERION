@@ -10,3 +10,6 @@ Thumbs.db
 
 # Video quay thô từ chế độ demo (--write-movie), không đưa lên git
 _video/
+
+# Bản game đã đóng gói (.exe) khi bấm Export trong Godot hoặc do CI/CD tạo ra
+build/

@@ -6,9 +6,10 @@ extends RefCounted
 ##   "fire"  Bếp lửa ('8', lửa trại 'j') : nướng thịt, nướng xiên (Bộ lửa trại tự đặt cũng dùng được)
 ##   "stove" Lò nấu ăn ('0')             : nấu súp, nướng bánh
 ##   "bench" Bàn chế tạo ('@')           : công cụ, trang bị, nâng cấp túi
+##   "shipyard" Xưởng đóng thuyền ('ê', ở Làng Chài phía tây): đóng thuyền, làm cần câu
 ##
 ## Muốn thêm công thức mới: thêm một mục vào LIST.
-##   station: trạm nào làm được (pot, fire, stove, bench)
+##   station: trạm nào làm được (pot, fire, stove, bench, shipyard)
 ##   needs:   nguyên liệu cần { tên vật phẩm: số lượng } (tên lấy trong scripts/items.gd)
 ##   gives:   vật phẩm làm ra (tên trong scripts/items.gd), count: làm ra bao nhiêu cái
 ##   unique:  true = chỉ cần có 1 cái (công cụ), có rồi thì không làm thêm
@@ -22,6 +23,7 @@ const STATIONS := {
 	"fire": { "name": "Bếp lửa", "hint": "Nướng thịt, nướng xiên" },
 	"stove": { "name": "Lò nấu ăn", "hint": "Nấu súp, nướng bánh" },
 	"bench": { "name": "Bàn chế tạo", "hint": "Công cụ, trang bị, nâng cấp túi" },
+	"shipyard": { "name": "Xưởng đóng thuyền", "hint": "Thuyền, cần câu" },
 }
 
 const LIST := [
@@ -30,23 +32,29 @@ const LIST := [
 	{ "station": "pot", "gives": "potion_hp_big", "count": 1, "needs": { "herb": 3, "apple": 1, "water": 1 } },
 	{ "station": "pot", "gives": "potion_strength", "count": 1, "needs": { "herb": 1, "bone": 2, "water": 1 } },
 	{ "station": "pot", "gives": "potion_speed", "count": 1, "needs": { "berry": 2, "herb": 1, "water": 1 } },
+	{ "station": "pot", "gives": "potion_strength", "count": 2, "needs": { "scorpion_tail": 1, "herb": 1, "water": 1 } },
 	# ---- Bếp lửa (nướng)
 	{ "station": "fire", "gives": "cooked_meat", "count": 1, "needs": { "meat": 1 } },
 	{ "station": "fire", "gives": "mushroom_skewer", "count": 1, "needs": { "mushroom": 3 } },
 	{ "station": "fire", "gives": "roast_pumpkin", "count": 1, "needs": { "pumpkin": 1 } },
 	{ "station": "fire", "gives": "meat_skewer", "count": 1, "needs": { "meat": 1, "carrot": 1, "mushroom": 1 } },
+	{ "station": "fire", "gives": "grilled_fish", "count": 1, "needs": { "fish": 1 } },
+	{ "station": "fire", "gives": "grilled_tuna", "count": 1, "needs": { "big_fish": 1 } },
+	{ "station": "fire", "gives": "grilled_crab", "count": 1, "needs": { "crab_meat": 1 } },
 	# ---- Lò nấu ăn (nấu, nướng bánh)
 	{ "station": "stove", "gives": "bread", "count": 1, "needs": { "wheat": 2, "water": 1 } },
 	{ "station": "stove", "gives": "apple_pie", "count": 1, "needs": { "apple": 2, "wheat": 2 } },
 	{ "station": "stove", "gives": "mushroom_soup", "count": 1, "needs": { "mushroom": 2, "berry": 2 } },
 	{ "station": "stove", "gives": "pumpkin_soup", "count": 1, "needs": { "pumpkin": 1, "carrot": 1, "water": 1 } },
 	{ "station": "stove", "gives": "bone_broth", "count": 1, "needs": { "bone": 2, "carrot": 1, "water": 1 } },
+	{ "station": "stove", "gives": "fish_soup", "count": 1, "needs": { "fish": 1, "shrimp": 1, "water": 1 } },
 	# ---- Bàn chế tạo (công cụ, trang bị)
 	{ "station": "bench", "gives": "rope", "count": 1, "needs": { "wheat": 3 } },
 	{ "station": "bench", "gives": "axe", "count": 1, "unique": true, "needs": { "bone": 2, "rope": 1 } },
 	{ "station": "bench", "gives": "sickle", "count": 1, "unique": true, "needs": { "bone": 1, "wood": 1, "rope": 1 } },
 	{ "station": "bench", "gives": "torch", "count": 1, "unique": true, "needs": { "wood": 1, "rope": 1 } },
 	{ "station": "bench", "gives": "campfire_kit", "count": 1, "needs": { "wood": 3, "rope": 1 } },
+	{ "station": "bench", "gives": "fishing_rod", "count": 1, "unique": true, "needs": { "wood": 2, "rope": 1 } },
 	{
 		"station": "bench", "upgrade": "bag", "amount": 4, "max": 2,
 		"name": "Ba lô lớn hơn", "icon": preload("res://assets/items/backpack.png"),
@@ -60,6 +68,9 @@ const LIST := [
 		"desc": "Đeo vào: tấn công +4.",
 		"needs": { "bone": 4, "hide": 1, "rope": 1 },
 	},
+	# ---- Xưởng đóng thuyền (Làng Chài)
+	{ "station": "shipyard", "gives": "boat", "count": 1, "unique": true, "needs": { "wood": 10, "rope": 4, "hide": 2 } },
+	{ "station": "shipyard", "gives": "fishing_rod", "count": 1, "unique": true, "needs": { "wood": 2, "rope": 1 } },
 ]
 
 

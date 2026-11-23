@@ -74,6 +74,11 @@ func _ready() -> void:
 	Input.set_custom_mouse_cursor(CURSOR_NORMAL, Input.CURSOR_ARROW, Vector2(2, 2))
 
 
+## Khi tắt game: trả lại con trỏ chuột thường để Godot không báo lỗi "leaked" lúc thoát.
+func _exit_tree() -> void:
+	Input.set_custom_mouse_cursor(null)
+
+
 ## Đổi con trỏ chuột thành hình kiếm khi rê lên quái.
 func set_attack_cursor(on: bool) -> void:
 	if on == attack_cursor:

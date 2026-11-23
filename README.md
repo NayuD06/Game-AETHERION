@@ -150,6 +150,12 @@ Bấm **chuột phải** (hoặc chuột trái) vào chỗ nào trong vòng trò
 Bấm **M** để mở bản đồ lớn của cả thế giới giữa màn hình (có tên các khu), bấm M lần nữa để đóng.
 Thanh máu, cấp độ nằm ngay bên phải vòng tròn.
 
+**Khám phá tới đâu mở bản đồ tới đó**: chỗ chưa đi tới là màu tối, không thấy quái, không thấy tên khu.
+Đi tới đâu bản đồ mở ra quanh bạn tới đó (bán kính 13 ô, chỉnh `FOG_RADIUS` trong `scripts/level.gd`).
+Phần đã khám phá được lưu theo tài khoản. Save cũ (trước khi mở rộng thế giới) được mở sẵn vùng bản đồ cũ,
+Tài Khoản Full thấy hết bản đồ. Màu bản đồ theo vùng: cát vàng, tuyết trắng, cát đỏ, núi xám, biển sâu xanh đậm.
+Tên làng có dấu vuông vàng.
+
 Trên bản đồ: chấm trắng là bạn, chấm đỏ là quái (tím là quái tinh anh trong hầm ngục), chấm đỏ to là Boss,
 ô cam là trạm chế tạo / lửa trại, chấm tím là cửa hang, khung trắng là phần đang thấy trên màn hình.
 Bản đồ chỉ hiện **khu bạn đang đứng**: ở ngoài thì là thế giới bên ngoài (không thấy hầm ngục), xuống hầm ngục
@@ -282,9 +288,16 @@ Người có **đồng xu vàng trên đầu** là người bán hàng. Đi tớ
 | Chú Tư | Sạp bánh, quảng trường | Bánh mì, bánh táo, thịt nướng, xiên thịt, bí nướng, các loại súp |
 | Bác Sắt thợ rèn | Phía đông quảng trường | Mũ, giáp, quần, giày bậc Da và Sắt, rìu, liềm, đuốc, dây thừng, bộ lửa trại. **Sửa đồ** |
 | Bà thầy thuốc | Đầm Lầy Nấm | Bình máu, bình máu lớn, thuốc sức mạnh, thuốc nhanh nhẹn, thảo dược, nước |
+| Cô Sáu bán cá | Làng Chài (phía tây) | Cá, tôm, cá ngừ, cá nướng, cá ngừ nướng, canh cá, cần câu, nước |
+| Bác Thuyền | Làng Chài, cạnh xưởng thuyền | **Thuyền**, cần câu, dây thừng, gỗ |
+| Bà Tuyết thợ rèn | Làng Tuyết (tây bắc) | Mũ, giáp, quần, giày bậc Sắt và **Thép xanh**, đuốc, dây thừng. **Sửa đồ** |
+| Cô Đào bán trà | Làng Hoa Đào (đông bắc) | Trà hoa đào (hồi máu + chạy nhanh), bánh táo, bánh mì, súp nấm, thuốc nhanh nhẹn |
+| Thầy lang Trúc | Làng Tre (phía đông) | Bình máu, bình máu lớn, thuốc sức mạnh, thảo dược, súp, canh cá |
+| Ông Sa | Ốc Đảo (giữa sa mạc phía nam) | Nước, chà là, bình máu, bánh mì, cá nướng |
 
 Tự chỉnh: `scripts/shops.gd` (cửa hàng nào bán gì trong `SHOPS`, giá trong `PRICES`, tỉ lệ bán lại `SELL_RATIO`).
-Cho dân làng khác bán hàng: thêm `"shop": "<tên cửa hàng>"` vào người đó trong `NPC_DATA` (`scripts/level.gd`).
+Cho dân làng khác bán hàng: thêm `"shop": "<tên cửa hàng>"` vào người đó trong `NPC_DATA` (`scripts/level.gd`,
+dân các làng mới nằm trong `NPC_DATA` của `scripts/world_map.gd`).
 
 Kỹ năng nguyên tố (Lửa, Sấm) đang **tạm tắt** để tập trung làm đánh thường trước.
 Muốn bật lại: mở `scripts/player.gd`, đổi `const ELEMENTS_ENABLED := false` thành `true`.
@@ -301,9 +314,14 @@ Muốn sửa lời thoại, tên hoặc ngoại hình dân làng: sửa `NPC_DAT
 đọc từ trên xuống, trái sang phải). Ký tự quảng trường: `=` sân đá, `+` đá hoa văn, `F` đài phun nước, `J` sạp hàng,
 `e` ghế, `L` cột đèn, `g` chậu hoa, `v` dân làng.
 
-## Thế giới: 3 làng, 3 khu rừng
+## Thế giới mở
 
-Bản đồ có 3 dải nối liền nhau (đi qua mép khu nào là hiện tên khu đó):
+Thế giới rộng **320 x 288 ô** (gấp khoảng 9 lần trước). Bản đồ cũ (3 làng, 3 khu rừng, đấu trường) nằm **ở giữa**,
+bốn phía mở rộng ra thêm nhiều vùng mới. Các làng mới ở **rất xa nhau**, muốn tới phải đi qua nhiều vùng khác nhau
+(giống Minecraft): đồng cỏ, rừng, núi, sa mạc... Đi qua mép khu nào là hiện tên khu đó, lần đầu tới còn có lời giới thiệu.
+Có 5 lối ra khỏi bản đồ cũ: 3 lối ở bờ tây, 2 lối phía bắc, 2 lối phía nam và đường đèo phía đông (sau đấu trường). Ở mỗi lối có biển báo chỉ đường.
+
+**Bản đồ cũ ở giữa** (3 dải nối liền nhau):
 
 - **Dải trên**: Làng Ven Hồ (làng chài, hồ lớn, cầu tàu, thuyền, vịt, vườn cà rốt, vườn táo) và
   Rừng Thông (suối, cầu gỗ, nai, thỏ, quả mọng, thảo dược, hang sói).
@@ -311,17 +329,55 @@ Bản đồ có 3 dải nối liền nhau (đi qua mép khu nào là hiện tên
 - **Dải dưới**: Xóm Ruộng (ruộng lúa, cối xay gió, nhà kho, bí ngô, cà rốt, vườn táo) và
   Đầm Lầy Nấm (ao, cầu gỗ, nấm khổng lồ, ếch, đom đóm, slime, heo rừng).
 
+**5 làng mới** (mỗi làng có dân làng, người bán hàng, giếng, trạm chế tạo):
+
+| Làng | Ở đâu | Có gì |
+|---|---|---|
+| **Làng Chài** | Bờ biển phía tây | Nhà sàn, cầu tàu, thuyền, chỗ câu cá, **xưởng đóng thuyền**, sạp cá |
+| **Làng Tuyết** | Tây bắc, giữa đồng tuyết | Nhà mái tuyết, thợ rèn bán đồ Thép xanh, tuyết rơi |
+| **Làng Hoa Đào** | Đông bắc | Hoa đào, hồ cá chép có cầu, quán trà, cánh hoa bay |
+| **Làng Tre** | Phía đông, giữa rừng trúc | Nhà sàn, thầy lang bán thuốc, gấu trúc, đom đóm |
+| **Ốc Đảo** | Giữa sa mạc phía nam | Hồ nước, cây cọ, nhà đất, quầy bán nước và chà là |
+
+**Các vùng mới** (quái càng xa bản đồ cũ càng mạnh, cấp quái ghi trong `enemy_level` của từng khu):
+Đồng Cỏ Xanh (cấp 3-6), Rừng Già (6-9), Bờ Biển Tây có cua (4-7), Rừng Bạch Dương (5-8), Đồng Hoa Gió (6-9),
+Thảo Nguyên Vàng có cây keo (7-10), Rừng Thông Tuyết (9-12), Hẻm Đá (10-13), Sa Mạc Cát Vàng có bọ cạp, lạc đà (10-14),
+Đồng Tuyết Trắng (11-14), Rừng Trúc (11-14), Rừng Hoa Đào (12-15), Núi Đá Xám có hồ trên núi (13-16),
+Đảo Rùa (14-17), Hẻm Núi Đỏ (15-18), Đảo Nấm (16-19) và Tàn Tích Cổ (17-20).
+Ở vùng mới, quái quen thuộc đổi màu và đổi tên theo vùng (ví dụ sói tuyết, slime cát). Mỗi vùng có thú hiền riêng:
+hải âu, cá heo, rùa biển, cá (biển), lạc đà, thằn lằn (sa mạc), dê núi, cáo, khỉ, gấu trúc...
+Rương báu ngoài trời (không khoá) nằm rải rác, nhất là trên các đảo.
+
+**Biển, câu cá, thuyền**:
+- **Câu cá**: chỗ nước **gợn sóng** là có cá. Có **Cần câu** trong túi (làm ở bàn chế tạo: 2 gỗ + 1 dây thừng, hoặc mua ở Làng Chài)
+  thì đứng sát chỗ đó là tự câu: ra cá, tôm, đôi khi cá ngừ, rất hiếm khi ngọc trai. Câu xong mặt nước lặng một lúc rồi cá lại tới.
+- **Thuyền**: đóng ở **xưởng đóng thuyền Làng Chài** (10 gỗ + 4 dây thừng + 2 da thú) hoặc mua của Bác Thuyền (150 vàng).
+  Có thuyền trong túi thì **chuột phải xuống nước** là nhân vật ngồi thuyền đi trên sông, hồ, biển (nhanh hơn đi bộ 20%),
+  lên bờ là tự cất thuyền. Không có thuyền thì nước chặn đường như trước. Đạn, mũi tên bay qua nước được, quái thì không bơi được.
+- Ra biển xa có **Đảo Nấm** và **Đảo Rùa**, chỉ tới được bằng thuyền.
+- **Quái mới**: `ú` **cua** (bò ngang rồi kẹp, vỏ cứng có giáp, rơi thịt cua, hiếm khi ngọc trai) và
+  `ạ` **bọ cạp** (rung đuôi báo trước rồi chích rất đau, rơi đuôi bọ cạp).
+
+**Thời tiết**: tuyết rơi ở vùng tuyết, cánh hoa bay ở vùng hoa đào, đom đóm ở rừng trúc, bào tử nấm ở Đảo Nấm.
+
+**Chạy mượt dù thế giới lớn**: mặt đất và cây cối chỉ vẽ quanh người chơi (từng mảnh 16 x 16 ô, `CHUNK` trong `scripts/level.gd`),
+quái, thú, cây thu hoạch ở xa hơn `SLEEP_DISTANCE` thì tạm "ngủ" (không chạy, không vẽ) tới khi bạn tới gần.
+
+**Save cũ**: tài khoản đã chơi trước khi mở rộng vẫn chơi tiếp được, chỗ đứng và bếp lửa đã đặt được dời đúng sang chỗ mới.
+Tài Khoản Full được tặng sẵn thuyền và cần câu.
+
 **Thu hoạch**: đi tới gần cây đã chín (hoặc chuột phải vào cây) là tự hái, đồ vào túi. Hái xong cây tự lớn lại sau một lúc.
 Cây: `1` quả mọng, `2` thảo dược, `3` nấm, `4` lúa mì, `5` cà rốt, `6` bí ngô, `7` cây táo
 (thông số trong `HARVEST` ở `scripts/level.gd`).
 **Thú hiền** (thỏ, nai, chim, bướm, ếch, vịt) đi lại, ăn cỏ, bỏ chạy khi bạn tới gần, không đánh được.
-Số thú mỗi khu chỉnh trong `AREAS` ở `scripts/level.gd`.
+Số thú mỗi khu chỉnh trong `AREAS` ở `scripts/world_map.gd`.
 **Thú dữ**: `X` sói (lao tới cắn), `N` heo rừng (gồng rồi húc). Hạ chúng rơi da thú, thịt, xương.
 Sói, heo rừng và các quái thường khác quay lại chỗ cũ sau 2 phút (chỉnh `ENEMY_RESPAWN`).
 
 ## Chế tạo
 
-Quanh **quảng trường Làng Khởi Nguyên** (chỗ bắt đầu game) có 4 trạm chế tạo, mỗi trạm làm được món riêng:
+Quanh **quảng trường Làng Khởi Nguyên** (chỗ bắt đầu game) có 4 trạm chế tạo, mỗi trạm làm được món riêng
+(các làng mới cũng có trạm, Làng Chài có thêm **xưởng đóng thuyền**):
 **nồi luyện thuốc** (góc trên trái), **lò nấu ăn** bằng gạch (góc trên phải), **bàn chế tạo** (góc dưới trái),
 **bếp lửa** có xiên nướng (góc dưới phải). Lửa trại trong rừng cũng nướng đồ được như bếp lửa.
 Đi tới gần trạm là bảng chế tạo của trạm đó tự mở (đi ra xa thì đóng). Bảng ghi nguyên liệu đang có / cần
@@ -333,28 +389,37 @@ Quanh **quảng trường Làng Khởi Nguyên** (chỗ bắt đầu game) có 4
 | Nồi luyện thuốc | Bình máu lớn (hồi 80% máu) | 3 thảo dược + 1 táo + 1 bình nước |
 | Nồi luyện thuốc | Thuốc sức mạnh (tấn công +6 trong 60 giây) | 1 thảo dược + 2 xương + 1 bình nước |
 | Nồi luyện thuốc | Thuốc nhanh nhẹn (tốc độ +30% trong 60 giây) | 2 quả mọng + 1 thảo dược + 1 bình nước |
+| Nồi luyện thuốc | 2 Thuốc sức mạnh | 1 đuôi bọ cạp + 1 thảo dược + 1 bình nước |
 | Bếp lửa | Thịt nướng (hồi 35 máu) | 1 thịt sống |
 | Bếp lửa | Xiên nấm nướng (hồi 25 máu) | 3 nấm |
 | Bếp lửa | Bí ngô nướng (hồi 50 máu) | 1 bí ngô |
 | Bếp lửa | Xiên thịt rau (hồi 60 máu) | 1 thịt + 1 cà rốt + 1 nấm |
+| Bếp lửa | Cá nướng (hồi 30 máu) | 1 cá |
+| Bếp lửa | Cá ngừ nướng (hồi 70 máu) | 1 cá ngừ |
+| Bếp lửa | Cua nướng (hồi 45 máu) | 1 thịt cua |
 | Lò nấu ăn | Bánh mì (hồi 25 máu) | 2 lúa mì + 1 bình nước |
 | Lò nấu ăn | Bánh táo (hồi 45 máu) | 2 táo + 2 lúa mì |
 | Lò nấu ăn | Súp nấm (hồi 5 máu/giây trong 10 giây) | 2 nấm + 2 quả mọng |
 | Lò nấu ăn | Súp bí ngô (hồi 8 máu/giây trong 12 giây) | 1 bí ngô + 1 cà rốt + 1 bình nước |
 | Lò nấu ăn | Canh xương (hồi 6 máu/giây trong 15 giây) | 2 xương + 1 cà rốt + 1 bình nước |
+| Lò nấu ăn | Canh cá (hồi 9 máu/giây trong 12 giây) | 1 cá + 1 tôm + 1 bình nước |
 | Bàn chế tạo | Dây thừng | 3 lúa mì |
 | Bàn chế tạo | Rìu (chặt gốc cây lấy gỗ) | 2 xương + 1 dây thừng |
 | Bàn chế tạo | Liềm (hái cây được thêm 1) | 1 xương + 1 gỗ + 1 dây thừng |
 | Bàn chế tạo | Đuốc (vòng sáng to hơn trong hầm ngục) | 1 gỗ + 1 dây thừng |
 | Bàn chế tạo | Bộ lửa trại (đặt bếp lửa ở đâu cũng được) | 3 gỗ + 1 dây thừng |
+| Bàn chế tạo | Cần câu (câu cá ở chỗ nước gợn sóng) | 2 gỗ + 1 dây thừng |
 | Bàn chế tạo | Ba lô lớn hơn (+4 ô túi, làm 2 lần) | 3 da thú + 2 dây thừng |
 | Bàn chế tạo | Áo giáp da (trang bị: phòng thủ +3, máu +10) | 4 da thú + 1 dây thừng |
 | Bàn chế tạo | Bùa răng sói (tấn công +4) | 4 xương + 1 da thú + 1 dây thừng |
+| Xưởng đóng thuyền | **Thuyền** (đi trên sông, hồ, biển) | 10 gỗ + 4 dây thừng + 2 da thú |
+| Xưởng đóng thuyền | Cần câu | 2 gỗ + 1 dây thừng |
 
-Rìu, liềm, đuốc chỉ làm 1 cái (có rồi thì bảng ghi "Đã có rồi").
+Rìu, liềm, đuốc, cần câu, thuyền chỉ làm 1 cái (có rồi thì bảng ghi "Đã có rồi").
 **Gỗ**: gốc cây có khúc gỗ (`z` trên bản đồ, có trong các khu rừng) chặt được khi trong túi có Rìu, gỗ mọc lại sau 45 giây.
 Thêm công thức mới: thêm một dòng vào `LIST` trong `scripts/recipes.gd` (hướng dẫn ở đầu file).
-Ký tự bản đồ: `C` nồi luyện thuốc, `0` lò nấu ăn, `@` bàn chế tạo (rộng 2: `@x`), `8` bếp lửa, `j` lửa trại.
+Ký tự bản đồ: `C` nồi luyện thuốc, `0` lò nấu ăn, `@` bàn chế tạo (rộng 2: `@x`), `8` bếp lửa, `j` lửa trại,
+`ê` xưởng đóng thuyền (rộng 3, cao 2).
 
 ## Rừng Hoang
 
@@ -453,6 +518,9 @@ và trong `scripts/game.gd` (hàm `hit_stop`).
 
 ```
 project.godot          Cấu hình project (mở file này bằng Godot)
+export_presets.cfg     Cấu hình đóng gói game thành file .exe cho Windows
+.github/               CI/CD: GitHub tự kiểm tra lỗi và đóng gói .exe mỗi lần bạn đẩy code lên
+_test/                 Cảnh chạy thử: check_all (nạp mọi script), world_test (thế giới mở), save_test (lưu game), prof_test (đo độ mượt)
 scenes/                Các scene: main, player, quái, đạn, vật phẩm
 scripts/
   game.gd              Autoload "Game": phím điều khiển, tín hiệu dùng chung, tài khoản đang chơi
@@ -468,17 +536,19 @@ scripts/
   shops.gd             Cửa hàng của dân làng: bán gì, giá mua, giá bán lại
   recipes.gd           Công thức chế tạo của 4 trạm (nồi thuốc, bếp lửa, lò nấu ăn, bàn chế tạo)
   harvestable.gd       Cây thu hoạch được (tự lớn lại sau khi hái), xô nước cạnh giếng
-  critter.gd           Thú hiền: thỏ, nai, chim, bướm, ếch, vịt
+  critter.gd           Thú hiền: thỏ, nai, chim, bướm, ếch, vịt, hải âu, thằn lằn, lạc đà, khỉ, gấu trúc, cáo, dê núi, cá, rùa, cá heo
   skills.gd            Danh sách tất cả kỹ năng (Q W E R)
   npc.gd               Dân làng: đi dạo, quay sang nói chuyện khi người chơi tới gần, người bán hàng mở cửa hàng
   main.gd              Tạm dừng, thua, thắng, chơi lại, tự lưu game
-  level.gd             Bản đồ (vẽ bằng chữ), sinh quái, cổng, khu vực, tìm đường cho chuột phải, ghép các tầng hầm ngục
+  level.gd             Bản đồ cũ ở giữa (vẽ bằng chữ), ghép thế giới lớn, vẽ theo mảnh quanh người chơi, quái ở xa ngủ,
+                       sinh quái, cổng, khu vực, thời tiết, bản đồ khám phá dần, tìm đường (đi bộ / đi thuyền), ghép các tầng hầm ngục
+  world_map.gd         Thế giới lớn bên ngoài bản đồ cũ: bản đồ chữ, tên khu, kiểu cảnh, cấp quái, thú, dân làng và biển báo các làng mới
   dungeon.gd           Hầm Ngục Cổ: bản đồ, màu, độ tối, độ mạnh quái của 5 tầng
   dungeon_trap.gd      Bẫy gai, lỗ phun lửa trong hầm ngục
   player.gd            Nhân vật: điều khiển chuột, đánh, kỹ năng Q W E R, túi đồ, trang bị, độ bền, lên cấp
   hud.gd               Thanh máu, năng lượng, kỹ năng, thông báo, túi đồ, bảng trang bị, bảng chế tạo, cửa hàng, bảng kỹ năng (K)
   minimap.gd           Bản đồ nhỏ hình tròn góc trên bên trái, bản đồ lớn (M), bấm lên bản đồ để đi tới đó
-  enemies/             enemy.gd (lớp chung, có giáp, đồ rơi), slime, bat, archer, wolf (sói), boar (heo rừng), boss (Gorrak),
+  enemies/             enemy.gd (lớp chung, có giáp, đồ rơi), slime, bat, archer, wolf (sói), boar (heo rừng), crab (cua), scorpion (bọ cạp), boss (Gorrak),
                        lich (Malakar, Boss hầm ngục), dummy
   projectile.gd        Đạn (cầu lửa, mũi tên, cầu bóng tối)
   pickup.gd            Vật phẩm rơi
@@ -492,6 +562,8 @@ assets/
   gear/                Trang bị mũ, giáp, quần, giày 5 bậc, vũ khí 5 bậc (held/: hình cầm tay) và hình ô trống (Claude vẽ)
   eco/                 Cây thu hoạch, cây liễu, nấm khổng lồ, cối xay gió, nhà kho, thuyền, cầu tàu... (Claude vẽ)
   critters/            Thú hiền (Claude vẽ)
+  coast/               Biển và sa mạc: cát, bờ cát, biển sâu, cây cọ, xương rồng, nhà đất, thuyền, chỗ câu cá, xưởng thuyền (Claude vẽ)
+  biomes/              Các vùng mới: tuyết, cát đỏ, đá núi, đất nấm, cây bạch dương, hoa đào, keo, thông tuyết, trúc, nhà sàn... (Claude vẽ)
   craft/               Nồi luyện thuốc, bàn chế tạo, bếp lửa, lò nấu ăn, gốc cây có gỗ, xô nước (Claude vẽ), cái đe (Kenney Tiny Dungeon)
   cave/                Cửa hang, phong ấn, cầu thang ra hang (Claude vẽ)
   forest/              Rừng Hoang: cây, nền rừng tối, đường đất, bãi đá, thác nước (Claude vẽ) và thùng, gốc cây, lửa trại (Kenney)
@@ -511,13 +583,47 @@ assets/
   Bỏ file vào `assets/character/`, rồi thêm một dòng vào `HAIR_STYLES`, `OUTFITS` hoặc `HATS` trong `scripts/character_parts.gd`.
   Thêm màu mới thì thêm dòng vào `SKIN_TONES`, `HAIR_COLORS`, `OUTFIT_COLORS`.
   Quái (`slime`, `bat`, `archer`) là 2 khung 16x16 nằm ngang, Boss là 2 khung 32x32.
-- **Sửa bản đồ**: mở `scripts/level.gd`, sửa phần `MAP`. Mỗi ký tự là một ô, chú thích ký tự nằm ngay đầu file.
+- **Sửa bản đồ**: bản đồ cũ ở giữa: mở `scripts/level.gd`, sửa phần `MAP`. Mỗi ký tự là một ô, chú thích ký tự nằm ngay đầu file.
+  Thế giới lớn xung quanh: sửa `MAP` trong `scripts/world_map.gd` (chỗ để trống ở giữa là bản đồ cũ, đừng gõ vào đó)
+  và `AREA_MAP` ngay dưới (mỗi ô một ký tự cho biết ô đó thuộc khu nào trong `AREAS`).
   Bản đồ 5 tầng hầm ngục nằm trong `scripts/dungeon.gd`.
 - **Chỉnh chỉ số quái**: trong Godot, mở `scenes/enemies/slime.tscn` (hoặc quái khác), chọn node gốc, chỉnh máu, tốc độ, sát thương ở bảng **Inspector** bên phải.
 - **Chỉnh nhân vật**: tốc độ, lướt nằm ở Inspector của `scenes/player.tscn`. Máu, tấn công khởi đầu và mức tăng khi lên cấp nằm trong `scripts/player.gd`.
 - **Đổi phím**: sửa `KEY_BINDINGS` trong `scripts/game.gd`.
 
 Mẹo: bạn có thể sửa code trong Antigravity IDE. Lưu file xong quay lại Godot, bấm F5 để chạy lại.
+
+## Kiểm tra tự động trên GitHub (CI/CD)
+
+Mỗi lần bạn đẩy code lên GitHub, GitHub tự mở game trên máy của họ để kiểm tra (file `.github/workflows/kiem-tra-game.yml`):
+
+1. Nhập hình ảnh và tài nguyên, giống như khi mở project bằng Godot.
+2. Nạp thử mọi script và scene (`_test/check_all.tscn`): báo lỗi nếu code gõ sai hoặc thiếu file hình.
+3. Chạy thử thế giới mở (`_test/world_test.tscn`): tới 7 làng mới, đi thuyền, lưu rồi nạp lại bản đồ khám phá.
+4. Chạy thử lưu và nạp game (`_test/save_test.tscn`).
+5. Nếu tất cả đều đạt và bạn đẩy lên nhánh `main`: đóng gói game thành file `FantasyTheAwakening.exe` cho Windows.
+
+**Xem kết quả**: vào trang repo trên GitHub, bấm tab **Actions**. Dấu ✅ xanh là đạt, dấu ❌ đỏ là có lỗi.
+Bấm vào lần chạy bị đỏ, dòng lỗi hiện ở mục **Annotations**. Bấm vào bước bị đỏ để xem toàn bộ nhật ký.
+
+**Tải bản Windows**: mở một lần chạy xanh trên nhánh `main`, kéo xuống mục **Artifacts**, bấm **Fantasy-The-Awakening-Windows**
+để tải file zip có sẵn `.exe` (GitHub giữ 7 ngày). Mục **nhat-ky-kiem-tra** là nhật ký các lần chạy thử.
+
+**Chạy lại bằng tay**: tab **Actions**, chọn **Kiểm tra game** ở cột trái, bấm **Run workflow**.
+
+Nếu `git push` báo lỗi có chữ `workflow` scope: tài khoản GitHub trong máy chưa có quyền đẩy file CI.
+Đăng nhập lại GitHub trong Antigravity IDE (hoặc tạo token mới có tick quyền **workflow**) rồi push lại.
+
+Tự chạy thử trên máy giống GitHub: mở cmd trong thư mục game rồi gõ
+
+```
+"D:\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe" --headless --path . res://_test/world_test.tscn
+```
+
+Cuối cùng hiện `TEST OK` là đạt. Muốn đo độ mượt khi đi bộ thì thay bằng `res://_test/prof_test.tscn` và bỏ `--headless` để chạy có cửa sổ.
+
+Đóng gói ngay trong Godot: menu **Project > Export**, chọn **Windows**, bấm **Export Project**.
+Lần đầu Godot sẽ nhắc tải **Export Templates**. File .exe nằm trong thư mục `build/`, thư mục này không bị đưa lên git.
 
 ## Ghi công hình ảnh
 

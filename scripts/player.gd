@@ -18,6 +18,11 @@ const SLASH_EFFECT := preload("res://scripts/effects/slash_effect.gd")
 const RING_EFFECT := preload("res://scripts/effects/ring_effect.gd")
 const FIREBALL_TEXTURE := preload("res://assets/sprites/fireball.png")
 const SHADOW_TEXTURE := preload("res://assets/sprites/shadow.png")
+## Thuyền (vật phẩm "boat"): có trong túi thì đi được trên nước, người ngồi trong thuyền
+const BOAT_BACK := preload("res://assets/coast/boat_back.png")
+const BOAT_FRONT := preload("res://assets/coast/boat_front.png")
+const BOAT_SPEED := 1.2          # đi thuyền nhanh hơn đi bộ 20%
+const WATER_LAYER := 8           # lớp va chạm của nước (scripts/level.gd)
 const CLICK_MARKER := preload("res://scripts/effects/click_marker.gd")
 const AREA_STRIKE := preload("res://scripts/effects/area_strike.gd")
 const ARCANE_TEXTURE := preload("res://assets/sprites/arcane_orb.png")
@@ -190,6 +195,11 @@ var weapon_pivot: Node2D     # tâm xoay của vũ khí cầm tay
 var weapon_sprite: Sprite2D
 var hold_pivot: Node2D       # vũ khí cầm trong tay lúc không đánh
 var book_sprite: Sprite2D    # sách phép bay lơ lửng cạnh người
+var shadow_sprite: Sprite2D
+var boat_back: Sprite2D      # thuyền: nửa sau (vẽ sau người) và nửa trước (vẽ đè lên chân)
+var boat_front: Sprite2D
+var on_boat := false
+var boat_time := 0.0
 
 
 func _ready() -> void:
@@ -205,6 +215,14 @@ func _ready() -> void:
 	shadow.position = Vector2(0, 7)
 	add_child(shadow)
 	move_child(shadow, 0)
+	shadow_sprite = shadow
+	# Thuyền (chỉ hiện khi đang ở trên nước)
+	boat_back = Sprite2D.new()
+	boat_back.texture = BOAT_BACK
+	boat_back.position = Vector2(0, 5)
+	boat_back.visible = false
+	add_child(boat_back)
+	move_child(boat_back, 1)
 	# Vũ khí khi vung đánh (chỉ hiện lúc đánh)
 	weapon_pivot = Node2D.new()
 	weapon_pivot.position = Vector2(0, -1)
@@ -223,6 +241,11 @@ func _ready() -> void:
 	book_sprite.scale = Vector2.ONE * 0.75
 	book_sprite.visible = false
 	add_child(book_sprite)
+	boat_front = Sprite2D.new()
+	boat_front.texture = BOAT_FRONT
+	boat_front.position = Vector2(0, 5)
+	boat_front.visible = false
+	add_child(boat_front)
 	# Ngoại hình và vũ khí lấy từ màn hình tạo nhân vật
 	CharacterParts.apply_to_sprite(sprite, Game.appearance)
 	weapon = Weapons.ORDER[int(Game.appearance.get("weapon", 0)) % Weapons.ORDER.size()]
@@ -313,12 +336,17 @@ func _physics_process(delta: float) -> void:
 	else:
 		var slow := 0.35 if swing_time > 0.0 else (0.45 if charging else 1.0)
 		var speed := move_speed * slow * ground_slow * (1.0 + float(gear_bonus["speed"]) / 100.0)
+		if on_boat:
+			speed *= BOAT_SPEED
 		var target := move_dir.limit_length(1.0) * speed
 		var rate := acceleration if move_dir != Vector2.ZERO else friction
 		velocity = velocity.move_toward(target, rate * delta) + knockback
 		knockback = Vector2.ZERO
+	# Có thuyền thì nước không chặn đường nữa
+	collision_mask = 1 if has_boat() else 1 | WATER_LAYER
 	move_and_slide()
 	_check_stuck(delta, move_dir)
+	_update_boat(delta)
 
 	if Input.is_action_just_pressed("dash"):
 		_try_dash(input)
@@ -610,7 +638,7 @@ func _follow_commands(delta: float) -> Vector2:
 		var to_target := attack_target.global_position - global_position
 		var reach: float = float(Weapons.info(weapon)["auto_range"]) + attack_target.hit_radius
 		var can_see := weapon != Weapons.Type.BOW or level_ref == null \
-			or level_ref.segment_clear(global_position, attack_target.global_position, 2.0)
+			or level_ref.segment_clear(global_position, attack_target.global_position, 2.0, true)   # bắn qua nước được
 		if to_target.length() <= reach and can_see:
 			# Đã tới tầm: đứng lại và tự đánh
 			path = PackedVector2Array()
@@ -1682,6 +1710,38 @@ func stop_for_cutscene() -> void:
 	cutscene_time = 0.9
 
 
+## Có thuyền trong túi không (đi được trên sông, hồ, biển).
+func has_boat() -> bool:
+	return count_item("boat") > 0
+
+
+## Đang đứng trên nước: có thuyền thì hiện thuyền, nhấp nhô theo sóng. Không có thuyền (lỡ bán mất)
+## thì đưa lên bờ gần nhất.
+func _update_boat(delta: float) -> void:
+	var wet: bool = level_ref != null and level_ref.has_method("is_water") and level_ref.is_water(global_position)
+	if wet and not has_boat() and dash_timer <= 0.0 and cutscene_time <= 0.0:
+		teleport_to(level_ref.nearest_land(global_position))
+		Game.message.emit("Không có thuyền nên bơi vào bờ. Đóng thuyền ở xưởng thuyền Làng Chài nhé!")
+		wet = false
+	if wet != on_boat:
+		on_boat = wet
+		boat_back.visible = wet
+		boat_front.visible = wet
+		shadow_sprite.visible = not wet
+		if wet:
+			Game.burst(global_position + Vector2(0, 6), Color(0.8, 0.92, 1.0), 6, 30.0, 30.0, 0.35, 1.4)
+		else:
+			sprite.position.y = 0.0
+	if on_boat:
+		boat_time += delta
+		var bob := roundf(sin(boat_time * 2.6) * 1.0)
+		sprite.position.y = bob + 1.0
+		boat_back.position.y = 5.0 + bob
+		boat_front.position.y = 5.0 + bob
+		boat_back.flip_h = facing.x < 0.0
+		boat_front.flip_h = boat_back.flip_h
+
+
 ## Dịch chuyển tới chỗ mới (đi qua hang), camera theo ngay không trượt.
 func teleport_to(world_pos: Vector2) -> void:
 	global_position = world_pos
@@ -1744,6 +1804,8 @@ func use_bag_slot(index: int) -> bool:
 					return false
 			elif data.has("buff"):
 				_apply_buff(data["buff"])
+				if data.has("heal"):
+					heal(int(data["heal"]))   # trà hoa đào: vừa hồi máu vừa chạy nhanh
 			elif data.has("heal_ratio"):
 				# Bình máu: hồi theo % máu tối đa
 				if hp >= max_hp:

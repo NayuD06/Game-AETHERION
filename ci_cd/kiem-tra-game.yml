@@ -1,0 +1,202 @@
+# Kiểm tra game tự động trên GitHub (CI/CD).
+# Mỗi lần đẩy code lên GitHub (push) hoặc mở Pull Request, GitHub sẽ tự:
+#   1. Tải Godot 4.7.2 bản Linux (chạy không cần cửa sổ).
+#   2. Nhập (import) hình ảnh và tài nguyên của game.
+#   3. Nạp thử mọi script và scene, báo nếu có lỗi code hoặc thiếu file.
+#   4. Chạy thử thế giới mở (_test/world_test.tscn) và lưu / nạp game (_test/save_test.tscn).
+#   5. Nếu mọi thứ ổn và đang ở nhánh main: đóng gói game thành file .exe cho Windows để tải về.
+# Xem kết quả: vào trang repo trên GitHub, bấm tab "Actions".
+name: Kiểm tra game
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: "4.7.2"
+  GODOT: /home/runner/godot/godot
+
+jobs:
+  kiem-tra:
+    name: Nạp game và chạy thử
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Lấy code
+        uses: actions/checkout@v4
+
+      - name: Chuẩn bị lệnh chạy thử
+        run: |
+          # Viết sẵn một lệnh nhỏ: chạy Godot không cửa sổ, rồi báo lỗi lên GitHub nếu có.
+          # Cách dùng: bash "$RUNNER_TEMP/chay_godot.sh" <tên> "<chữ phải thấy, hoặc để trống>" <tham số cho Godot...>
+          cat > "$RUNNER_TEMP/chay_godot.sh" <<'SCRIPT'
+          set -u
+          ten="$1"
+          can_thay="$2"
+          shift 2
+          mkdir -p ci-logs
+          log="ci-logs/$ten.log"
+          timeout 900 "$GODOT" --headless --path . "$@" > "$log" 2>&1
+          ma=$?
+          cat "$log"
+          loi=0
+          if [ "$ma" -eq 124 ]; then
+            echo "::error title=$ten::Chạy quá 15 phút nên bị dừng"
+            loi=1
+          elif [ "$ma" -ne 0 ]; then
+            echo "::error title=$ten::Godot thoát với mã lỗi $ma"
+            loi=1
+          fi
+          if [ -n "$can_thay" ] && ! grep -qF "$can_thay" "$log"; then
+            echo "::error title=$ten::Không thấy dòng \"$can_thay\" trong kết quả"
+            loi=1
+          fi
+          if grep -qE "SCRIPT ERROR|ERROR:" "$log"; then
+            grep -E "SCRIPT ERROR|ERROR:" "$log" | head -20 | while IFS= read -r dong; do
+              echo "::error title=$ten::$dong"
+            done
+            loi=1
+          fi
+          exit $loi
+          SCRIPT
+
+      - name: Lấy Godot đã tải lần trước (nếu có)
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/godot
+          key: godot-${{ env.GODOT_VERSION }}-linux
+
+      - name: Tải Godot ${{ env.GODOT_VERSION }}
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /home/runner/godot
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip -d /home/runner/godot
+          mv "/home/runner/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$GODOT"
+          rm godot.zip
+
+      - name: Nhập hình ảnh và tài nguyên (import)
+        run: |
+          chmod +x "$GODOT"
+          mkdir -p ci-logs
+          # Lần 1 hay báo lỗi giả vì tài nguyên chưa nhập xong, nên chỉ xét kết quả lần 2.
+          "$GODOT" --headless --path . --import > ci-logs/nhap_lan_1.log 2>&1 || true
+          bash "$RUNNER_TEMP/chay_godot.sh" nhap_tai_nguyen "" --import
+
+      - name: Nạp thử mọi script và scene
+        run: bash "$RUNNER_TEMP/chay_godot.sh" kiem_tra_script "CHECK OK" res://_test/check_all.tscn
+
+      - name: Chạy thử thế giới mở (các làng, thuyền, bản đồ khám phá)
+        run: bash "$RUNNER_TEMP/chay_godot.sh" thu_the_gioi "TEST OK" res://_test/world_test.tscn
+
+      - name: Chạy thử lưu và nạp game
+        run: bash "$RUNNER_TEMP/chay_godot.sh" thu_luu_game "TEST DONE" res://_test/save_test.tscn
+
+      - name: Lưu nhật ký chạy thử để xem lại
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nhat-ky-kiem-tra
+          path: ci-logs/
+          retention-days: 7
+
+  dong-goi:
+    name: Đóng gói bản Windows (.exe)
+    needs: kiem-tra
+    # Chỉ đóng gói khi đẩy lên nhánh main, hoặc khi bấm "Run workflow" bằng tay.
+    if: github.event_name == 'workflow_dispatch' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Lấy code
+        uses: actions/checkout@v4
+
+      - name: Chuẩn bị lệnh chạy thử
+        run: |
+          # Viết sẵn một lệnh nhỏ: chạy Godot không cửa sổ, rồi báo lỗi lên GitHub nếu có.
+          # Cách dùng: bash "$RUNNER_TEMP/chay_godot.sh" <tên> "<chữ phải thấy, hoặc để trống>" <tham số cho Godot...>
+          cat > "$RUNNER_TEMP/chay_godot.sh" <<'SCRIPT'
+          set -u
+          ten="$1"
+          can_thay="$2"
+          shift 2
+          mkdir -p ci-logs
+          log="ci-logs/$ten.log"
+          timeout 900 "$GODOT" --headless --path . "$@" > "$log" 2>&1
+          ma=$?
+          cat "$log"
+          loi=0
+          if [ "$ma" -eq 124 ]; then
+            echo "::error title=$ten::Chạy quá 15 phút nên bị dừng"
+            loi=1
+          elif [ "$ma" -ne 0 ]; then
+            echo "::error title=$ten::Godot thoát với mã lỗi $ma"
+            loi=1
+          fi
+          if [ -n "$can_thay" ] && ! grep -qF "$can_thay" "$log"; then
+            echo "::error title=$ten::Không thấy dòng \"$can_thay\" trong kết quả"
+            loi=1
+          fi
+          if grep -qE "SCRIPT ERROR|ERROR:" "$log"; then
+            grep -E "SCRIPT ERROR|ERROR:" "$log" | head -20 | while IFS= read -r dong; do
+              echo "::error title=$ten::$dong"
+            done
+            loi=1
+          fi
+          exit $loi
+          SCRIPT
+
+      - name: Lấy Godot đã tải lần trước (nếu có)
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/godot
+          key: godot-${{ env.GODOT_VERSION }}-linux
+
+      - name: Tải Godot ${{ env.GODOT_VERSION }}
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p /home/runner/godot
+          curl -fsSL -o godot.zip "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip"
+          unzip -q godot.zip -d /home/runner/godot
+          mv "/home/runner/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64" "$GODOT"
+          rm godot.zip
+
+      - name: Lấy khuôn đóng gói Windows đã tải lần trước (nếu có)
+        id: template-cache
+        uses: actions/cache@v4
+        with:
+          path: /home/runner/.local/share/godot/export_templates/${{ env.GODOT_VERSION }}.stable
+          key: godot-templates-${{ env.GODOT_VERSION }}-windows
+
+      - name: Tải khuôn đóng gói (export templates)
+        if: steps.template-cache.outputs.cache-hit != 'true'
+        run: |
+          T="/home/runner/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          mkdir -p "$T"
+          curl -fsSL -o templates.tpz "https://github.com/godotengine/godot-builds/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_export_templates.tpz"
+          # Chỉ giữ phần cho Windows 64-bit cho nhẹ
+          unzip -o -j -q templates.tpz templates/version.txt templates/windows_release_x86_64.exe templates/windows_release_x86_64_console.exe -d "$T"
+          rm templates.tpz
+
+      - name: Nhập hình ảnh và tài nguyên (import)
+        run: |
+          chmod +x "$GODOT"
+          mkdir -p ci-logs
+          "$GODOT" --headless --path . --import > ci-logs/nhap_lan_1.log 2>&1 || true
+          bash "$RUNNER_TEMP/chay_godot.sh" nhap_tai_nguyen "" --import
+
+      - name: Đóng gói game thành file .exe
+        run: |
+          mkdir -p build/windows
+          bash "$RUNNER_TEMP/chay_godot.sh" dong_goi "" --export-release "Windows" build/windows/FantasyTheAwakening.exe
+          ls -la build/windows
+
+      - name: Cho tải bản Windows về
+        uses: actions/upload-artifact@v4
+        with:
+          name: Fantasy-The-Awakening-Windows
+          path: build/windows/
+          retention-days: 7

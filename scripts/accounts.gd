@@ -26,6 +26,7 @@ const FULL_BAG := [
 	["axe", 1], ["sickle", 1], ["torch", 1], ["campfire_kit", 20],
 	["bone_broth", 99], ["apple_pie", 99], ["wood", 99], ["rope", 99],
 	["hide", 99], ["bone", 99], ["wheat", 99], ["water", 99],
+	["boat", 1], ["fishing_rod", 1],
 ]
 
 
@@ -218,7 +219,7 @@ static func create_full() -> String:
 			"skill_slots": skills,
 			"weapon_uses": 0,
 		},
-		"the_gioi": { "gate_open": true },          # đã phá phong ấn cửa hang: vào thẳng Hầm Ngục Cổ
+		"the_gioi": { "gate_open": true, "map_v": 2 },   # đã phá phong ấn cửa hang (map_v: bản đồ thế giới lớn, MAP_VERSION trong level.gd)
 	}
 	return create(look, progress, true)
 

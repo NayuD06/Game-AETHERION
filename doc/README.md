@@ -9,13 +9,13 @@
 |---|---|
 | **Tên game** | Fantasy: The Awakening (Thức Tỉnh) |
 | **Thể loại** | Nhập vai hành động (Action RPG) 2D, góc nhìn từ trên xuống |
-| **Đồ họa** | Pixel art 16x16, phong cách đồng quê, rừng rậm, hầm ngục |
+| **Đồ họa** | Pixel art 16x16: đồng quê, rừng rậm, biển, sa mạc, núi tuyết, hầm ngục |
 | **Điều khiển** | Chuột kiểu Liên Minh Huyền Thoại / Dota (chuột phải để đi và đánh) |
 | **Làm bằng** | Godot 4.7 (GDScript) |
 | **Trạng thái** | Bản chơi thử (demo) |
 
-> Ghi chú: các ảnh trong tài liệu này được vẽ lại từ bản đồ và hình ảnh thật của game, nên rất giống lúc chơi
-> (dân làng trong ảnh vẽ đơn giản hơn, trong game mỗi người một vẻ).
+> Ghi chú: phần lớn ảnh trong tài liệu này được vẽ lại từ bản đồ và hình ảnh thật của game, nên rất giống lúc chơi
+> (dân làng trong ảnh vẽ đơn giản hơn, trong game mỗi người một vẻ). Ảnh thế giới mở, các làng mới, các vùng mới là ảnh chụp thật trong game.
 
 ---
 
@@ -104,6 +104,9 @@ Giống Liên Minh Huyền Thoại: góc trên bên trái có **bản đồ nh�
 Bấm chuột phải vào chỗ nào trên bản đồ là nhân vật tự tìm đường đi tới đó, có đường xanh chỉ lối. Bấm **M** để mở bản đồ lớn có tên các khu.
 Chấm trắng là bạn, chấm đỏ là quái, chấm đỏ to là Boss, ô cam là trạm chế tạo, chấm tím là cửa hang.
 Bản đồ chỉ hiện khu bạn đang đứng: ở ngoài thì không thấy hầm ngục, xuống hầm ngục thì chỉ thấy tầng đang đứng (ghi "Tầng N").
+Thế giới bên ngoài **khám phá tới đâu mở bản đồ tới đó**: chỗ chưa đi tới là màu tối, chưa biết tên khu.
+
+![Bản đồ lớn lúc mới khám phá vài làng](images/ban_do_kham_pha.png)
 
 ![Bản đồ nhỏ ở góc màn hình](images/ban_do_nho.png)
 
@@ -187,7 +190,28 @@ Quái cấp càng cao thì càng trâu, đánh càng đau, nhưng cho nhiều ki
 
 ## 4. Thế giới
 
-![Toàn bộ bản đồ ngoài trời](images/ban_do_tong.png)
+![Toàn bộ thế giới mở (đã khám phá hết)](images/the_gioi_mo.png)
+
+Game là **thế giới mở** rộng 320 x 288 ô. Bản đồ ban đầu (3 làng, 3 khu rừng, đấu trường) nằm ở giữa,
+bốn phía là các vùng mới. Các làng ở rất xa nhau, đi từ làng này sang làng khác phải băng qua nhiều vùng:
+đồng cỏ, rừng già, rừng bạch dương, đồng hoa, thảo nguyên, núi đá, hẻm núi, đồng tuyết, rừng trúc, rừng hoa đào,
+sa mạc, hẻm núi đỏ, bờ biển và biển với hai hòn đảo. Càng đi xa quái càng mạnh.
+
+**5 làng mới**: Làng Chài (bờ biển phía tây, có xưởng đóng thuyền), Làng Tuyết (tây bắc), Làng Hoa Đào (đông bắc),
+Làng Tre (phía đông, giữa rừng trúc) và Ốc Đảo (giữa sa mạc phía nam).
+
+![4 làng mới: Làng Chài, Làng Tuyết, Làng Hoa Đào, Ốc Đảo](images/lang_moi.png)
+
+**Biển và thuyền**: biển có cá, cá heo, rùa biển, hải âu, bờ biển có cua. Chỗ nước gợn sóng là chỗ **câu cá**
+(cần có Cần câu). Đóng **thuyền** ở xưởng đóng thuyền Làng Chài (hoặc mua 150 vàng), có thuyền thì đi được trên sông, hồ, biển
+và ra được các đảo xa. Sa mạc có lạc đà, thằn lằn và **bọ cạp** chích rất đau. Mỗi vùng có thời tiết riêng:
+tuyết rơi, cánh hoa đào bay, đom đóm, bào tử nấm.
+
+![Sa mạc, Đảo Nấm, Rừng Bạch Dương và đi thuyền ở Làng Chài](images/vung_moi.png)
+
+### Bản đồ ban đầu (ở giữa thế giới)
+
+![Bản đồ ban đầu](images/ban_do_tong.png)
 
 Bản đồ có 3 dải nối liền nhau. Đi qua mép khu nào là hiện tên khu đó.
 
@@ -299,6 +323,12 @@ Người có **đồng xu vàng trên đầu** là người bán hàng, đi tớ
 | Chú Tư | Sạp bánh ở quảng trường | Bánh mì, bánh táo, thịt nướng, các loại súp |
 | Bác Sắt thợ rèn | Phía đông quảng trường (cạnh cái đe) | Trang bị bậc Da và Sắt, rìu, liềm, đuốc. **Sửa trang bị** |
 | Bà thầy thuốc | Đầm Lầy Nấm | Bình máu, thuốc sức mạnh, thuốc nhanh nhẹn |
+| Cô Sáu bán cá | Làng Chài | Cá, tôm, cá nướng, canh cá, cần câu |
+| Bác Thuyền | Làng Chài | Thuyền, cần câu, gỗ, dây thừng |
+| Bà Tuyết thợ rèn | Làng Tuyết | Trang bị bậc Sắt và Thép xanh. **Sửa trang bị** |
+| Cô Đào bán trà | Làng Hoa Đào | Trà hoa đào (hồi máu, chạy nhanh), bánh, súp |
+| Thầy lang Trúc | Làng Tre | Bình máu, thuốc sức mạnh, súp, canh cá |
+| Ông Sa | Ốc Đảo | Nước, chà là, bình máu, bánh mì, cá nướng |
 
 ### 4 trạm chế tạo ở quảng trường
 
@@ -339,6 +369,11 @@ Lửa trại trong rừng cũng nướng đồ được như bếp lửa. Có **
 | Bàn chế tạo | Ba lô lớn hơn | 3 da thú + 2 dây thừng | Túi thêm 4 ô (làm được 2 lần) |
 | Bàn chế tạo | Áo giáp da | 4 da thú + 1 dây thừng | Trang bị: phòng thủ +3, máu +10 |
 | Bàn chế tạo | Bùa răng sói | 4 xương + 1 da thú + 1 dây thừng | Tấn công +4 |
+| Bàn chế tạo | Cần câu | 2 gỗ + 1 dây thừng | Câu cá ở chỗ nước gợn sóng |
+| Bếp lửa | Cá nướng / Cá ngừ nướng / Cua nướng | 1 cá / 1 cá ngừ / 1 thịt cua | Hồi 30 / 70 / 45 máu |
+| Lò nấu ăn | Canh cá | 1 cá + 1 tôm + 1 bình nước | Hồi 9 máu mỗi giây trong 12 giây |
+| Nồi luyện thuốc | 2 Thuốc sức mạnh | 1 đuôi bọ cạp + 1 thảo dược + 1 bình nước | Tấn công +6 trong 60 giây |
+| Xưởng đóng thuyền (Làng Chài) | Thuyền | 10 gỗ + 4 dây thừng + 2 da thú | Đi trên sông, hồ, biển |
 
 Mẹo: làm **Rìu** trước (chỉ cần xương và dây thừng), có rìu mới chặt được gỗ để làm liềm, đuốc và bộ lửa trại.
 
